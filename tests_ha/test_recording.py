@@ -518,6 +518,14 @@ async def test_stopping_a_stream_is_not_an_error(
             await self._exit.wait()
             return b""
 
+        async def wait(self) -> int:
+            # One real suspension before the exit check. Without it the test
+            # harness's eager tasks let async_stop's kill complete and cancel
+            # the supervisor within a single loop step, and the race this test
+            # exists for can never open; a real process wait always yields.
+            await asyncio.sleep(0)
+            return await super().wait()
+
     async def _spawn(program, *args, **kwargs):
         spawned.append([program, *args])
         return SlowDrain()
