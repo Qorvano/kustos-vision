@@ -121,13 +121,30 @@ class CamwatchCoordinator(DataUpdateCoordinator[CamwatchData]):
 
         await self.recorder.async_apply(config.storage, config.cameras)
         self.vision.async_apply(config)
-        await self.async_request_refresh()
+        await self.async_publish_state()
 
     async def async_set_paused(self, camera_slug: str, paused: bool) -> None:
         """Pause or resume one camera without touching its configuration."""
         await self.recorder.async_set_paused(camera_slug, paused)
         await self.recorder.async_apply(self.config.storage, self.config.cameras)
-        await self.async_request_refresh()
+        await self.async_publish_state()
+
+    async def async_publish_state(self) -> None:
+        """Recompute and publish the state without running housekeeping.
+
+        Needed because async_request_refresh is debounced by several seconds
+        and does a full maintenance pass. A configuration change has to be
+        visible at once: the panel reads the snapshot returned by the very call
+        that changed something, and with a debounced refresh that snapshot
+        still carried the state from before the change. Switching a camera to
+        recording appeared to do nothing until the page was reloaded.
+
+        Only index queries and the recorder's own status are read here, so it
+        is cheap enough to run on every change.
+        """
+        self.async_set_updated_data(
+            await self._async_build_state(self.maintenance.last_result)
+        )
 
     # ------------------------------------------------------------------
     # The update cycle
@@ -180,10 +197,15 @@ class CamwatchCoordinator(DataUpdateCoordinator[CamwatchData]):
 
     @callback
     def _on_recorder_change(self) -> None:
-        """A process started or died; show it without waiting for the cycle."""
+        """A process started or died; show it without waiting for the cycle.
+
+        Publishes directly rather than requesting a refresh, which is debounced
+        and would leave a camera reading as stopped for seconds after it came
+        back, and as running for seconds after it died.
+        """
         if self.data is None:
             return
-        self.hass.async_create_task(self.async_request_refresh())
+        self.hass.async_create_task(self.async_publish_state())
 
 
 def _free_bytes(path: Path) -> int | None:

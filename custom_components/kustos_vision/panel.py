@@ -55,9 +55,16 @@ async def async_register_panel(hass: HomeAssistant) -> None:
             StaticPathConfig(
                 f"/{DOMAIN}-frontend",
                 str(FRONTEND_DIR),
-                # The fingerprint in the URL below changes whenever the bundle
-                # does, so the files themselves may be cached hard.
-                cache_headers=True,
+                # Deliberately no far-future caching, even though the URL
+                # carries a fingerprint. The fingerprint is computed when the
+                # panel is registered, which happens once at startup: after an
+                # update through HACS the file on disk is new while the
+                # registered URL still names the old hash, so a hard-cached
+                # browser keeps serving the previous panel until Home Assistant
+                # is restarted. Without the far-future header the browser
+                # revalidates instead, which for a bundle this size costs one
+                # conditional request and always shows what is actually there.
+                cache_headers=False,
             )
         ]
     )

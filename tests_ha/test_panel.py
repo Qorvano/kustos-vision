@@ -204,3 +204,29 @@ async def test_the_registered_url_carries_the_fingerprint(hass: HomeAssistant) -
     config = hass.data[frontend.DATA_PANELS][DOMAIN].config or {}
     module_url = str(config.get("_panel_custom", {}).get("module_url", ""))
     assert bundle_fingerprint() in module_url
+
+
+async def test_the_bundle_is_not_cached_far_into_the_future(
+    hass: HomeAssistant, hass_client
+) -> None:
+    """Regression: the bundle was served with long cache headers and a
+    fingerprint computed at registration, which happens once at startup. After
+    an update the file on disk was new while the registered URL still named the
+    old hash, so browsers kept the previous panel until Home Assistant was
+    restarted, and a plain reload never helped.
+    """
+    from custom_components.kustos_vision.panel import bundle_fingerprint
+
+    await async_setup_component(hass, DOMAIN, {})
+    await hass.async_block_till_done()
+
+    client = await hass_client()
+    response = await client.get(
+        f"/{DOMAIN}-frontend/panel.js?v={bundle_fingerprint()}"
+    )
+    assert response.status == 200
+
+    cache_control = response.headers.get("Cache-Control", "")
+    # Either no directive at all, or one that still revalidates.
+    assert "max-age=31536000" not in cache_control
+    assert "immutable" not in cache_control

@@ -1187,3 +1187,53 @@ async def test_a_camera_that_should_record_reports_that_it_wants_to(
 
     result = await send(client, type=f"{DOMAIN}/config/get")
     assert result["result"]["cameras"][0]["state"]["wants_recording"] is True
+
+
+async def test_the_answer_to_a_change_already_reflects_it(
+    hass: HomeAssistant, hass_ws_client, setup_kustos_vision
+) -> None:
+    """Regression: the state was refreshed through a debounced call, so the
+    snapshot returned by the very command that changed something still carried
+    the state from before it. Switching a camera to recording looked like it
+    had done nothing until the page was reloaded."""
+    await setup_kustos_vision(
+        [camera_dict(streams=[{"key": "hd", "entity_id": "camera.a", "record": False}])]
+    )
+    client = await hass_ws_client(hass)
+
+    before = await send(client, type=f"{DOMAIN}/config/get")
+    assert before["result"]["cameras"][0]["state"]["wants_recording"] is False
+
+    result = await send(
+        client,
+        type=f"{DOMAIN}/camera/set",
+        replace_existing=True,
+        **camera_dict(
+            streams=[{"key": "hd", "entity_id": "camera.a", "record": True}]
+        ),
+    )
+    # No second call, no waiting: the answer itself has to be current.
+    assert result["result"]["cameras"][0]["state"]["wants_recording"] is True
+
+
+async def test_pausing_is_reflected_in_the_same_answer(
+    hass: HomeAssistant, hass_ws_client, setup_kustos_vision
+) -> None:
+    await setup_kustos_vision([camera_dict()])
+    client = await hass_ws_client(hass)
+
+    switch_id = hass.states.async_entity_ids("switch")[0]
+    await hass.services.async_call(
+        "switch", "turn_off", {"entity_id": switch_id}, blocking=True
+    )
+    result = await send(client, type=f"{DOMAIN}/config/get")
+    assert result["result"]["cameras"][0]["state"]["paused"] is True
+
+
+async def test_a_deleted_camera_is_gone_from_the_same_answer(
+    hass: HomeAssistant, hass_ws_client, setup_kustos_vision
+) -> None:
+    await setup_kustos_vision([camera_dict()])
+    client = await hass_ws_client(hass)
+    result = await send(client, type=f"{DOMAIN}/camera/delete", slug="vorgarten")
+    assert result["result"]["cameras"] == []
