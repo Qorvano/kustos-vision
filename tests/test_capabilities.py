@@ -23,22 +23,22 @@ def ent(entity_id: str, name: str = "", device_class: str | None = None):
 # A pan-tilt camera exposing its functions as buttons with English object ids,
 # which is what one widely used community integration produces.
 TAPO_STYLE = [
-    ent("camera.kamera_vorgarten_hd_stream", "Kamera Vorgarten HD Stream"),
-    ent("camera.kamera_vorgarten_sd_stream", "Kamera Vorgarten SD Stream"),
-    ent("button.kamera_vorgarten_move_up", "Kamera Vorgarten Move Up"),
-    ent("button.kamera_vorgarten_move_down", "Kamera Vorgarten Move Down"),
-    ent("button.kamera_vorgarten_move_left", "Kamera Vorgarten Move Left"),
-    ent("button.kamera_vorgarten_move_right", "Kamera Vorgarten Move Right"),
-    ent("button.kamera_vorgarten_manual_alarm_start", "Manual Alarm Start"),
-    ent("button.kamera_vorgarten_manual_alarm_stop", "Manual Alarm Stop"),
-    ent("light.kamera_vorgarten_floodlight_timed", "Floodlight (Timed)"),
-    ent("number.kamera_vorgarten_spotlight_intensity", "Spotlight Intensity"),
-    ent("select.kamera_vorgarten_move_to_preset", "Move to Preset"),
-    ent("select.kamera_vorgarten_patrol_mode", "Patrol Mode"),
-    ent("select.kamera_vorgarten_night_vision", "Night Vision"),
-    ent("binary_sensor.vorgarten_motion", "Motion", device_class="motion"),
-    ent("button.kamera_vorgarten_reboot", "Reboot"),
-    ent("button.kamera_vorgarten_sync_time", "Sync Time"),
+    ent("camera.kamera_beispiel_hd_stream", "Kamera Beispiel HD Stream"),
+    ent("camera.kamera_beispiel_sd_stream", "Kamera Beispiel SD Stream"),
+    ent("button.kamera_beispiel_move_up", "Kamera Beispiel Move Up"),
+    ent("button.kamera_beispiel_move_down", "Kamera Beispiel Move Down"),
+    ent("button.kamera_beispiel_move_left", "Kamera Beispiel Move Left"),
+    ent("button.kamera_beispiel_move_right", "Kamera Beispiel Move Right"),
+    ent("button.kamera_beispiel_manual_alarm_start", "Manual Alarm Start"),
+    ent("button.kamera_beispiel_manual_alarm_stop", "Manual Alarm Stop"),
+    ent("light.kamera_beispiel_floodlight_timed", "Floodlight (Timed)"),
+    ent("number.kamera_beispiel_spotlight_intensity", "Spotlight Intensity"),
+    ent("select.kamera_beispiel_move_to_preset", "Move to Preset"),
+    ent("select.kamera_beispiel_patrol_mode", "Patrol Mode"),
+    ent("select.kamera_beispiel_night_vision", "Night Vision"),
+    ent("binary_sensor.beispiel_motion", "Motion", device_class="motion"),
+    ent("button.kamera_beispiel_reboot", "Reboot"),
+    ent("button.kamera_beispiel_sync_time", "Sync Time"),
 ]
 
 # The same functions under a different integration's naming.
@@ -72,18 +72,18 @@ GERMAN_STYLE = [
         (
             TAPO_STYLE,
             {
-                "ptz_up": "button.kamera_vorgarten_move_up",
-                "ptz_down": "button.kamera_vorgarten_move_down",
-                "ptz_left": "button.kamera_vorgarten_move_left",
-                "ptz_right": "button.kamera_vorgarten_move_right",
-                "light": "light.kamera_vorgarten_floodlight_timed",
-                "light_brightness": "number.kamera_vorgarten_spotlight_intensity",
-                "ptz_preset": "select.kamera_vorgarten_move_to_preset",
-                "ptz_patrol": "select.kamera_vorgarten_patrol_mode",
-                "night_vision": "select.kamera_vorgarten_night_vision",
-                "motion_trigger": "binary_sensor.vorgarten_motion",
-                "siren_on": "button.kamera_vorgarten_manual_alarm_start",
-                "siren_off": "button.kamera_vorgarten_manual_alarm_stop",
+                "ptz_up": "button.kamera_beispiel_move_up",
+                "ptz_down": "button.kamera_beispiel_move_down",
+                "ptz_left": "button.kamera_beispiel_move_left",
+                "ptz_right": "button.kamera_beispiel_move_right",
+                "light": "light.kamera_beispiel_floodlight_timed",
+                "light_brightness": "number.kamera_beispiel_spotlight_intensity",
+                "ptz_preset": "select.kamera_beispiel_move_to_preset",
+                "ptz_patrol": "select.kamera_beispiel_patrol_mode",
+                "night_vision": "select.kamera_beispiel_night_vision",
+                "motion_trigger": "binary_sensor.beispiel_motion",
+                "siren_on": "button.kamera_beispiel_manual_alarm_start",
+                "siren_off": "button.kamera_beispiel_manual_alarm_stop",
             },
         ),
         (
@@ -132,8 +132,8 @@ def test_unrelated_entities_are_left_alone() -> None:
     """Reboot and time sync are buttons on the same device and must not be
     proposed for anything."""
     proposed = set(suggest_capabilities(TAPO_STYLE).values())
-    assert "button.kamera_vorgarten_reboot" not in proposed
-    assert "button.kamera_vorgarten_sync_time" not in proposed
+    assert "button.kamera_beispiel_reboot" not in proposed
+    assert "button.kamera_beispiel_sync_time" not in proposed
 
 
 def test_an_entity_is_proposed_at_most_once() -> None:
@@ -191,8 +191,8 @@ def test_every_rule_has_a_key_the_panel_knows() -> None:
 
 def test_two_streams_are_told_apart_by_their_names() -> None:
     assert suggest_streams(TAPO_STYLE) == [
-        ("hd", "camera.kamera_vorgarten_hd_stream"),
-        ("sd", "camera.kamera_vorgarten_sd_stream"),
+        ("hd", "camera.kamera_beispiel_hd_stream"),
+        ("sd", "camera.kamera_beispiel_sd_stream"),
     ]
 
 

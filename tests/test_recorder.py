@@ -24,7 +24,7 @@ BASE = Path("/media/kustos_vision")
 
 def spec(**overrides) -> StreamSpec:
     values = {
-        "camera_slug": "vorgarten",
+        "camera_slug": "beispiel",
         "stream_key": "hd",
         "source_url": "rtsp://cam.invalid:554/stream1",
         "segment_seconds": 300,
@@ -86,7 +86,7 @@ def test_segment_length_and_clock_alignment_are_set() -> None:
 
 def test_output_is_the_strftime_pattern() -> None:
     args = build_record_args(spec(), BASE)
-    assert args[-1] == "/media/kustos_vision/vorgarten/%Y-%m-%d/%H-%M-%S_hd.mp4"
+    assert args[-1] == "/media/kustos_vision/beispiel/%Y-%m-%d/%H-%M-%S_hd.mp4"
     assert pair_after(args, "-strftime") == "1"
 
 
@@ -131,7 +131,7 @@ def test_audio_can_be_dropped() -> None:
 
 
 def test_stream_id_identifies_a_stream() -> None:
-    assert spec().stream_id == "vorgarten/hd"
+    assert spec().stream_id == "beispiel/hd"
 
 
 @pytest.mark.parametrize(

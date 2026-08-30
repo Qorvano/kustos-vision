@@ -16,13 +16,13 @@ from kustos_vision.core.index import (
 )
 
 BERLIN = ZoneInfo("Europe/Berlin")
-T0 = int(datetime(2026, 8, 30, 12, 0, tzinfo=UTC).timestamp())
+T0 = int(datetime(2026, 1, 20, 12, 0, tzinfo=UTC).timestamp())
 
 
 def seg(
     offset: int = 0,
     *,
-    camera: str = "vorgarten",
+    camera: str = "beispiel",
     stream: str = "hd",
     duration: float = 300.0,
     size: int = 1000,
@@ -116,18 +116,18 @@ def test_clear_empties_the_index(index: SegmentIndex) -> None:
 def test_totals_are_grouped_per_camera(index: SegmentIndex) -> None:
     index.upsert(
         [
-            seg(0, camera="vorgarten", size=100),
-            seg(300, camera="vorgarten", size=200),
+            seg(0, camera="beispiel", size=100),
+            seg(300, camera="beispiel", size=200),
             seg(0, camera="garten", size=50),
         ]
     )
-    assert index.bytes_by_camera() == {"vorgarten": 300, "garten": 50}
+    assert index.bytes_by_camera() == {"beispiel": 300, "garten": 50}
 
 
 def test_oldest_start_reports_coverage(index: SegmentIndex) -> None:
-    index.upsert([seg(600, camera="vorgarten"), seg(0, camera="garten")])
+    index.upsert([seg(600, camera="beispiel"), seg(0, camera="garten")])
     assert index.oldest_start() == T0
-    assert index.oldest_start("vorgarten") == T0 + 600
+    assert index.oldest_start("beispiel") == T0 + 600
 
 
 def test_oldest_start_of_an_empty_index_is_none(index: SegmentIndex) -> None:
@@ -161,45 +161,45 @@ def test_range_query_excludes_segments_starting_after_the_window(
 def test_range_query_can_filter_by_camera_and_stream(index: SegmentIndex) -> None:
     index.upsert(
         [
-            seg(0, camera="vorgarten", stream="hd"),
-            seg(0, camera="vorgarten", stream="sd"),
+            seg(0, camera="beispiel", stream="hd"),
+            seg(0, camera="beispiel", stream="sd"),
             seg(0, camera="garten", stream="hd"),
         ]
     )
     assert len(index.in_range(T0, T0 + 300)) == 3
-    assert len(index.in_range(T0, T0 + 300, camera_slug="vorgarten")) == 2
-    assert len(index.in_range(T0, T0 + 300, camera_slug="vorgarten", stream_key="hd")) == 1
+    assert len(index.in_range(T0, T0 + 300, camera_slug="beispiel")) == 2
+    assert len(index.in_range(T0, T0 + 300, camera_slug="beispiel", stream_key="hd")) == 1
 
 
 def test_oldest_first_is_globally_ordered(index: SegmentIndex) -> None:
-    index.upsert([seg(600, camera="garten"), seg(0, camera="vorgarten"), seg(300)])
+    index.upsert([seg(600, camera="garten"), seg(0, camera="beispiel"), seg(300)])
     assert [s.start_utc for s in index.oldest_first()] == [T0, T0 + 300, T0 + 600]
 
 
 def test_older_than_is_limited_to_one_camera(index: SegmentIndex) -> None:
-    index.upsert([seg(0, camera="vorgarten"), seg(0, camera="garten")])
-    found = index.older_than(T0 + 1, "vorgarten")
+    index.upsert([seg(0, camera="beispiel"), seg(0, camera="garten")])
+    found = index.older_than(T0 + 1, "beispiel")
     assert len(found) == 1
-    assert found[0].camera_slug == "vorgarten"
+    assert found[0].camera_slug == "beispiel"
 
 
 def test_cameras_are_listed(index: SegmentIndex) -> None:
-    index.upsert([seg(0, camera="vorgarten"), seg(0, camera="garten")])
-    assert index.cameras() == ["garten", "vorgarten"]
+    index.upsert([seg(0, camera="beispiel"), seg(0, camera="garten")])
+    assert index.cameras() == ["garten", "beispiel"]
 
 
 def test_days_with_recordings_uses_local_days(index: SegmentIndex) -> None:
     """23:30 UTC is already the next day in Berlin, and the day picker has to
     show the day the user would look for."""
-    late = int(datetime(2026, 8, 30, 23, 30, tzinfo=UTC).timestamp())
+    late = int(datetime(2026, 1, 20, 23, 30, tzinfo=UTC).timestamp())
     index.upsert(
         [
-            Segment("a.mp4", "vorgarten", "hd", late, 300.0, 1, False),
-            Segment("b.mp4", "vorgarten", "hd", T0, 300.0, 1, False),
+            Segment("a.mp4", "beispiel", "hd", late, 300.0, 1, False),
+            Segment("b.mp4", "beispiel", "hd", T0, 300.0, 1, False),
         ]
     )
-    assert index.days_with_recordings("vorgarten", BERLIN) == [
-        date(2026, 8, 30),
+    assert index.days_with_recordings("beispiel", BERLIN) == [
+        date(2026, 1, 20),
         date(2026, 8, 31),
     ]
 
@@ -244,28 +244,28 @@ def test_blocks_reject_a_negative_tolerance() -> None:
 def test_scan_reads_a_real_file(tmp_path: Path) -> None:
     import os
 
-    day = tmp_path / "vorgarten" / "2026-08-30"
+    day = tmp_path / "beispiel" / "2026-01-20"
     day.mkdir(parents=True)
     path = day / "14-30-00_hd.mp4"
     path.write_bytes(b"x" * 4096)
 
-    start_local = datetime(2026, 8, 30, 14, 30, tzinfo=BERLIN)
+    start_local = datetime(2026, 1, 20, 14, 30, tzinfo=BERLIN)
     # mtime is when the segment was last written, so it marks the end.
     end = start_local.timestamp() + 300
     os.utime(path, (end, end))
 
     found = scan_segment(path, tmp_path, BERLIN)
     assert found is not None
-    assert found.camera_slug == "vorgarten"
+    assert found.camera_slug == "beispiel"
     assert found.stream_key == "hd"
-    assert found.rel_path == "vorgarten/2026-08-30/14-30-00_hd.mp4"
+    assert found.rel_path == "beispiel/2026-01-20/14-30-00_hd.mp4"
     assert found.size_bytes == 4096
     assert found.duration_s == pytest.approx(300.0)
     assert found.has_thumbnail is False
 
 
 def test_scan_notices_a_thumbnail(tmp_path: Path) -> None:
-    day = tmp_path / "vorgarten" / "2026-08-30"
+    day = tmp_path / "beispiel" / "2026-01-20"
     day.mkdir(parents=True)
     (day / "14-30-00_hd.mp4").write_bytes(b"x")
     (day / "14-30-00_hd.jpg").write_bytes(b"y")
@@ -278,11 +278,11 @@ def test_scan_never_reports_a_negative_duration(tmp_path: Path) -> None:
     """A clock correction can put mtime before the name's timestamp."""
     import os
 
-    day = tmp_path / "vorgarten" / "2026-08-30"
+    day = tmp_path / "beispiel" / "2026-01-20"
     day.mkdir(parents=True)
     path = day / "14-30-00_hd.mp4"
     path.write_bytes(b"x")
-    early = datetime(2026, 8, 30, 14, 0, tzinfo=BERLIN).timestamp()
+    early = datetime(2026, 1, 20, 14, 0, tzinfo=BERLIN).timestamp()
     os.utime(path, (early, early))
 
     found = scan_segment(path, tmp_path, BERLIN)
@@ -290,30 +290,30 @@ def test_scan_never_reports_a_negative_duration(tmp_path: Path) -> None:
 
 
 def test_scan_rejects_a_foreign_file(tmp_path: Path) -> None:
-    day = tmp_path / "vorgarten" / "2026-08-30"
+    day = tmp_path / "beispiel" / "2026-01-20"
     day.mkdir(parents=True)
     (day / "notes.txt").write_bytes(b"x")
     assert scan_segment(day / "notes.txt", tmp_path, BERLIN) is None
 
 
 def test_scan_of_a_vanished_file_is_none(tmp_path: Path) -> None:
-    day = tmp_path / "vorgarten" / "2026-08-30"
+    day = tmp_path / "beispiel" / "2026-01-20"
     day.mkdir(parents=True)
     assert scan_segment(day / "14-30-00_hd.mp4", tmp_path, BERLIN) is None
 
 
 def test_scan_tree_finds_every_camera(tmp_path: Path) -> None:
-    for cam in ("vorgarten", "garten"):
-        day = tmp_path / cam / "2026-08-30"
+    for cam in ("beispiel", "garten"):
+        day = tmp_path / cam / "2026-01-20"
         day.mkdir(parents=True)
         (day / "14-30-00_hd.mp4").write_bytes(b"x")
 
     assert len(scan_tree(tmp_path, BERLIN)) == 2
-    assert len(scan_tree(tmp_path, BERLIN, "vorgarten")) == 1
+    assert len(scan_tree(tmp_path, BERLIN, "beispiel")) == 1
 
 
 def _tree(root: Path, *names: str) -> None:
-    day = root / "vorgarten" / "2026-08-30"
+    day = root / "beispiel" / "2026-01-20"
     day.mkdir(parents=True, exist_ok=True)
     for name in names:
         (day / name).write_bytes(b"x")
@@ -334,10 +334,10 @@ def test_incremental_scan_skips_files_it_already_knows(tmp_path: Path) -> None:
     from kustos_vision.core.index import scan_incremental
 
     _tree(tmp_path, "14-30-00_hd.mp4", "14-35-00_hd.mp4")
-    known = {"vorgarten/2026-08-30/14-30-00_hd.mp4"}
+    known = {"beispiel/2026-01-20/14-30-00_hd.mp4"}
     result = scan_incremental(tmp_path, BERLIN, known=known)
     assert [s.rel_path for s in result.changed] == [
-        "vorgarten/2026-08-30/14-35-00_hd.mp4"
+        "beispiel/2026-01-20/14-35-00_hd.mp4"
     ]
 
 
@@ -347,7 +347,7 @@ def test_incremental_scan_refreshes_the_growing_segment(tmp_path: Path) -> None:
     from kustos_vision.core.index import scan_incremental
 
     _tree(tmp_path, "14-30-00_hd.mp4")
-    rel = "vorgarten/2026-08-30/14-30-00_hd.mp4"
+    rel = "beispiel/2026-01-20/14-30-00_hd.mp4"
     result = scan_incremental(tmp_path, BERLIN, known={rel}, refresh={rel})
     assert [s.rel_path for s in result.changed] == [rel]
 
@@ -357,11 +357,11 @@ def test_incremental_scan_reports_files_deleted_behind_its_back(tmp_path: Path) 
 
     _tree(tmp_path, "14-30-00_hd.mp4")
     known = {
-        "vorgarten/2026-08-30/14-30-00_hd.mp4",
-        "vorgarten/2026-08-29/09-00-00_hd.mp4",
+        "beispiel/2026-01-20/14-30-00_hd.mp4",
+        "beispiel/2026-08-29/09-00-00_hd.mp4",
     }
     result = scan_incremental(tmp_path, BERLIN, known=known)
-    assert result.vanished == ("vorgarten/2026-08-29/09-00-00_hd.mp4",)
+    assert result.vanished == ("beispiel/2026-08-29/09-00-00_hd.mp4",)
 
 
 def test_knows_answers_for_a_single_path(index: SegmentIndex) -> None:
@@ -370,7 +370,7 @@ def test_knows_answers_for_a_single_path(index: SegmentIndex) -> None:
     a = seg(0)
     index.upsert([a])
     assert index.knows(a.rel_path) is True
-    assert index.knows("vorgarten/2026-08-30/99-99-99_hd.mp4") is False
+    assert index.knows("beispiel/2026-01-20/99-99-99_hd.mp4") is False
 
 
 def test_knows_on_an_empty_index_is_false(index: SegmentIndex) -> None:

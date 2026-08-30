@@ -38,7 +38,7 @@ def stored(base: Path, cameras=None, views=None) -> dict:
     }
 
 
-def camera_dict(slug="vorgarten", **overrides) -> dict:
+def camera_dict(slug="beispiel", **overrides) -> dict:
     base = {
         "slug": slug,
         "name": slug.title(),
@@ -108,7 +108,7 @@ async def test_config_get_returns_a_complete_snapshot(
     data = result["result"]
     assert data["storage"]["segment_seconds"] == 60
     assert len(data["cameras"]) == 1
-    assert data["cameras"][0]["slug"] == "vorgarten"
+    assert data["cameras"][0]["slug"] == "beispiel"
     assert "state" in data["cameras"][0]
     assert "capability_keys" in data
     assert "totals" in data
@@ -154,7 +154,7 @@ async def test_a_camera_can_be_added(
 
     result = await send(client, type=f"{DOMAIN}/camera/set", **camera_dict())
     assert result["success"]
-    assert [c["slug"] for c in result["result"]["cameras"]] == ["vorgarten"]
+    assert [c["slug"] for c in result["result"]["cameras"]] == ["beispiel"]
 
 
 async def test_adding_a_camera_creates_its_entities(
@@ -211,7 +211,7 @@ async def test_a_camera_can_be_deleted(
     await setup_kustos_vision([camera_dict()])
     client = await hass_ws_client(hass)
 
-    result = await send(client, type=f"{DOMAIN}/camera/delete", slug="vorgarten")
+    result = await send(client, type=f"{DOMAIN}/camera/delete", slug="beispiel")
     assert result["success"]
     assert result["result"]["cameras"] == []
 
@@ -237,7 +237,7 @@ async def test_deleting_a_camera_clears_it_from_views(
     )
     client = await hass_ws_client(hass)
 
-    result = await send(client, type=f"{DOMAIN}/camera/delete", slug="vorgarten")
+    result = await send(client, type=f"{DOMAIN}/camera/delete", slug="beispiel")
     assert result["result"]["views"][0]["cameras"] == []
 
 
@@ -345,7 +345,7 @@ async def test_which_cameras_a_view_shows_is_set_on_the_cameras(
         **camera_dict(view_settings={"a": {"visible": True, "stream_key": "hd"}}),
     )
     assert result["success"]
-    assert result["result"]["views"][0]["cameras"] == ["vorgarten"]
+    assert result["result"]["views"][0]["cameras"] == ["beispiel"]
 
 
 async def test_a_camera_can_be_hidden_from_a_view(
@@ -485,7 +485,7 @@ async def test_changing_the_path_leaves_the_old_recordings_alone(
     worst possible surprise."""
     entry = await setup_kustos_vision()
     old = Path(entry.runtime_data.config.storage.base_path)
-    day = old / "vorgarten" / "2026-08-30"
+    day = old / "beispiel" / "2026-01-20"
     day.mkdir(parents=True)
     recording = day / "14-30-00_hd.mp4"
     recording.write_bytes(b"important")
@@ -506,7 +506,7 @@ async def test_recordings_carried_across_by_hand_are_found_again(
     can move. Copying the tree across has to be enough."""
     entry = await setup_kustos_vision()
     target = tmp_path / "elsewhere"
-    day = target / "vorgarten" / "2026-08-30"
+    day = target / "beispiel" / "2026-01-20"
     day.mkdir(parents=True)
     (day / "14-30-00_hd.mp4").write_bytes(b"x" * 64)
 
@@ -517,7 +517,7 @@ async def test_recordings_carried_across_by_hand_are_found_again(
     await entry.runtime_data.async_refresh()
     await hass.async_block_till_done()
     rows = await hass.async_add_executor_job(entry.runtime_data.index.oldest_first)
-    assert [r.rel_path for r in rows] == ["vorgarten/2026-08-30/14-30-00_hd.mp4"]
+    assert [r.rel_path for r in rows] == ["beispiel/2026-01-20/14-30-00_hd.mp4"]
 
 
 async def test_an_unusable_path_is_refused_with_a_reason(
@@ -580,7 +580,7 @@ async def test_a_capability_can_be_triggered(
     client = await hass_ws_client(hass)
 
     result = await send(
-        client, type=f"{DOMAIN}/camera/trigger", slug="vorgarten", capability="ptz_up"
+        client, type=f"{DOMAIN}/camera/trigger", slug="beispiel", capability="ptz_up"
     )
     assert result["success"]
     assert calls[0].data["entity_id"] == "button.hof_up"
@@ -595,7 +595,7 @@ async def test_triggering_an_unbound_capability_says_so(
     client = await hass_ws_client(hass)
 
     result = await send(
-        client, type=f"{DOMAIN}/camera/trigger", slug="vorgarten", capability="ptz_up"
+        client, type=f"{DOMAIN}/camera/trigger", slug="beispiel", capability="ptz_up"
     )
     assert not result["success"]
     assert result["error"]["code"] == "not_bound"
@@ -618,7 +618,7 @@ async def test_a_select_capability_takes_the_option(
     result = await send(
         client,
         type=f"{DOMAIN}/camera/trigger",
-        slug="vorgarten",
+        slug="beispiel",
         capability="ptz_preset",
         value="Haustuer",
     )
@@ -643,7 +643,7 @@ async def test_a_light_capability_can_be_turned_off(
     result = await send(
         client,
         type=f"{DOMAIN}/camera/trigger",
-        slug="vorgarten",
+        slug="beispiel",
         capability="light",
         value=False,
     )
@@ -674,7 +674,7 @@ async def test_a_capability_can_be_bound_to_a_free_action(
     client = await hass_ws_client(hass)
 
     result = await send(
-        client, type=f"{DOMAIN}/camera/trigger", slug="vorgarten", capability="ptz_left"
+        client, type=f"{DOMAIN}/camera/trigger", slug="beispiel", capability="ptz_left"
     )
     assert result["success"]
     assert calls[0].data["pan"] == "LEFT"
@@ -704,7 +704,7 @@ async def test_the_index_can_be_rebuilt(
     ("command", "extra"),
     [
         (f"{DOMAIN}/camera/set", camera_dict()),
-        (f"{DOMAIN}/camera/delete", {"slug": "vorgarten"}),
+        (f"{DOMAIN}/camera/delete", {"slug": "beispiel"}),
         (f"{DOMAIN}/storage/set", {"segment_seconds": 30}),
         (f"{DOMAIN}/views/set", {"views": []}),
         (f"{DOMAIN}/index/rebuild", {}),
@@ -1129,7 +1129,7 @@ async def test_a_custom_control_can_be_saved_and_triggered(
     result = await send(
         client,
         type=f"{DOMAIN}/camera/trigger",
-        slug="vorgarten",
+        slug="beispiel",
         capability="zoom_rein",
     )
     assert result["success"]
@@ -1235,7 +1235,7 @@ async def test_a_deleted_camera_is_gone_from_the_same_answer(
 ) -> None:
     await setup_kustos_vision([camera_dict()])
     client = await hass_ws_client(hass)
-    result = await send(client, type=f"{DOMAIN}/camera/delete", slug="vorgarten")
+    result = await send(client, type=f"{DOMAIN}/camera/delete", slug="beispiel")
     assert result["result"]["cameras"] == []
 
 async def test_the_panel_is_told_what_is_installed(

@@ -22,14 +22,14 @@ from kustos_vision.core.retention import (
     usable_capacity,
 )
 
-NOW = datetime(2026, 8, 30, 12, 0, tzinfo=UTC).timestamp()
+NOW = datetime(2026, 1, 20, 12, 0, tzinfo=UTC).timestamp()
 DAY = 24 * 60 * 60
 
 
 def seg(
     age_days: float,
     *,
-    camera: str = "vorgarten",
+    camera: str = "beispiel",
     stream: str = "hd",
     size: int = 1000,
 ) -> Segment:
@@ -92,7 +92,7 @@ def test_age_limit_deletes_only_what_is_older() -> None:
     old, young = seg(8), seg(6)
     keep_running = seg(0)
     plan = plan_retention(
-        [old, young, keep_running], RetentionPolicy(max_age_days={"vorgarten": 7}), NOW
+        [old, young, keep_running], RetentionPolicy(max_age_days={"beispiel": 7}), NOW
     )
     assert paths(plan.by_age) == {old.rel_path}
 
@@ -100,22 +100,22 @@ def test_age_limit_deletes_only_what_is_older() -> None:
 def test_age_limit_applies_per_camera() -> None:
     """A camera without a configured limit is never aged out, even when the
     other camera's limit has long passed."""
-    front = seg(30, camera="vorgarten")
+    front = seg(30, camera="beispiel")
     back = seg(30, camera="garten")
     plan = plan_retention(
-        [front, back, seg(0, camera="vorgarten"), seg(0, camera="garten")],
-        RetentionPolicy(max_age_days={"vorgarten": 7}),
+        [front, back, seg(0, camera="beispiel"), seg(0, camera="garten")],
+        RetentionPolicy(max_age_days={"beispiel": 7}),
         NOW,
     )
     assert paths(plan.by_age) == {front.rel_path}
 
 
 def test_age_limits_may_differ_per_camera() -> None:
-    front = seg(10, camera="vorgarten")
+    front = seg(10, camera="beispiel")
     back = seg(10, camera="garten")
     plan = plan_retention(
-        [front, back, seg(0, camera="vorgarten"), seg(0, camera="garten")],
-        RetentionPolicy(max_age_days={"vorgarten": 7, "garten": 14}),
+        [front, back, seg(0, camera="beispiel"), seg(0, camera="garten")],
+        RetentionPolicy(max_age_days={"beispiel": 7, "garten": 14}),
         NOW,
     )
     assert paths(plan.by_age) == {front.rel_path}
@@ -128,7 +128,7 @@ def test_age_is_measured_in_exact_days() -> None:
     just_outside = seg(7.01)
     plan = plan_retention(
         [just_inside, just_outside, seg(0)],
-        RetentionPolicy(max_age_days={"vorgarten": 7}),
+        RetentionPolicy(max_age_days={"beispiel": 7}),
         NOW,
     )
     assert paths(plan.by_age) == {just_outside.rel_path}
@@ -143,8 +143,8 @@ def test_size_budget_deletes_the_globally_oldest_first() -> None:
     """The budget is a property of the disk, so it does not care which camera
     wrote the oldest segment."""
     oldest = seg(5, camera="garten", size=100)
-    middle = seg(3, camera="vorgarten", size=100)
-    newest_front = seg(0, camera="vorgarten", size=100)
+    middle = seg(3, camera="beispiel", size=100)
+    newest_front = seg(0, camera="beispiel", size=100)
     newest_back = seg(0, camera="garten", size=100)
 
     plan = plan_retention(
@@ -174,7 +174,7 @@ def test_size_budget_reports_what_it_could_not_free() -> None:
     already occupy, the user has to see it rather than have the setting
     silently ignored."""
     plan = plan_retention(
-        [seg(0, camera="vorgarten", size=500), seg(0, camera="garten", size=500)],
+        [seg(0, camera="beispiel", size=500), seg(0, camera="garten", size=500)],
         RetentionPolicy(max_total_bytes=100),
         NOW,
     )
@@ -199,7 +199,7 @@ def test_the_in_progress_segment_survives_the_age_limit() -> None:
     Identified by topology (it is the newest of its stream), not by a
     time threshold."""
     only = seg(400)
-    plan = plan_retention([only], RetentionPolicy(max_age_days={"vorgarten": 7}), NOW)
+    plan = plan_retention([only], RetentionPolicy(max_age_days={"beispiel": 7}), NOW)
     assert plan.by_age == ()
 
 
@@ -215,7 +215,7 @@ def test_each_stream_keeps_its_own_newest_segment() -> None:
     hd_new, sd_new = seg(0, stream="hd"), seg(0, stream="sd")
     plan = plan_retention(
         [seg(30, stream="hd"), hd_new, seg(30, stream="sd"), sd_new],
-        RetentionPolicy(max_age_days={"vorgarten": 7}),
+        RetentionPolicy(max_age_days={"beispiel": 7}),
         NOW,
     )
     assert not paths(plan.by_age) & {hd_new.rel_path, sd_new.rel_path}
@@ -226,7 +226,7 @@ def test_extra_paths_can_be_protected() -> None:
     keep = seg(30)
     plan = plan_retention(
         [keep, seg(0)],
-        RetentionPolicy(max_age_days={"vorgarten": 7}),
+        RetentionPolicy(max_age_days={"beispiel": 7}),
         NOW,
         also_protect=frozenset({keep.rel_path}),
     )
@@ -247,7 +247,7 @@ def test_age_runs_before_size_and_nothing_is_counted_twice() -> None:
 
     plan = plan_retention(
         [aged_out, *recent, running],
-        RetentionPolicy(max_age_days={"vorgarten": 7}, max_total_bytes=1000),
+        RetentionPolicy(max_age_days={"beispiel": 7}, max_total_bytes=1000),
         NOW,
     )
     assert paths(plan.by_age) == {aged_out.rel_path}
@@ -263,7 +263,7 @@ def test_size_still_applies_when_age_did_not_free_enough() -> None:
 
     plan = plan_retention(
         [aged_out, *recent, running],
-        RetentionPolicy(max_age_days={"vorgarten": 7}, max_total_bytes=2000),
+        RetentionPolicy(max_age_days={"beispiel": 7}, max_total_bytes=2000),
         NOW,
     )
     assert paths(plan.by_age) == {aged_out.rel_path}
@@ -274,7 +274,7 @@ def test_size_still_applies_when_age_did_not_free_enough() -> None:
 def test_the_plan_reports_what_it_frees() -> None:
     plan = plan_retention(
         [seg(30, size=700), seg(20, size=300), seg(0, size=100)],
-        RetentionPolicy(max_age_days={"vorgarten": 7}),
+        RetentionPolicy(max_age_days={"beispiel": 7}),
         NOW,
     )
     assert plan.freed_bytes == 1000
@@ -285,7 +285,7 @@ def test_doomed_segments_come_back_oldest_first() -> None:
     halfway through."""
     plan = plan_retention(
         [seg(30, size=100), seg(20, size=100), seg(10, size=100), seg(0, size=100)],
-        RetentionPolicy(max_age_days={"vorgarten": 7}, max_total_bytes=150),
+        RetentionPolicy(max_age_days={"beispiel": 7}, max_total_bytes=150),
         NOW,
     )
     starts = [s.start_utc for s in plan.doomed]
@@ -294,7 +294,7 @@ def test_doomed_segments_come_back_oldest_first() -> None:
 
 def test_planning_over_an_empty_tree_is_harmless() -> None:
     plan = plan_retention(
-        [], RetentionPolicy(max_age_days={"vorgarten": 7}, max_total_bytes=100), NOW
+        [], RetentionPolicy(max_age_days={"beispiel": 7}, max_total_bytes=100), NOW
     )
     assert not plan
     assert plan.shortfall_bytes == 0

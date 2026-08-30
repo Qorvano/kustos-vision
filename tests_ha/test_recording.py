@@ -23,10 +23,10 @@ STREAM_URL = "rtsp://user:secret@camera.invalid:554/stream1"
 
 def stored_config(base: Path, **camera_overrides) -> dict:
     camera = {
-        "slug": "vorgarten",
-        "name": "Vorgarten",
+        "slug": "beispiel",
+        "name": "Beispiel",
         "streams": [
-            {"key": "hd", "entity_id": "camera.vorgarten_hd", "record": True}
+            {"key": "hd", "entity_id": "camera.beispiel_hd", "record": True}
         ],
         "capabilities": {},
         "retention_days": None,
@@ -149,7 +149,7 @@ async def test_the_output_goes_to_the_configured_location(
     hass: HomeAssistant, loaded: MockConfigEntry, spawned: list[list[str]], tmp_path: Path
 ) -> None:
     target = spawned[0][-1]
-    assert target.startswith(str(tmp_path / "recordings" / "vorgarten"))
+    assert target.startswith(str(tmp_path / "recordings" / "beispiel"))
     assert target.endswith("%H-%M-%S_hd.mp4")
 
 
@@ -158,7 +158,7 @@ async def test_the_day_directories_exist_before_ffmpeg_needs_them(
 ) -> None:
     """The segment muxer has no strftime_mkdir and aborts on a missing
     directory, so today and tomorrow have to be there up front."""
-    days = sorted(p.name for p in (tmp_path / "recordings" / "vorgarten").iterdir())
+    days = sorted(p.name for p in (tmp_path / "recordings" / "beispiel").iterdir())
     assert len(days) == 2
 
 

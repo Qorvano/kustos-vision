@@ -19,13 +19,13 @@ from custom_components.kustos_vision.vision import VisionError, build_prompt
 from custom_components.kustos_vision.vision.openai_compat import _endpoint, _extract
 
 CAMERA = CameraConfig(
-    slug="vorgarten",
-    name="Vorgarten",
+    slug="beispiel",
+    name="Beispiel",
     streams=(StreamConfig("hd", "camera.vg"),),
 )
 
 PROFILE = VisionProfile(
-    camera_slug="vorgarten",
+    camera_slug="beispiel",
     backend=VisionBackend(
         kind=VisionBackendKind.OPENAI, url="http://x/v1", model="vision"
     ),
@@ -41,14 +41,14 @@ PROFILE = VisionProfile(
 
 
 def test_the_prompt_names_the_camera() -> None:
-    assert "Vorgarten" in build_prompt(CAMERA, PROFILE)
+    assert "Beispiel" in build_prompt(CAMERA, PROFILE)
 
 
 def test_the_prompt_carries_the_users_context() -> None:
     """Context is for what the model cannot see: which way the camera points,
     what belongs in the picture."""
     profile = VisionProfile(
-        camera_slug="vorgarten",
+        camera_slug="beispiel",
         backend=PROFILE.backend,
         observations=PROFILE.observations,
         context="Die Kamera zeigt den Gehweg vor dem Haus.",
@@ -190,6 +190,6 @@ async def test_analysing_without_questions_is_refused(hass: HomeAssistant) -> No
     """An empty profile would send a picture and get nothing back."""
     from custom_components.kustos_vision.vision import async_analyse
 
-    empty = VisionProfile(camera_slug="vorgarten", backend=PROFILE.backend)
+    empty = VisionProfile(camera_slug="beispiel", backend=PROFILE.backend)
     with pytest.raises(VisionError, match="asks nothing"):
         await async_analyse(hass, CAMERA, empty, "camera.vg")

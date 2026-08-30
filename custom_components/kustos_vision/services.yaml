@@ -2,7 +2,7 @@ analyze:
   fields:
     camera:
       required: true
-      example: vorgarten
+      example: beispiel
       selector:
         text:
     force:

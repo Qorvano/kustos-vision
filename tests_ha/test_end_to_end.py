@@ -72,10 +72,10 @@ def stored_config(base: Path, **storage_overrides) -> dict:
             "storage": storage,
             "cameras": [
                 {
-                    "slug": "vorgarten",
-                    "name": "Vorgarten",
+                    "slug": "beispiel",
+                    "name": "Beispiel",
                     "streams": [
-                        {"key": "hd", "entity_id": "camera.vorgarten", "record": True}
+                        {"key": "hd", "entity_id": "camera.beispiel", "record": True}
                     ],
                     "capabilities": {},
                     "retention_days": None,
@@ -183,7 +183,7 @@ async def test_housekeeping_indexes_and_previews_what_was_recorded(
     index = SegmentIndex(Path(hass.config.path("kustos_vision")) / "index.db")
     rows = await hass.async_add_executor_job(index.oldest_first)
     assert len(rows) >= 2
-    assert all(row.camera_slug == "vorgarten" for row in rows)
+    assert all(row.camera_slug == "beispiel" for row in rows)
     assert all(row.stream_key == "hd" for row in rows)
     assert all(row.size_bytes > 0 for row in rows)
     assert [r.start_utc for r in rows] == sorted(r.start_utc for r in rows)
@@ -191,7 +191,7 @@ async def test_housekeeping_indexes_and_previews_what_was_recorded(
     # Previews are made for finished segments only; the one ffmpeg still holds
     # open would yield a frame that has to be redone anyway.
     assert any(row.has_thumbnail for row in rows)
-    assert any(p.suffix == ".jpg" for p in (base / "vorgarten").rglob("*"))
+    assert any(p.suffix == ".jpg" for p in (base / "beispiel").rglob("*"))
 
     await hass.config_entries.async_unload(entry.entry_id)
     await hass.async_block_till_done()

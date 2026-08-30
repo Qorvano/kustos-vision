@@ -58,7 +58,7 @@ async def recorded(hass: HomeAssistant, hass_storage: dict, tmp_path: Path, no_f
     local = dt_util.get_default_time_zone()
 
     base = tmp_path / "recordings"
-    day = base / "vorgarten" / "2026-08-30"
+    day = base / "beispiel" / "2026-01-20"
     day.mkdir(parents=True)
 
     files = []
@@ -73,10 +73,10 @@ async def recorded(hass: HomeAssistant, hass_storage: dict, tmp_path: Path, no_f
         # mtime marks when the segment was last written, which is what the
         # scan reads the duration from.
         hour, minute, _ = name.split("_")[0].split("-")
-        naive = datetime(2026, 8, 30, int(hour), int(minute))
+        naive = datetime(2026, 1, 20, int(hour), int(minute))
         end = naive.replace(tzinfo=local).timestamp() + duration
         os.utime(path, (end, end))
-        files.append((f"vorgarten/2026-08-30/{name}", path))
+        files.append((f"beispiel/2026-01-20/{name}", path))
 
     hass_storage[STORAGE_KEY_CONFIG] = {
         "version": STORAGE_VERSION_CONFIG,
@@ -87,8 +87,8 @@ async def recorded(hass: HomeAssistant, hass_storage: dict, tmp_path: Path, no_f
             "storage": {"base_path": str(base), "segment_seconds": 300},
             "cameras": [
                 {
-                    "slug": "vorgarten",
-                    "name": "Vorgarten",
+                    "slug": "beispiel",
+                    "name": "Beispiel",
                     "streams": [
                         {"key": "hd", "entity_id": "camera.vg", "record": False}
                     ],
@@ -129,9 +129,9 @@ async def test_days_with_recordings_are_listed(
     hass: HomeAssistant, hass_ws_client, recorded
 ) -> None:
     client = await hass_ws_client(hass)
-    result = await send(client, type=f"{DOMAIN}/recordings/days", camera="vorgarten")
+    result = await send(client, type=f"{DOMAIN}/recordings/days", camera="beispiel")
     assert result["success"]
-    assert result["result"]["days"] == ["2026-08-30"]
+    assert result["result"]["days"] == ["2026-01-20"]
 
 
 async def test_the_timeline_returns_blocks_and_segments_together(
@@ -144,7 +144,7 @@ async def test_the_timeline_returns_blocks_and_segments_together(
     result = await send(
         client,
         type=f"{DOMAIN}/recordings/timeline",
-        camera="vorgarten",
+        camera="beispiel",
         **{"from": start - 60, "to": start + 10000},
     )
     assert result["success"]
@@ -162,7 +162,7 @@ async def test_a_real_gap_splits_the_timeline(
     result = await send(
         client,
         type=f"{DOMAIN}/recordings/timeline",
-        camera="vorgarten",
+        camera="beispiel",
         **{"from": start - 60, "to": start + 10000},
     )
     blocks = result["result"]["blocks"]
@@ -179,7 +179,7 @@ async def test_the_timeline_can_be_limited_to_a_window(
     result = await send(
         client,
         type=f"{DOMAIN}/recordings/timeline",
-        camera="vorgarten",
+        camera="beispiel",
         **{"from": start, "to": start + 400},
     )
     assert len(result["result"]["segments"]) == 2
@@ -193,7 +193,7 @@ async def test_an_empty_range_is_refused(
     result = await send(
         client,
         type=f"{DOMAIN}/recordings/timeline",
-        camera="vorgarten",
+        camera="beispiel",
         **{"from": start, "to": start},
     )
     assert not result["success"]
@@ -246,11 +246,11 @@ async def test_a_thumbnail_is_served_under_the_segment_path(
     "path",
     [
         "../../../etc/passwd",
-        "vorgarten/2026-08-30/../../../etc/passwd",
+        "beispiel/2026-01-20/../../../etc/passwd",
         "/etc/passwd",
-        "vorgarten/2026-08-30/notes.txt",
-        "vorgarten/backup/14-00-00_hd.mp4",
-        "vorgarten/2026-08-30/14-00-00_hd.mp4/extra",
+        "beispiel/2026-01-20/notes.txt",
+        "beispiel/backup/14-00-00_hd.mp4",
+        "beispiel/2026-01-20/14-00-00_hd.mp4/extra",
     ],
 )
 async def test_only_kustos_vision_recordings_can_be_fetched(
@@ -269,12 +269,12 @@ async def test_a_file_the_index_does_not_know_is_not_served(
     """Someone dropping a file into the tree by hand does not make it
     fetchable through the API."""
     _, base, _, _ = recorded
-    intruder = base / "vorgarten" / "2026-08-30" / "23-59-59_hd.mp4"
+    intruder = base / "beispiel" / "2026-01-20" / "23-59-59_hd.mp4"
     intruder.write_bytes(b"not ours")
 
     client = await hass_client()
     response = await client.get(
-        f"/api/{DOMAIN}/segment/vorgarten/2026-08-30/23-59-59_hd.mp4"
+        f"/api/{DOMAIN}/segment/beispiel/2026-01-20/23-59-59_hd.mp4"
     )
     assert response.status == 404
 
@@ -299,7 +299,7 @@ async def test_export_refuses_an_empty_range(
     _, _, _, start = recorded
     client = await hass_client()
     response = await client.get(
-        f"/api/{DOMAIN}/export", params={"camera": "vorgarten", "from": start, "to": start}
+        f"/api/{DOMAIN}/export", params={"camera": "beispiel", "from": start, "to": start}
     )
     assert response.status == 400
 
@@ -313,7 +313,7 @@ async def test_export_refuses_more_than_a_day(
     client = await hass_client()
     response = await client.get(
         f"/api/{DOMAIN}/export",
-        params={"camera": "vorgarten", "from": start, "to": start + 25 * 3600},
+        params={"camera": "beispiel", "from": start, "to": start + 25 * 3600},
     )
     assert response.status == 400
 
@@ -325,7 +325,7 @@ async def test_export_of_a_range_without_recordings_is_not_found(
     client = await hass_client()
     response = await client.get(
         f"/api/{DOMAIN}/export",
-        params={"camera": "vorgarten", "from": start + 100000, "to": start + 103000},
+        params={"camera": "beispiel", "from": start + 100000, "to": start + 103000},
     )
     assert response.status == 404
 
@@ -334,7 +334,7 @@ async def test_export_requires_its_parameters(
     hass: HomeAssistant, hass_client, recorded
 ) -> None:
     client = await hass_client()
-    response = await client.get(f"/api/{DOMAIN}/export", params={"camera": "vorgarten"})
+    response = await client.get(f"/api/{DOMAIN}/export", params={"camera": "beispiel"})
     assert response.status == 400
 
 
@@ -513,7 +513,7 @@ async def test_a_signed_export_keeps_its_query(
     reordered it, the request would be refused."""
     _, _, _, first = recorded
     client = await hass_client_no_auth()
-    query = f"camera=vorgarten&from={first}&to={first + 3600}&stream=hd"
+    query = f"camera=beispiel&from={first}&to={first + 3600}&stream=hd"
     with patch(
         "custom_components.kustos_vision.http_views.stream_export"
     ) as export:

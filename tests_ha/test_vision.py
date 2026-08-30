@@ -24,13 +24,13 @@ from custom_components.kustos_vision.const import (
 )
 from custom_components.kustos_vision.vision import VisionResult
 
-TRIGGER = "binary_sensor.vorgarten_motion"
+TRIGGER = "binary_sensor.beispiel_motion"
 CONDITION = "input_boolean.scharf"
 
 
 def profile(**overrides) -> dict:
     base = {
-        "camera_slug": "vorgarten",
+        "camera_slug": "beispiel",
         "backend": {
             "kind": "openai",
             "url": "http://model.invalid:8080/v1",
@@ -67,8 +67,8 @@ def stored(base: Path, vision=None) -> dict:
             "storage": {"base_path": str(base), "segment_seconds": 60},
             "cameras": [
                 {
-                    "slug": "vorgarten",
-                    "name": "Vorgarten",
+                    "slug": "beispiel",
+                    "name": "Beispiel",
                     "streams": [
                         {"key": "hd", "entity_id": "camera.vg", "record": False}
                     ],
@@ -212,7 +212,7 @@ async def test_an_analysis_runs_again_once_the_cooldown_has_passed(
     await fire(hass, "on")
     assert len(analysed) == 1
 
-    state = entry.runtime_data.vision.state_for("vorgarten")
+    state = entry.runtime_data.vision.state_for("beispiel")
     state.last_run = dt_util.utcnow() - timedelta(seconds=120)
 
     await fire(hass, "off")
@@ -228,7 +228,7 @@ async def test_the_daily_budget_stops_a_runaway_trigger(
         await fire(hass, "off")
         await fire(hass, "on")
     assert len(analysed) == 3
-    assert entry.runtime_data.vision.state_for("vorgarten").analyses_today == 3
+    assert entry.runtime_data.vision.state_for("beispiel").analyses_today == 3
 
 
 async def test_the_budget_holds_even_when_forced(
@@ -239,8 +239,8 @@ async def test_the_budget_holds_even_when_forced(
     entry = await setup_vision([profile(daily_budget=1)])
     runner = entry.runtime_data.vision
 
-    assert await runner.async_analyse("vorgarten", force=True) is not None
-    assert await runner.async_analyse("vorgarten", force=True) is None
+    assert await runner.async_analyse("beispiel", force=True) is not None
+    assert await runner.async_analyse("beispiel", force=True) is None
     assert len(analysed) == 1
 
 
@@ -249,12 +249,12 @@ async def test_the_budget_resets_with_the_local_day(
 ) -> None:
     entry = await setup_vision([profile(daily_budget=1)])
     runner = entry.runtime_data.vision
-    await runner.async_analyse("vorgarten", force=True)
+    await runner.async_analyse("beispiel", force=True)
 
-    state = runner.state_for("vorgarten")
+    state = runner.state_for("beispiel")
     state.budget_day = state.budget_day - timedelta(days=1)
 
-    assert await runner.async_analyse("vorgarten", force=True) is not None
+    assert await runner.async_analyse("beispiel", force=True) is not None
     assert len(analysed) == 2
 
 
@@ -363,7 +363,7 @@ async def test_a_long_answer_is_shortened_for_the_state(
     ):
         assert await hass.config_entries.async_setup(entry.entry_id)
         await hass.async_block_till_done()
-        await entry.runtime_data.vision.async_analyse("vorgarten", force=True)
+        await entry.runtime_data.vision.async_analyse("beispiel", force=True)
         await hass.async_block_till_done()
 
         text = next(e for e in hass.states.async_entity_ids("sensor") if "wer" in e)
@@ -386,7 +386,7 @@ async def test_the_service_runs_an_analysis(
 ) -> None:
     await setup_vision()
     result = await hass.services.async_call(
-        DOMAIN, "analyze", {"camera": "vorgarten"}, blocking=True, return_response=True
+        DOMAIN, "analyze", {"camera": "beispiel"}, blocking=True, return_response=True
     )
     assert result["ran"] is True
     assert result["values"]["paket"] is True
@@ -399,7 +399,7 @@ async def test_the_service_ignores_the_cooldown_by_default(
     await setup_vision()
     await fire(hass, "on")
     await hass.services.async_call(
-        DOMAIN, "analyze", {"camera": "vorgarten"}, blocking=True, return_response=True
+        DOMAIN, "analyze", {"camera": "beispiel"}, blocking=True, return_response=True
     )
     assert len(analysed) == 2
 
@@ -411,10 +411,10 @@ async def test_the_service_reports_a_limit_rather_than_failing(
     log when a limit stops it."""
     await setup_vision([profile(daily_budget=1)])
     await hass.services.async_call(
-        DOMAIN, "analyze", {"camera": "vorgarten"}, blocking=True, return_response=True
+        DOMAIN, "analyze", {"camera": "beispiel"}, blocking=True, return_response=True
     )
     second = await hass.services.async_call(
-        DOMAIN, "analyze", {"camera": "vorgarten"}, blocking=True, return_response=True
+        DOMAIN, "analyze", {"camera": "beispiel"}, blocking=True, return_response=True
     )
     assert second["ran"] is False
 
@@ -439,7 +439,7 @@ async def test_the_service_rejects_a_camera_without_a_profile(
     await setup_vision([])
     with pytest.raises(ServiceValidationError, match="no vision profile"):
         await hass.services.async_call(
-            DOMAIN, "analyze", {"camera": "vorgarten"}, blocking=True
+            DOMAIN, "analyze", {"camera": "beispiel"}, blocking=True
         )
 
 
@@ -462,7 +462,7 @@ async def test_a_trigger_on_a_camera_without_streams_does_not_crash_the_task(
 
     await fire(hass, "on")
 
-    state = entry.runtime_data.vision.state_for("vorgarten")
+    state = entry.runtime_data.vision.state_for("beispiel")
     assert state.last_error is not None
     assert "snapshot" in state.last_error
     assert state.history and state.history[0]["error"] == state.last_error
