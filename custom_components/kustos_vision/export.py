@@ -14,9 +14,11 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import logging
+import shutil
 import tempfile
 from asyncio import create_subprocess_exec
 from collections.abc import AsyncIterator
+from functools import partial
 from pathlib import Path
 
 from homeassistant.components.ffmpeg import get_ffmpeg_manager
@@ -35,6 +37,21 @@ CHUNK_BYTES = 64 * 1024
 # An export that has produced nothing for this long is not going to. Generous,
 # because joining a long range off a network share is legitimately slow.
 STALL_TIMEOUT_SECONDS = 120.0
+
+
+def pipe_concat_args(list_file: Path) -> list[str]:
+    """The ffmpeg arguments for joining segments into a pipe.
+
+    Differs from a file export in two ways, both mandatory. Fragmented MP4,
+    because a plain MP4 needs to seek back and write its index at the end,
+    which a pipe cannot do. And the container named explicitly: a pipe has
+    no file extension, so ffmpeg cannot infer the format and refuses to
+    start at all, which reached the browser as a zero-byte download.
+    """
+    args = build_concat_args(list_file, Path("pipe:1"))
+    args[args.index("-movflags") + 1] = "+frag_keyframe+empty_moov+default_base_moof"
+    args[args.index("pipe:1") :] = ["-f", "mp4", "pipe:1"]
+    return args
 
 
 def write_concat_list(segments: list[Segment], base: Path, target: Path) -> None:
@@ -58,17 +75,19 @@ async def stream_export(
         raise ValueError("nothing to export")
 
     binary = get_ffmpeg_manager(hass).binary
-    with tempfile.TemporaryDirectory(prefix="kustos-vision-export-") as tmp:
+    # Created and removed through the executor: the cleanup walks the
+    # directory, and the live log flagged exactly that walk as a blocking
+    # call when the context manager ran it in the event loop.
+    tmp = await hass.async_add_executor_job(
+        partial(tempfile.mkdtemp, prefix="kustos-vision-export-")
+    )
+    try:
         list_file = Path(tmp) / "segments.txt"
         await hass.async_add_executor_job(
             write_concat_list, segments, base, list_file
         )
 
-        # "pipe:1" instead of a path: the output is consumed as it appears.
-        # Fragmented MP4 is required for that, because a plain MP4 would need
-        # to seek back and write its index at the end, which a pipe cannot do.
-        args = build_concat_args(list_file, Path("pipe:1"))
-        args[args.index("-movflags") + 1] = "+frag_keyframe+empty_moov+default_base_moof"
+        args = pipe_concat_args(list_file)
 
         process = await create_subprocess_exec(
             binary,
@@ -106,3 +125,7 @@ async def stream_export(
                 process.returncode,
                 stderr.decode("utf-8", errors="replace")[-500:],
             )
+    finally:
+        await hass.async_add_executor_job(
+            partial(shutil.rmtree, tmp, ignore_errors=True)
+        )

@@ -446,3 +446,28 @@ describe("mapping between real time and the media timeline", () => {
     expect(utcFor(placed, 5000)).toBe(1200);
   });
 });
+
+// Regression guards for the two invisible failure modes around updates. Both
+// are source scans, because the behaviour needs a real page: a stale tab
+// importing a second bundle version, and the service worker's cache rules.
+describe("surviving an update", () => {
+  const read = (name: string) =>
+    readFileSync(new URL(`../src/${name}`, import.meta.url), "utf8");
+
+  it("the entry module runs the version guard before anything defines", () => {
+    const source = read("panel.ts");
+    const firstImport = source.indexOf("import");
+    expect(source.indexOf('import "./version-guard"')).toBe(firstImport);
+  });
+
+  it("the guard reloads a page an older bundle owns, at most once", () => {
+    const source = read("version-guard.ts");
+    expect(source).toContain('customElements.get("kustos-vision-panel")');
+    expect(source).toContain("location.reload()");
+    expect(source).toContain("sessionStorage");
+  });
+
+  it("the player reports its position so the timeline can follow", () => {
+    expect(read("components/player.ts")).toContain('"positionchange"');
+  });
+});

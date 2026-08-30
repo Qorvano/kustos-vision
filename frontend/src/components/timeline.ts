@@ -37,6 +37,7 @@ export class CamwatchTimeline extends LitElement {
   @property({ attribute: false }) api?: CamwatchApi;
 
   @state() private hover?: { x: number; time: number; segment?: TimelineSegment };
+  @state() private dragging = false;
   /** The signed address of the preview, and the segment it belongs to. */
   @state() private preview?: { path: string; url: string };
 
@@ -98,6 +99,7 @@ export class CamwatchTimeline extends LitElement {
     .bar {
       position: relative;
       height: 44px;
+      touch-action: none;
       background: var(--secondary-background-color, #2a2a2a);
       border-radius: 8px;
       overflow: hidden;
@@ -117,6 +119,19 @@ export class CamwatchTimeline extends LitElement {
       width: 2px;
       background: var(--error-color, #db4437);
       pointer-events: none;
+    }
+    .postime {
+      position: absolute;
+      top: 2px;
+      transform: translateX(-50%);
+      font-size: 0.7em;
+      background: rgba(0, 0, 0, 0.6);
+      color: #fff;
+      padding: 1px 5px;
+      border-radius: 4px;
+      pointer-events: none;
+      white-space: nowrap;
+      z-index: 1;
     }
     .hours {
       position: relative;
@@ -191,27 +206,44 @@ export class CamwatchTimeline extends LitElement {
     return ((time - this.from) / this.span) * 100;
   }
 
-  private timeAt(event: MouseEvent): number {
+  private timeAt(event: PointerEvent): number {
     const bar = event.currentTarget as HTMLElement;
     const rect = bar.getBoundingClientRect();
     const ratio = Math.min(1, Math.max(0, (event.clientX - rect.left) / rect.width));
     return this.from + ratio * this.span;
   }
 
-  private onMove(event: MouseEvent): void {
+  private emit(name: "seek" | "scrub", time: number): void {
+    this.dispatchEvent(
+      new CustomEvent(name, { detail: { time }, bubbles: true, composed: true }),
+    );
+  }
+
+  private onPointerDown(event: PointerEvent): void {
+    // Capturing keeps the drag alive when the pointer leaves the bar, which
+    // it always does on a bar this narrow.
+    (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
+    this.dragging = true;
+    this.onPointerMove(event);
+  }
+
+  private onPointerMove(event: PointerEvent): void {
     const time = this.timeAt(event);
     const segment = this.segments.find(
       (s) => time >= s.start && time < s.start + s.duration,
     );
     this.hover = { x: this.percent(time), time, segment };
     this.schedulePreview(segment);
+    // While dragging, the cursor follows the pointer immediately; the video
+    // itself only moves on release, because seeking it live on every pixel
+    // would tear down and refetch footage dozens of times per swipe.
+    if (this.dragging) this.emit("scrub", time);
   }
 
-  private onClick(event: MouseEvent): void {
-    const time = this.timeAt(event);
-    this.dispatchEvent(
-      new CustomEvent("seek", { detail: { time }, bubbles: true, composed: true }),
-    );
+  private onPointerUp(event: PointerEvent): void {
+    if (!this.dragging) return;
+    this.dragging = false;
+    this.emit("seek", this.timeAt(event));
   }
 
   private formatTime(utc: number): string {
@@ -264,13 +296,16 @@ export class CamwatchTimeline extends LitElement {
 
         <div
           class="bar"
-          @mousemove=${this.onMove}
-          @mouseleave=${() => {
+          @pointerdown=${this.onPointerDown}
+          @pointermove=${this.onPointerMove}
+          @pointerup=${this.onPointerUp}
+          @pointercancel=${() => (this.dragging = false)}
+          @pointerleave=${() => {
+            if (this.dragging) return;
             this.hover = undefined;
             this.clearSettle();
             this.preview = undefined;
           }}
-          @click=${this.onClick}
         >
           ${this.blocks.map(
             (block) => html`<div
@@ -282,7 +317,10 @@ export class CamwatchTimeline extends LitElement {
             ></div>`,
           )}
           ${this.position >= this.from && this.position <= this.to
-            ? html`<div class="playhead" style="left:${this.percent(this.position)}%"></div>`
+            ? html`<div class="playhead" style="left:${this.percent(this.position)}%"></div>
+                <div class="postime" style="left:${this.percent(this.position)}%">
+                  ${this.formatTime(this.position)}
+                </div>`
             : nothing}
           ${this.renderHours()}
         </div>

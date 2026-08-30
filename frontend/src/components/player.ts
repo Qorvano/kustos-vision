@@ -199,6 +199,8 @@ export class CamwatchPlayer extends LitElement {
   @property() segmentUrlBase = "/api/kustos_vision/segment";
 
   @state() private message = "";
+  /** A moment the cursor was dragged to at which nothing was recorded. */
+  @state() private gapAt?: number;
 
   private media?: MediaSource;
   private withAudio = true;
@@ -239,6 +241,18 @@ export class CamwatchPlayer extends LitElement {
       padding: 12px;
       pointer-events: none;
     }
+    .gap {
+      position: absolute;
+      inset: 0;
+      background: #000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #888;
+      font-size: 0.9em;
+      text-align: center;
+      padding: 12px;
+    }
   `;
 
   override disconnectedCallback(): void {
@@ -265,7 +279,20 @@ export class CamwatchPlayer extends LitElement {
   private wire(video: HTMLVideoElement): void {
     if (this.wired) return;
     this.wired = true;
-    video.addEventListener("timeupdate", () => void this.pump());
+    video.addEventListener("timeupdate", () => {
+      void this.pump();
+      // The timeline above follows the playback through this; without it the
+      // red cursor only ever moved when somebody clicked.
+      if (this.placed.length > 0 && !video.seeking) {
+        this.dispatchEvent(
+          new CustomEvent("positionchange", {
+            detail: { time: utcFor(this.placed, video.currentTime) },
+            bubbles: true,
+            composed: true,
+          }),
+        );
+      }
+    });
     video.addEventListener("seeking", () => this.onSeeking());
     // Stalling mid-run means the data for this spot never arrived even though
     // the file was appended: a recording cut short mid-write carries less
@@ -283,6 +310,18 @@ export class CamwatchPlayer extends LitElement {
   }
 
   private jump(utc: number): void {
+    const recordedAnywhere = this.segments.some(
+      (s) => utc >= s.start && utc < s.start + s.duration,
+    );
+    if (!recordedAnywhere) {
+      // The cursor was dragged to a stretch where nothing was recorded. The
+      // honest answer to "what was there at this time" is a black picture
+      // saying so, not a silent jump to some other clip.
+      this.gapAt = utc;
+      this.video()?.pause();
+      return;
+    }
+    this.gapAt = undefined;
     const containing = this.placed.find(
       (p) => utc >= p.segment.start && utc < p.segment.start + p.segment.duration,
     );
@@ -384,6 +423,7 @@ export class CamwatchPlayer extends LitElement {
     this.teardown();
     const generation = this.generation;
     this.message = "";
+    this.gapAt = undefined;
 
     if (this.segments.length === 0) {
       this.message = "Für diesen Zeitraum ist nichts aufgezeichnet.";
@@ -684,6 +724,12 @@ export class CamwatchPlayer extends LitElement {
   override render() {
     return html`
       <video controls playsinline></video>
+      ${this.gapAt !== undefined
+        ? html`<div class="gap">
+            Um ${new Date(this.gapAt * 1000).toLocaleTimeString()} liegt keine
+            Aufnahme vor.
+          </div>`
+        : nothing}
       ${this.message ? html`<div class="overlay">${this.message}</div>` : nothing}
     `;
   }

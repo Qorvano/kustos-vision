@@ -251,6 +251,9 @@ export class CamwatchRecordings extends LitElement {
           .api=${this.api}
           .segments=${this.segments}
           .seekTo=${this.seekTo}
+          @positionchange=${(e: CustomEvent<{ time: number }>) => {
+            this.position = e.detail.time;
+          }}
         ></kustos-vision-player>
 
         <div>
@@ -261,6 +264,9 @@ export class CamwatchRecordings extends LitElement {
             .blocks=${this.blocks}
             .segments=${this.segments}
             .position=${this.position}
+            @scrub=${(e: CustomEvent<{ time: number }>) => {
+              this.position = e.detail.time;
+            }}
             @seek=${(e: CustomEvent<{ time: number }>) => {
               this.position = e.detail.time;
               this.seekTo = e.detail.time;

@@ -537,3 +537,16 @@ async def test_a_signature_does_not_cover_a_different_file(
 async def _async_bytes(*chunks: bytes):
     for chunk in chunks:
         yield chunk
+
+
+def test_a_pipe_export_names_its_container() -> None:
+    """Regression: without an explicit format, ffmpeg cannot infer a container
+    for a pipe and refuses to start at all, which reached the browser as a
+    zero-byte download (live log: exit 234, "Unable to choose an output
+    format for 'pipe:1'")."""
+    from custom_components.kustos_vision.export import pipe_concat_args
+
+    args = pipe_concat_args(Path("/tmp/list.txt"))
+    assert args[-3:] == ["-f", "mp4", "pipe:1"]
+    flags = args[args.index("-movflags") + 1]
+    assert "frag_keyframe" in flags and "empty_moov" in flags

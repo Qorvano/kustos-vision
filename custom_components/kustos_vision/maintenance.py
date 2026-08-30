@@ -40,6 +40,7 @@ from .core.retention import (
     plan_retention,
     usable_capacity,
 )
+from .panel import bundle_fingerprint, store_disk_fingerprint
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -123,6 +124,13 @@ class MaintenanceRunner:
 
         indexed = await self._run(self._index.upsert, scan.changed)
         forgotten = await self._run(self._index.forget, scan.vanished)
+
+        # Piggybacks on housekeeping because this is the executor-side
+        # heartbeat the integration already has: an update through HACS
+        # replaces the bundle while Home Assistant keeps running, and the
+        # panel can only announce that if somebody keeps hashing the file
+        # off the event loop.
+        store_disk_fingerprint(self._hass, await self._run(bundle_fingerprint))
 
         thumbnails = await self._async_make_thumbnails(config, base)
         plan = await self._async_apply_retention(config, base)

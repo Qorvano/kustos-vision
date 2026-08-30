@@ -1265,11 +1265,11 @@ async def test_a_rebuilt_bundle_is_reported_until_the_next_start(
     await setup_kustos_vision([])
     client = await hass_ws_client(hass)
 
-    with patch(
-        "custom_components.kustos_vision.api.bundle_fingerprint",
-        return_value="somethingelse",
-    ):
-        await client.send_json_auto_id({"type": f"{DOMAIN}/config/get"})
-        result = await client.receive_json()
+    from custom_components.kustos_vision import panel as panel_module
+
+    # What housekeeping would store after an update replaced the bundle.
+    panel_module.store_disk_fingerprint(hass, "somethingelse")
+    await client.send_json_auto_id({"type": f"{DOMAIN}/config/get"})
+    result = await client.receive_json()
 
     assert result["result"]["build"]["restart_pending"] is True

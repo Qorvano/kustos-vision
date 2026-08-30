@@ -5,6 +5,9 @@
 // API, which is why removing this whole directory costs presentation and not
 // capability.
 
+// Keep this first: it must run before any component registers itself.
+import "./version-guard";
+
 import { LitElement, css, html, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import { CamwatchApi, errorText } from "./api";

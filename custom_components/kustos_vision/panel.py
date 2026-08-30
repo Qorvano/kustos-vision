@@ -20,11 +20,23 @@ from .const import DOMAIN
 
 FRONTEND_DIR = Path(__file__).parent / "frontend" / "dist"
 PANEL_URL_PATH = DOMAIN
-FRONTEND_URL = f"/{DOMAIN}-frontend"
+# Under /api on purpose. The Home Assistant front end runs a service worker
+# that caches every same-origin path EXCEPT /api and /auth with a
+# stale-while-revalidate strategy: it answers with the stored copy first and
+# fetches the new one only for next time. Read from its source, not assumed.
+# Any path outside /api therefore shows a freshly updated bundle one reload
+# too late, no matter what cache headers the server sends, because the
+# worker never asks the server before answering. /api is network-only.
+FRONTEND_URL = f"/api/{DOMAIN}/frontend"
 
 # Where the fingerprint that was actually registered is kept, so the panel can
 # be told when the file on disk has moved on since then.
 DATA_REGISTERED_FINGERPRINT = f"{DOMAIN}_registered_fingerprint"
+
+# The fingerprint of the bundle as it currently lies on disk. Refreshed by the
+# housekeeping pass, in the executor: hashing the bundle is file I/O, and a
+# snapshot request runs in the event loop and must only compare, never read.
+DATA_DISK_FINGERPRINT = f"{DOMAIN}_disk_fingerprint"
 
 # Length of the cache key taken from the bundle hash. Long enough that two
 # different bundles cannot collide in practice, short enough to keep the URL
@@ -98,6 +110,16 @@ def registered_fingerprint(hass: HomeAssistant) -> str | None:
     return hass.data.get(DATA_REGISTERED_FINGERPRINT)
 
 
+def disk_fingerprint(hass: HomeAssistant) -> str | None:
+    """The last known fingerprint of the bundle on disk."""
+    return hass.data.get(DATA_DISK_FINGERPRINT)
+
+
+def store_disk_fingerprint(hass: HomeAssistant, fingerprint: str) -> None:
+    """Record what the housekeeping pass hashed, from the event loop."""
+    hass.data[DATA_DISK_FINGERPRINT] = fingerprint
+
+
 async def async_register_panel(hass: HomeAssistant) -> None:
     """Register the built front-end and the sidebar entry, once per run."""
     fingerprint = await hass.async_add_executor_job(bundle_fingerprint)
@@ -106,6 +128,7 @@ async def async_register_panel(hass: HomeAssistant) -> None:
     # update through HACS the address still names the previous bundle until
     # Home Assistant is restarted, and nothing else would ever mention it.
     hass.data[DATA_REGISTERED_FINGERPRINT] = fingerprint
+    hass.data[DATA_DISK_FINGERPRINT] = fingerprint
 
     hass.http.register_view(FrontendView())
     await panel_custom.async_register_panel(

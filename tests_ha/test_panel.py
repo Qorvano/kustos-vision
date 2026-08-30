@@ -222,7 +222,7 @@ async def test_the_bundle_is_not_cached_far_into_the_future(
 
     client = await hass_client()
     response = await client.get(
-        f"/{DOMAIN}-frontend/panel.js?v={bundle_fingerprint()}"
+        f"/api/{DOMAIN}/frontend/panel.js?v={bundle_fingerprint()}"
     )
     assert response.status == 200
 
@@ -242,7 +242,7 @@ async def test_an_unchanged_bundle_answers_not_modified(
     await async_setup_component(hass, DOMAIN, {})
     await hass.async_block_till_done()
     client = await hass_client()
-    url = f"/{DOMAIN}-frontend/panel.js?v={bundle_fingerprint()}"
+    url = f"/api/{DOMAIN}/frontend/panel.js?v={bundle_fingerprint()}"
 
     first = await client.get(url)
     again = await client.get(url, headers={"If-None-Match": first.headers["ETag"]})
@@ -263,6 +263,6 @@ async def test_nothing_outside_the_built_front_end_is_served(
     await async_setup_component(hass, DOMAIN, {})
     await hass.async_block_till_done()
     client = await hass_client()
-    response = await client.get(f"/{DOMAIN}-frontend/{path}")
+    response = await client.get(f"/api/{DOMAIN}/frontend/{path}")
     assert response.status in (400, 404)
 

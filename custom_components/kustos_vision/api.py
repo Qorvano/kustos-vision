@@ -46,7 +46,7 @@ from .core.config import (
 )
 from .core.index import blocks_from_segments
 from .core.observations import ObservationError
-from .panel import bundle_fingerprint, registered_fingerprint
+from .panel import disk_fingerprint, registered_fingerprint
 from .version import integration_version
 from .vision import VisionError
 
@@ -193,9 +193,19 @@ def _snapshot(coordinator: CamwatchCoordinator) -> dict[str, Any]:
 
 
 def _restart_pending(hass: HomeAssistant) -> bool:
-    """Whether the built front-end has changed since it was registered."""
+    """Whether the built front-end has changed since it was registered.
+
+    Compares two stored values and reads no file: this runs in the event
+    loop for every command that returns a snapshot, and hashing the bundle
+    here showed up in the live log as a blocking call. The disk side is
+    refreshed by the housekeeping pass, so an update through HACS is
+    noticed within one pass.
+    """
     registered = registered_fingerprint(hass)
-    return registered is not None and registered != bundle_fingerprint()
+    current = disk_fingerprint(hass)
+    return (
+        registered is not None and current is not None and registered != current
+    )
 
 
 @websocket_api.websocket_command({vol.Required("type"): f"{DOMAIN}/config/get"})
