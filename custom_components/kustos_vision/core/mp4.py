@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import struct
 from dataclasses import dataclass
+from itertools import pairwise
 from pathlib import Path
 from typing import BinaryIO
 
@@ -94,7 +95,7 @@ def playable_length(path: Path) -> int:
         boxes = top_level_boxes(fh, file_size)
 
     last_pair_end = 0
-    for previous, box in zip(boxes, boxes[1:]):
+    for previous, box in pairwise(boxes):
         if (
             box.kind == "mdat"
             and box.complete
