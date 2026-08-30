@@ -471,3 +471,28 @@ describe("surviving an update", () => {
     expect(read("components/player.ts")).toContain('"positionchange"');
   });
 });
+
+describe("scrubbing", () => {
+  const read = (name: string) =>
+    readFileSync(new URL(`../src/${name}`, import.meta.url), "utf8");
+
+  it("playback reports do not fight the finger", () => {
+    // Regression: while dragging, the running video kept reporting its own
+    // clock and the cursor flicked between the two several times a second.
+    const source = read("views/recordings.ts");
+    expect(source).toMatch(/if \(!this\.scrubbing\) this\.position/);
+    expect(source).toContain("@scrubend=");
+  });
+
+  it("a cancelled drag lifts the suppression again", () => {
+    expect(read("components/timeline.ts")).toContain('"scrubend"');
+  });
+
+  it("a restarted run resumes playing on its own", () => {
+    // Regression: Safari kept the controls on "playing" while nothing moved
+    // after the source was swapped underneath a running video.
+    const source = read("components/player.ts");
+    expect(source).toContain("startup.resume");
+    expect(source).toMatch(/video\.play\(\)/);
+  });
+});

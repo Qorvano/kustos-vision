@@ -120,28 +120,53 @@ export class CamwatchTimeline extends LitElement {
       background: var(--error-color, #db4437);
       pointer-events: none;
     }
-    .postime {
+    .head {
       position: absolute;
-      top: 2px;
+      top: 0;
       transform: translateX(-50%);
-      font-size: 0.7em;
-      background: rgba(0, 0, 0, 0.6);
-      color: #fff;
-      padding: 1px 5px;
-      border-radius: 4px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
       pointer-events: none;
-      white-space: nowrap;
       z-index: 1;
     }
-    .hours {
+    .head .flag {
+      background: var(--error-color, #db4437);
+      color: #fff;
+      font-size: 0.7em;
+      padding: 1px 5px;
+      border-radius: 4px;
+      white-space: nowrap;
+    }
+    .head .arrow {
+      width: 0;
+      height: 0;
+      border-left: 5px solid transparent;
+      border-right: 5px solid transparent;
+      border-top: 6px solid var(--error-color, #db4437);
+    }
+    .scale {
       position: relative;
-      height: 16px;
-      margin-top: 2px;
+      height: 20px;
+      margin-top: 4px;
       font-size: 0.7em;
       color: var(--secondary-text-color);
     }
-    .hour {
+    .scale .mark {
       position: absolute;
+      top: 0;
+      width: 1px;
+      height: 5px;
+      background: currentColor;
+      opacity: 0.5;
+    }
+    .scale .mark.major {
+      height: 8px;
+      opacity: 1;
+    }
+    .scale .lbl {
+      position: absolute;
+      top: 9px;
       transform: translateX(-50%);
       white-space: nowrap;
     }
@@ -254,30 +279,45 @@ export class CamwatchTimeline extends LitElement {
     });
   }
 
-  private renderHours() {
-    // A tick per hour as long as they do not crowd each other; on a shorter
-    // range the labels would overlap into mush.
-    const hours: number[] = [];
+  private hourMarks(): number[] {
     const step = 3600;
     const first = Math.ceil(this.from / step) * step;
-    for (let t = first; t <= this.to; t += step) hours.push(t);
-    if (hours.length > 24) return nothing;
+    const marks: number[] = [];
+    for (let t = first; t <= this.to; t += step) marks.push(t);
+    // A day is at most 25 of them; anything denser means the range is not a
+    // day and this scale is the wrong instrument.
+    return marks.length > 26 ? [] : marks;
+  }
 
-    return html`
-      ${hours.map(
-        (t) => html`<div class="tick" style="left:${this.percent(t)}%"></div>`,
+  private renderGrid() {
+    return this.hourMarks().map(
+      (t) => html`<div class="tick" style="left:${this.percent(t)}%"></div>`,
+    );
+  }
+
+  private renderScale() {
+    const marks = this.hourMarks();
+    if (marks.length < 2) return nothing;
+    // Every mark gets a stroke, but only some get numbers: a dozen labels is
+    // what stays readable across the widths a dashboard is used at, so a
+    // full day labels every second hour.
+    const labelEvery = Math.ceil(marks.length / 12);
+    return html`<div class="scale">
+      ${marks.map(
+        (t, i) => html`<div
+            class="mark ${i % labelEvery === 0 ? "major" : ""}"
+            style="left:${this.percent(t)}%"
+          ></div>
+          ${i % labelEvery === 0
+            ? html`<span class="lbl" style="left:${this.percent(t)}%">
+                ${new Date(t * 1000).toLocaleTimeString(undefined, {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </span>`
+            : nothing}`,
       )}
-      <div class="hours">
-        ${hours.map(
-          (t) => html`<span class="hour" style="left:${this.percent(t)}%">
-            ${new Date(t * 1000).toLocaleTimeString(undefined, {
-              hour: "2-digit",
-              minute: "2-digit",
-            })}
-          </span>`,
-        )}
-      </div>
-    `;
+    </div>`;
   }
 
   override render() {
@@ -299,7 +339,15 @@ export class CamwatchTimeline extends LitElement {
           @pointerdown=${this.onPointerDown}
           @pointermove=${this.onPointerMove}
           @pointerup=${this.onPointerUp}
-          @pointercancel=${() => (this.dragging = false)}
+          @pointercancel=${() => {
+            this.dragging = false;
+            // The view above suppresses playback updates while a scrub is
+            // active; a cancelled drag has to lift that too, or the cursor
+            // never follows the playback again.
+            this.dispatchEvent(
+              new CustomEvent("scrubend", { bubbles: true, composed: true }),
+            );
+          }}
           @pointerleave=${() => {
             if (this.dragging) return;
             this.hover = undefined;
@@ -318,12 +366,14 @@ export class CamwatchTimeline extends LitElement {
           )}
           ${this.position >= this.from && this.position <= this.to
             ? html`<div class="playhead" style="left:${this.percent(this.position)}%"></div>
-                <div class="postime" style="left:${this.percent(this.position)}%">
-                  ${this.formatTime(this.position)}
+                <div class="head" style="left:${this.percent(this.position)}%">
+                  <div class="flag">${this.formatTime(this.position)}</div>
+                  <div class="arrow"></div>
                 </div>`
             : nothing}
-          ${this.renderHours()}
+          ${this.renderGrid()}
         </div>
+        ${this.renderScale()}
         ${this.blocks.length === 0
           ? html`<div class="empty">An diesem Tag wurde nichts aufgezeichnet.</div>`
           : nothing}

@@ -212,6 +212,8 @@ export class CamwatchPlayer extends LitElement {
   private accepted = 0;
   /** The rest of a segment whose append was interrupted by a full buffer. */
   private carry?: { path: string; rest: Uint8Array; firstOfSegment: boolean };
+  /** Where a freshly loaded run starts, and whether it resumes playing. */
+  private startup?: { mediaTime: number; resume: boolean };
   private loading = false;
   private generation = 0;
   private wired = false;
@@ -338,16 +340,23 @@ export class CamwatchPlayer extends LitElement {
       video.currentTime = target;
       return;
     }
+    const firstPending = this.placed.find(
+      (p) => !this.appended.has(p.segment.path),
+    );
     if (
       this.carry?.path === containing.segment.path ||
-      !this.appended.has(containing.segment.path)
+      firstPending?.segment.path === containing.segment.path
     ) {
-      // On its way already, or coming up in order; seeking there makes the
-      // element wait for exactly the data the pump is about to deliver.
+      // On its way already; seeking there makes the element wait for exactly
+      // the data the pump is about to deliver.
       video.currentTime = target;
       void this.pump();
       return;
     }
+    // Anything further restarts there. Waiting instead would crawl segment by
+    // segment toward the target, and on a high-resolution stream those are
+    // fifty megabytes each: the controls sat on "playing" for as long as the
+    // downloads took, with nothing moving.
     void this.load(utc, containing.segment.stream_key);
   }
 
@@ -374,12 +383,21 @@ export class CamwatchPlayer extends LitElement {
 
     const pos = this.placed.find((p) => t < p.mediaStart + p.segment.duration);
     if (!pos) return;
+    const firstPending = this.placed.find(
+      (p) => !this.appended.has(p.segment.path),
+    );
     if (
       this.carry?.path === pos.segment.path ||
-      !this.appended.has(pos.segment.path)
+      firstPending?.segment.path === pos.segment.path
     ) {
       // The pump is on its way to this spot.
       void this.pump();
+      return;
+    }
+    if (!this.appended.has(pos.segment.path)) {
+      // Far ahead in the queue; restart there instead of fetching everything
+      // in between first.
+      void this.load(utcFor(this.placed, t), pos.segment.stream_key);
       return;
     }
     const buffered = video.buffered;
@@ -416,6 +434,7 @@ export class CamwatchPlayer extends LitElement {
     this.appended.clear();
     this.accepted = 0;
     this.carry = undefined;
+    this.startup = undefined;
     this.loading = false;
   }
 
@@ -440,6 +459,15 @@ export class CamwatchPlayer extends LitElement {
       this.message = "Ab diesem Zeitpunkt ist nichts mehr aufgezeichnet.";
       return;
     }
+
+    // The element about to lose its source: whether it was playing decides
+    // whether the new run starts moving on its own, and the requested moment
+    // is applied once there is data to stand on.
+    const previous = this.video();
+    this.startup = {
+      mediaTime: mediaTimeFor(this.placed, startAt),
+      resume: previous !== null && !previous.paused,
+    };
 
     let codec: string | null;
     try {
@@ -712,13 +740,52 @@ export class CamwatchPlayer extends LitElement {
         if (carry.firstOfSegment) {
           this.accepted += 1;
           carry.firstOfSegment = false;
+          this.applyStartup();
         }
       }
       this.carry = undefined;
     } finally {
       this.loading = false;
     }
-    if (generation === this.generation) void this.pump();
+    if (generation === this.generation) {
+      this.nudgeStalledSeek();
+      void this.pump();
+    }
+  }
+
+  /** Put the element where the run was asked to start, once data exists. */
+  private applyStartup(): void {
+    const startup = this.startup;
+    if (!startup) return;
+    this.startup = undefined;
+    const video = this.video();
+    if (!video) return;
+    if (startup.mediaTime > 0) video.currentTime = startup.mediaTime;
+    if (startup.resume) {
+      // Restarting at a new spot swaps the element's source, and not every
+      // browser resumes a swapped source by itself: Safari kept the controls
+      // on "playing" while nothing moved, until pause and play were pressed
+      // by hand.
+      void video.play().catch(() => {
+        // A refused play leaves the person one press away, which still beats
+        // pretending.
+      });
+    }
+  }
+
+  /**
+   * Unstick a seek whose data turned out not to exist.
+
+   * A seek into the not-yet-fetched part waits for the pump; when the append
+   * lands and the spot is still dry (a recording shorter than the index
+   * believes), the element would wait forever, so it moves to the next
+   * footage instead.
+   */
+  private nudgeStalledSeek(): void {
+    const video = this.video();
+    if (!video || !video.seeking) return;
+    if (this.isBuffered(video, video.currentTime)) return;
+    this.skipHole();
   }
 
   override render() {

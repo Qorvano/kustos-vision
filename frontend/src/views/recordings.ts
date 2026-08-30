@@ -22,6 +22,8 @@ export class CamwatchRecordings extends LitElement {
   @state() private position = 0;
   @state() private seekTo = 0;
   @state() private busy = false;
+  /** A drag on the timeline is in progress; playback reports pause then. */
+  private scrubbing = false;
   @state() private downloading = false;
   @state() private error = "";
 
@@ -252,7 +254,10 @@ export class CamwatchRecordings extends LitElement {
           .segments=${this.segments}
           .seekTo=${this.seekTo}
           @positionchange=${(e: CustomEvent<{ time: number }>) => {
-            this.position = e.detail.time;
+            // While a finger drags the cursor, the running video keeps
+            // reporting its own clock; letting that through made the cursor
+            // flick back and forth between the two several times a second.
+            if (!this.scrubbing) this.position = e.detail.time;
           }}
         ></kustos-vision-player>
 
@@ -265,9 +270,14 @@ export class CamwatchRecordings extends LitElement {
             .segments=${this.segments}
             .position=${this.position}
             @scrub=${(e: CustomEvent<{ time: number }>) => {
+              this.scrubbing = true;
               this.position = e.detail.time;
             }}
+            @scrubend=${() => {
+              this.scrubbing = false;
+            }}
             @seek=${(e: CustomEvent<{ time: number }>) => {
+              this.scrubbing = false;
               this.position = e.detail.time;
               this.seekTo = e.detail.time;
             }}
