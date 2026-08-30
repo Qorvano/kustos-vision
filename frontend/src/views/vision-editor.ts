@@ -276,6 +276,16 @@ export class CamwatchVisionEditor extends LitElement {
                 })}
             />
           </div>
+          <div>
+            <label>Angezeigter Name (leer = aus der Kennung)</label>
+            <input
+              .value=${observation.name ?? ""}
+              @change=${(e: Event) =>
+                this.patchObservation(index, {
+                  name: (e.target as HTMLInputElement).value || undefined,
+                })}
+            />
+          </div>
         </div>
 
         ${observation.type === "select"

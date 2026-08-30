@@ -55,6 +55,7 @@ export interface Observation {
   key: string;
   type: ObservationType;
   question: string;
+  name?: string;
   device_class?: string;
   options?: string[];
   minimum?: number;

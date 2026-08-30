@@ -52,6 +52,12 @@ class Observation:
     """What the model is asked. This is the whole prompt for this field, so it
     should read as a question a stranger could answer from the picture alone."""
 
+    name: str | None = None
+    """What the entity is called. Falls back to the key, never to the
+    question: the question can be a whole sentence, and Home Assistant builds
+    the entity id from the name, so using it produces an unusable identifier
+    that also changes whenever the wording is improved."""
+
     device_class: str | None = None
     """Passed through to the entity, e.g. "motion" or "occupancy"."""
 
@@ -83,12 +89,22 @@ class Observation:
                 f"observation {self.key!r} has an empty number range"
             )
 
+    @property
+    def display_name(self) -> str:
+        """A short label for the entity, stable across question rewordings."""
+        if self.name:
+            return self.name
+        readable = self.key.replace("_", " ").strip()
+        return readable[:1].upper() + readable[1:]
+
     def as_dict(self) -> dict[str, Any]:
         stored: dict[str, Any] = {
             "key": self.key,
             "type": str(self.type),
             "question": self.question,
         }
+        if self.name:
+            stored["name"] = self.name
         if self.device_class:
             stored["device_class"] = self.device_class
         if self.type is ObservationType.SELECT:
@@ -108,6 +124,7 @@ class Observation:
             key=data["key"],
             type=kind,
             question=data["question"],
+            name=data.get("name"),
             device_class=data.get("device_class"),
             options=tuple(data.get("options", [])),
             minimum=int(data.get("minimum", 0)),

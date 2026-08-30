@@ -469,3 +469,74 @@ async def test_a_trigger_on_a_camera_without_streams_does_not_crash_the_task(
 
     await hass.config_entries.async_unload(entry.entry_id)
     await hass.async_block_till_done()
+
+
+async def test_the_entity_id_comes_from_the_key_not_the_question(
+    hass: HomeAssistant, hass_storage: dict, tmp_path: Path, vision_env
+) -> None:
+    """Regression: the entity name was the question, and Home Assistant builds
+    the entity id from the name. A one-sentence question produced an id no
+    automation could reasonably reference, and rewording the question renamed
+    the entity and lost its history."""
+    base = tmp_path / "recordings"
+    hass_storage[STORAGE_KEY_CONFIG] = stored(
+        base,
+        [
+            profile(
+                observations=[
+                    {
+                        "key": "person_im_garten",
+                        "type": "boolean",
+                        "question": (
+                            "Ist mindestens ein Mensch im Bild zu sehen, "
+                            "der sich auf dem Rasen oder der Terrasse aufhaelt?"
+                        ),
+                    }
+                ]
+            )
+        ],
+    )
+    entry = MockConfigEntry(domain=DOMAIN, data={CONF_BASE_PATH: str(base)})
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    ids = hass.states.async_entity_ids("binary_sensor")
+    observation_ids = [e for e in ids if "person_im_garten" in e]
+    assert observation_ids, f"no entity built from the key, only: {ids}"
+    assert not any("mensch_im_bild" in e for e in ids)
+
+    await hass.config_entries.async_unload(entry.entry_id)
+    await hass.async_block_till_done()
+
+
+async def test_an_explicit_name_is_used_for_the_entity(
+    hass: HomeAssistant, hass_storage: dict, tmp_path: Path, vision_env
+) -> None:
+    base = tmp_path / "recordings"
+    hass_storage[STORAGE_KEY_CONFIG] = stored(
+        base,
+        [
+            profile(
+                observations=[
+                    {
+                        "key": "p",
+                        "name": "Paket vor der Tuer",
+                        "type": "boolean",
+                        "question": "Liegt ein Paket da?",
+                    }
+                ]
+            )
+        ],
+    )
+    entry = MockConfigEntry(domain=DOMAIN, data={CONF_BASE_PATH: str(base)})
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    assert any(
+        "paket_vor_der_tuer" in e for e in hass.states.async_entity_ids("binary_sensor")
+    )
+
+    await hass.config_entries.async_unload(entry.entry_id)
+    await hass.async_block_till_done()

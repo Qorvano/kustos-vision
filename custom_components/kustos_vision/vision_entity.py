@@ -44,7 +44,11 @@ class ObservationEntity(CamwatchCameraEntity):
     ) -> None:
         super().__init__(coordinator, camera_slug, f"vision_{observation.key}")
         self.observation = observation
-        self._attr_name = observation.question.rstrip("?")
+        # Deliberately the short label, not the question: Home Assistant builds
+        # the entity id from the name, and a question makes an identifier that
+        # is both unusable in an automation and unstable, because improving the
+        # wording would rename the entity. The full question is an attribute.
+        self._attr_name = observation.display_name
 
     @property
     def vision_state(self):

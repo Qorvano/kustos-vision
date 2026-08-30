@@ -241,3 +241,25 @@ def test_a_field_the_model_left_out_is_reported() -> None:
     values, problems = coerce_answers([obs(key="paket")], {})
     assert values == {}
     assert problems["paket"] == "no answer"
+
+
+def test_the_display_name_falls_back_to_the_key_not_the_question() -> None:
+    """Home Assistant builds the entity id from the name. A question makes an
+    identifier nobody can use in an automation, and it changes whenever the
+    wording is improved, which silently renames the entity."""
+    observation = obs(key="person_im_garten", question="Ist ein Mensch zu sehen?")
+    assert observation.display_name == "Person im garten"
+
+
+def test_an_explicit_name_wins() -> None:
+    observation = obs(key="person_im_garten", name="Person im Garten")
+    assert observation.display_name == "Person im Garten"
+
+
+def test_the_name_survives_a_round_trip() -> None:
+    observation = obs(name="Paket an der Tür")
+    assert Observation.from_dict(observation.as_dict()) == observation
+
+
+def test_no_name_is_not_stored() -> None:
+    assert "name" not in obs().as_dict()
