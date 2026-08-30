@@ -22,7 +22,7 @@ from kustos_vision.core.retention import (
     usable_capacity,
 )
 
-NOW = datetime(2026, 1, 20, 12, 0, tzinfo=UTC).timestamp()
+NOW = datetime(2026, 6, 15, 12, 0, tzinfo=UTC).timestamp()
 DAY = 24 * 60 * 60
 
 
@@ -101,9 +101,9 @@ def test_age_limit_applies_per_camera() -> None:
     """A camera without a configured limit is never aged out, even when the
     other camera's limit has long passed."""
     front = seg(30, camera="beispiel")
-    back = seg(30, camera="garten")
+    back = seg(30, camera="muster")
     plan = plan_retention(
-        [front, back, seg(0, camera="beispiel"), seg(0, camera="garten")],
+        [front, back, seg(0, camera="beispiel"), seg(0, camera="muster")],
         RetentionPolicy(max_age_days={"beispiel": 7}),
         NOW,
     )
@@ -112,10 +112,10 @@ def test_age_limit_applies_per_camera() -> None:
 
 def test_age_limits_may_differ_per_camera() -> None:
     front = seg(10, camera="beispiel")
-    back = seg(10, camera="garten")
+    back = seg(10, camera="muster")
     plan = plan_retention(
-        [front, back, seg(0, camera="beispiel"), seg(0, camera="garten")],
-        RetentionPolicy(max_age_days={"beispiel": 7, "garten": 14}),
+        [front, back, seg(0, camera="beispiel"), seg(0, camera="muster")],
+        RetentionPolicy(max_age_days={"beispiel": 7, "muster": 14}),
         NOW,
     )
     assert paths(plan.by_age) == {front.rel_path}
@@ -142,10 +142,10 @@ def test_age_is_measured_in_exact_days() -> None:
 def test_size_budget_deletes_the_globally_oldest_first() -> None:
     """The budget is a property of the disk, so it does not care which camera
     wrote the oldest segment."""
-    oldest = seg(5, camera="garten", size=100)
+    oldest = seg(5, camera="muster", size=100)
     middle = seg(3, camera="beispiel", size=100)
     newest_front = seg(0, camera="beispiel", size=100)
-    newest_back = seg(0, camera="garten", size=100)
+    newest_back = seg(0, camera="muster", size=100)
 
     plan = plan_retention(
         [oldest, middle, newest_front, newest_back],
@@ -174,7 +174,7 @@ def test_size_budget_reports_what_it_could_not_free() -> None:
     already occupy, the user has to see it rather than have the setting
     silently ignored."""
     plan = plan_retention(
-        [seg(0, camera="beispiel", size=500), seg(0, camera="garten", size=500)],
+        [seg(0, camera="beispiel", size=500), seg(0, camera="muster", size=500)],
         RetentionPolicy(max_total_bytes=100),
         NOW,
     )

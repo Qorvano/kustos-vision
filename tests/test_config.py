@@ -231,8 +231,8 @@ def test_with_camera_replaces_rather_than_duplicates() -> None:
 
 def test_with_camera_adds_a_new_one() -> None:
     config = CamwatchConfig(storage=storage(), cameras=(camera(),))
-    updated = config.with_camera(camera(slug="garten", name="Garten"))
-    assert {c.slug for c in updated.cameras} == {"beispiel", "garten"}
+    updated = config.with_camera(camera(slug="muster", name="Muster"))
+    assert {c.slug for c in updated.cameras} == {"beispiel", "muster"}
 
 
 def test_without_camera_removes_it() -> None:
@@ -255,7 +255,7 @@ def test_retention_limits_omit_cameras_without_one() -> None:
         storage=storage(),
         cameras=(
             camera(slug="beispiel", retention_days=7),
-            camera(slug="garten", name="Garten", retention_days=None),
+            camera(slug="muster", name="Muster", retention_days=None),
         ),
     )
     assert config.retention_days_by_camera == {"beispiel": 7}
@@ -350,13 +350,13 @@ def test_deleting_a_camera_removes_it_from_every_view() -> None:
         storage=storage(),
         cameras=(
             camera(slug="beispiel", view_settings=dict(shown)),
-            camera(slug="garten", name="Garten", view_settings=dict(shown)),
+            camera(slug="muster", name="Muster", view_settings=dict(shown)),
         ),
         views=(view(id="aussen"), view(id="alle", name="Alle")),
     )
     updated = config.without_camera("beispiel")
-    assert [c.slug for c in updated.cameras] == ["garten"]
-    assert [c.slug for c in updated.cameras_in_view("aussen")] == ["garten"]
+    assert [c.slug for c in updated.cameras] == ["muster"]
+    assert [c.slug for c in updated.cameras_in_view("aussen")] == ["muster"]
 
 
 # ----------------------------------------------------------------------

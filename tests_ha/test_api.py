@@ -485,7 +485,7 @@ async def test_changing_the_path_leaves_the_old_recordings_alone(
     worst possible surprise."""
     entry = await setup_kustos_vision()
     old = Path(entry.runtime_data.config.storage.base_path)
-    day = old / "beispiel" / "2026-01-20"
+    day = old / "beispiel" / "2026-06-15"
     day.mkdir(parents=True)
     recording = day / "14-30-00_hd.mp4"
     recording.write_bytes(b"important")
@@ -506,7 +506,7 @@ async def test_recordings_carried_across_by_hand_are_found_again(
     can move. Copying the tree across has to be enough."""
     entry = await setup_kustos_vision()
     target = tmp_path / "elsewhere"
-    day = target / "beispiel" / "2026-01-20"
+    day = target / "beispiel" / "2026-06-15"
     day.mkdir(parents=True)
     (day / "14-30-00_hd.mp4").write_bytes(b"x" * 64)
 
@@ -517,7 +517,7 @@ async def test_recordings_carried_across_by_hand_are_found_again(
     await entry.runtime_data.async_refresh()
     await hass.async_block_till_done()
     rows = await hass.async_add_executor_job(entry.runtime_data.index.oldest_first)
-    assert [r.rel_path for r in rows] == ["beispiel/2026-01-20/14-30-00_hd.mp4"]
+    assert [r.rel_path for r in rows] == ["beispiel/2026-06-15/14-30-00_hd.mp4"]
 
 
 async def test_an_unusable_path_is_refused_with_a_reason(
@@ -620,10 +620,10 @@ async def test_a_select_capability_takes_the_option(
         type=f"{DOMAIN}/camera/trigger",
         slug="beispiel",
         capability="ptz_preset",
-        value="Haustuer",
+        value="Beispieloption",
     )
     assert result["success"]
-    assert calls[0].data["option"] == "Haustuer"
+    assert calls[0].data["option"] == "Beispieloption"
 
 
 async def test_a_light_capability_can_be_turned_off(

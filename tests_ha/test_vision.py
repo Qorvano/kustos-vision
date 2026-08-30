@@ -485,11 +485,11 @@ async def test_the_entity_id_comes_from_the_key_not_the_question(
             profile(
                 observations=[
                     {
-                        "key": "person_im_garten",
+                        "key": "person_im_muster",
                         "type": "boolean",
                         "question": (
                             "Ist mindestens ein Mensch im Bild zu sehen, "
-                            "der sich auf dem Rasen oder der Terrasse aufhaelt?"
+                            "die sich vor der Kamera aufhaelt?"
                         ),
                     }
                 ]
@@ -502,7 +502,7 @@ async def test_the_entity_id_comes_from_the_key_not_the_question(
     await hass.async_block_till_done()
 
     ids = hass.states.async_entity_ids("binary_sensor")
-    observation_ids = [e for e in ids if "person_im_garten" in e]
+    observation_ids = [e for e in ids if "person_im_muster" in e]
     assert observation_ids, f"no entity built from the key, only: {ids}"
     assert not any("mensch_im_bild" in e for e in ids)
 

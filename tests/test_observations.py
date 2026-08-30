@@ -247,13 +247,13 @@ def test_the_display_name_falls_back_to_the_key_not_the_question() -> None:
     """Home Assistant builds the entity id from the name. A question makes an
     identifier nobody can use in an automation, and it changes whenever the
     wording is improved, which silently renames the entity."""
-    observation = obs(key="person_im_garten", question="Ist ein Mensch zu sehen?")
-    assert observation.display_name == "Person im garten"
+    observation = obs(key="person_im_muster", question="Ist ein Mensch zu sehen?")
+    assert observation.display_name == "Person im muster"
 
 
 def test_an_explicit_name_wins() -> None:
-    observation = obs(key="person_im_garten", name="Person im Garten")
-    assert observation.display_name == "Person im Garten"
+    observation = obs(key="person_im_muster", name="Person im Muster")
+    assert observation.display_name == "Person im Muster"
 
 
 def test_the_name_survives_a_round_trip() -> None:

@@ -300,17 +300,17 @@ describe("re-signing an address that is about to expire", () => {
     const api = new CamwatchApi(hass);
 
     vi.useFakeTimers();
-    vi.setSystemTime(new Date("2026-01-20T12:00:00Z"));
+    vi.setSystemTime(new Date("2026-06-15T12:00:00Z"));
     const first = await api.signedUrl("/api/kustos_vision/segment/a");
 
     // Just inside the window: still the same address, so the browser keeps
     // whatever it has cached under it.
-    vi.setSystemTime(new Date("2026-01-20T12:30:00Z"));
+    vi.setSystemTime(new Date("2026-06-15T12:30:00Z"));
     expect(await api.signedUrl("/api/kustos_vision/segment/a")).toBe(first);
 
     // Past the safety margin. Handing this one out again would let a long
     // download start on a signature that expires while it is running.
-    vi.setSystemTime(new Date("2026-01-20T13:00:00Z"));
+    vi.setSystemTime(new Date("2026-06-15T13:00:00Z"));
     const later = await api.signedUrl("/api/kustos_vision/segment/a");
 
     expect(later).not.toBe(first);
