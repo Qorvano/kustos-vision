@@ -25,6 +25,7 @@ from homeassistant.components.ffmpeg import get_ffmpeg_manager
 from homeassistant.core import HomeAssistant
 
 from .core.index import Segment
+from .core.mp4 import playable_length
 from .core.recorder import build_concat_args
 
 _LOGGER = logging.getLogger(__name__)
@@ -54,15 +55,54 @@ def pipe_concat_args(list_file: Path) -> list[str]:
     return args
 
 
-def write_concat_list(segments: list[Segment], base: Path, target: Path) -> None:
+def prepare_inputs(segments: list[Segment], base: Path, tmp: Path) -> list[Path]:
+    """The files the join may safely read, torn tails cut off.
+
+    A segment the recorder was writing when it died ends mid-box, and the
+    concat demuxer abandons the WHOLE join at that packet rather than skipping
+    it: a day's download used to end at the first crash-made gap and silently
+    drop everything recorded after it. Such a file is copied up to its last
+    complete fragment into the scratch directory and the copy joined instead.
+    Intact files, which is nearly all of them, are used where they are.
+    """
+    prepared: list[Path] = []
+    for segment in segments:
+        source = segment.absolute(base)
+        try:
+            keep = playable_length(source)
+        except OSError as err:
+            _LOGGER.warning("kustos_vision: cannot read %s for export: %s", source, err)
+            continue
+        if keep == source.stat().st_size:
+            prepared.append(source)
+            continue
+        if keep == 0:
+            _LOGGER.warning(
+                "kustos_vision: %s has no complete fragment, export skips it", source
+            )
+            continue
+        trimmed = tmp / f"{len(prepared):04d}_{source.name}"
+        with source.open("rb") as src, trimmed.open("wb") as dst:
+            dst.write(src.read(keep))
+        _LOGGER.debug(
+            "kustos_vision: %s ends mid-write, exporting its playable %d of %d bytes",
+            source,
+            keep,
+            source.stat().st_size,
+        )
+        prepared.append(trimmed)
+    return prepared
+
+
+def write_concat_list(paths: list[Path], target: Path) -> None:
     """Write the file list the concat demuxer reads.
 
     Paths are quoted the way the demuxer expects, with single quotes escaped,
     so a directory containing one does not truncate the list.
     """
     lines = []
-    for segment in segments:
-        absolute = str(segment.absolute(base)).replace("'", r"'\''")
+    for path in paths:
+        absolute = str(path).replace("'", r"'\''")
         lines.append(f"file '{absolute}'")
     target.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
@@ -82,10 +122,14 @@ async def stream_export(
         partial(tempfile.mkdtemp, prefix="kustos-vision-export-")
     )
     try:
-        list_file = Path(tmp) / "segments.txt"
-        await hass.async_add_executor_job(
-            write_concat_list, segments, base, list_file
+        paths = await hass.async_add_executor_job(
+            prepare_inputs, segments, base, Path(tmp)
         )
+        if not paths:
+            _LOGGER.warning("kustos_vision: nothing in the range was exportable")
+            return
+        list_file = Path(tmp) / "segments.txt"
+        await hass.async_add_executor_job(write_concat_list, paths, list_file)
 
         args = pipe_concat_args(list_file)
 
