@@ -139,6 +139,10 @@ export interface Storage {
   max_gap_seconds: number;
 }
 
+/** Declared by the build, see vite.config.ts. */
+declare const __KUSTOS_VISION_VERSION__: string;
+export const BUILT_VERSION = __KUSTOS_VISION_VERSION__;
+
 export interface Snapshot {
   storage: Storage;
   cameras: Camera[];
@@ -149,6 +153,12 @@ export interface Snapshot {
     used_bytes: number;
     free_bytes: number | null;
     over_budget_bytes: number;
+  };
+  build: {
+    /** The version that is installed, as the manifest states it. */
+    version: string;
+    /** The built front-end on disk is no longer the one being served. */
+    restart_pending: boolean;
   };
   maintenance: {
     indexed: number;

@@ -46,6 +46,8 @@ from .core.config import (
 )
 from .core.index import blocks_from_segments
 from .core.observations import ObservationError
+from .panel import bundle_fingerprint, registered_fingerprint
+from .version import integration_version
 from .vision import VisionError
 
 _LOGGER = logging.getLogger(__name__)
@@ -173,7 +175,27 @@ def _snapshot(coordinator: CamwatchCoordinator) -> dict[str, Any]:
             "thumbnails": data.maintenance.thumbnails if data else 0,
             "error": data.maintenance.error if data else None,
         },
+        # What is installed, and whether what is being served still matches it.
+        # A panel that keeps showing an old version after an update is
+        # otherwise invisible: everything looks like it worked, the change is
+        # simply not there, and the only way to find out is to know how browser
+        # caches behave. The panel compares this against the version it was
+        # built with and says so plainly.
+        "build": {
+            "version": integration_version(),
+            # True when the bundle on disk is no longer the one the sidebar
+            # entry points at. Registration happens once per Home Assistant
+            # run, so an update through HACS leaves the address naming the
+            # previous bundle until Home Assistant is restarted.
+            "restart_pending": _restart_pending(coordinator.hass),
+        },
     }
+
+
+def _restart_pending(hass: HomeAssistant) -> bool:
+    """Whether the built front-end has changed since it was registered."""
+    registered = registered_fingerprint(hass)
+    return registered is not None and registered != bundle_fingerprint()
 
 
 @websocket_api.websocket_command({vol.Required("type"): f"{DOMAIN}/config/get"})

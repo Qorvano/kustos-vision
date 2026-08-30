@@ -226,7 +226,43 @@ async def test_the_bundle_is_not_cached_far_into_the_future(
     )
     assert response.status == 200
 
-    cache_control = response.headers.get("Cache-Control", "")
-    # Either no directive at all, or one that still revalidates.
-    assert "max-age=31536000" not in cache_control
-    assert "immutable" not in cache_control
+    # no-cache does not mean "do not store", it means "ask before using what
+    # you stored". Nothing weaker works: with no directive at all the browser
+    # picks its own freshness by guesswork and may skip asking for a long
+    # while, which is what kept showing the previous panel after an update.
+    assert response.headers.get("Cache-Control") == "no-cache"
+
+
+async def test_an_unchanged_bundle_answers_not_modified(
+    hass: HomeAssistant, hass_client
+) -> None:
+    """The price of always asking. It has to stay a question, not a download."""
+    from custom_components.kustos_vision.panel import bundle_fingerprint
+
+    await async_setup_component(hass, DOMAIN, {})
+    await hass.async_block_till_done()
+    client = await hass_client()
+    url = f"/{DOMAIN}-frontend/panel.js?v={bundle_fingerprint()}"
+
+    first = await client.get(url)
+    again = await client.get(url, headers={"If-None-Match": first.headers["ETag"]})
+
+    assert again.status == 304
+    assert await again.read() == b""
+
+
+@pytest.mark.parametrize(
+    "path",
+    ["../../../etc/passwd", "..%2f..%2fsecrets.yaml", "/etc/passwd"],
+)
+async def test_nothing_outside_the_built_front_end_is_served(
+    hass: HomeAssistant, hass_client, path: str
+) -> None:
+    """The front-end is reachable without authentication, so it must not be a
+    way into the rest of the file system."""
+    await async_setup_component(hass, DOMAIN, {})
+    await hass.async_block_till_done()
+    client = await hass_client()
+    response = await client.get(f"/{DOMAIN}-frontend/{path}")
+    assert response.status in (400, 404)
+

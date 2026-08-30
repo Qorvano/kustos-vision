@@ -11,14 +11,20 @@ from __future__ import annotations
 import hashlib
 from pathlib import Path
 
+from aiohttp import web
 from homeassistant.components import panel_custom
-from homeassistant.components.http import StaticPathConfig
+from homeassistant.components.http import HomeAssistantView
 from homeassistant.core import HomeAssistant
 
 from .const import DOMAIN
 
 FRONTEND_DIR = Path(__file__).parent / "frontend" / "dist"
 PANEL_URL_PATH = DOMAIN
+FRONTEND_URL = f"/{DOMAIN}-frontend"
+
+# Where the fingerprint that was actually registered is kept, so the panel can
+# be told when the file on disk has moved on since then.
+DATA_REGISTERED_FINGERPRINT = f"{DOMAIN}_registered_fingerprint"
 
 # Length of the cache key taken from the bundle hash. Long enough that two
 # different bundles cannot collide in practice, short enough to keep the URL
@@ -46,33 +52,67 @@ def bundle_fingerprint() -> str:
     return digest[:FINGERPRINT_LENGTH]
 
 
+class FrontendView(HomeAssistantView):
+    """Serve the built front-end so a browser always notices a new one.
+
+    Home Assistant's own static handler offers two settings and neither is
+    right here. With caching on it sends a month of far-future caching; with it
+    off it sends no Cache-Control header at all, which sounds harmless but is
+    not. A response carrying only ETag and Last-Modified lets the browser pick
+    its own freshness by guesswork, so it may skip asking for minutes or hours
+    at a time. That is what kept showing the previous panel after an update
+    until somebody reloaded past the cache by hand.
+
+    no-cache does not mean "do not store". It means "ask before using what you
+    stored", and when nothing changed the answer is a 304 with no body at all.
+    For a bundle this size that is a rounding error, and it is the only setting
+    under which a change is visible without anyone having to know about
+    caching.
+
+    The module is fetched by a plain script tag, which cannot send an
+    Authorization header, so this is reachable without authentication. That is
+    no change: static paths are served the same way, as is Home Assistant's own
+    front end.
+    """
+
+    url = FRONTEND_URL + "/{filename:.*}"
+    name = f"{DOMAIN}:frontend"
+    requires_auth = False
+
+    async def get(self, request: web.Request, filename: str) -> web.StreamResponse:
+        candidate = Path(filename)
+        if candidate.is_absolute() or ".." in candidate.parts:
+            return web.Response(status=404)
+        target = FRONTEND_DIR / candidate
+        # resolve() also settles any symlink, so nothing outside the built
+        # front-end can be reached through one.
+        if not target.resolve().is_relative_to(FRONTEND_DIR.resolve()):
+            return web.Response(status=404)
+        if not target.is_file():
+            return web.Response(status=404)
+        return web.FileResponse(target, headers={"Cache-Control": "no-cache"})
+
+
+def registered_fingerprint(hass: HomeAssistant) -> str | None:
+    """The fingerprint the sidebar entry was registered with, if any."""
+    return hass.data.get(DATA_REGISTERED_FINGERPRINT)
+
+
 async def async_register_panel(hass: HomeAssistant) -> None:
     """Register the built front-end and the sidebar entry, once per run."""
     fingerprint = await hass.async_add_executor_job(bundle_fingerprint)
+    # Kept so the panel can say when the bundle on disk has moved on since
+    # this ran. Registration happens once per Home Assistant run, so after an
+    # update through HACS the address still names the previous bundle until
+    # Home Assistant is restarted, and nothing else would ever mention it.
+    hass.data[DATA_REGISTERED_FINGERPRINT] = fingerprint
 
-    await hass.http.async_register_static_paths(
-        [
-            StaticPathConfig(
-                f"/{DOMAIN}-frontend",
-                str(FRONTEND_DIR),
-                # Deliberately no far-future caching, even though the URL
-                # carries a fingerprint. The fingerprint is computed when the
-                # panel is registered, which happens once at startup: after an
-                # update through HACS the file on disk is new while the
-                # registered URL still names the old hash, so a hard-cached
-                # browser keeps serving the previous panel until Home Assistant
-                # is restarted. Without the far-future header the browser
-                # revalidates instead, which for a bundle this size costs one
-                # conditional request and always shows what is actually there.
-                cache_headers=False,
-            )
-        ]
-    )
+    hass.http.register_view(FrontendView())
     await panel_custom.async_register_panel(
         hass,
         webcomponent_name="kustos-vision-panel",
         frontend_url_path=PANEL_URL_PATH,
-        module_url=f"/{DOMAIN}-frontend/panel.js?v={fingerprint}",
+        module_url=f"{FRONTEND_URL}/panel.js?v={fingerprint}",
         sidebar_title="Kustos Vision",
         sidebar_icon="mdi:cctv",
         # Recording configuration decides what is captured and kept, and the

@@ -1237,3 +1237,39 @@ async def test_a_deleted_camera_is_gone_from_the_same_answer(
     client = await hass_ws_client(hass)
     result = await send(client, type=f"{DOMAIN}/camera/delete", slug="vorgarten")
     assert result["result"]["cameras"] == []
+
+async def test_the_panel_is_told_what_is_installed(
+    hass: HomeAssistant, hass_ws_client, setup_kustos_vision
+) -> None:
+    """So a browser holding an older bundle can notice and say so, instead of
+    quietly showing a panel from before the update."""
+    from custom_components.kustos_vision.version import integration_version
+
+    await setup_kustos_vision([])
+    client = await hass_ws_client(hass)
+    await client.send_json_auto_id({"type": f"{DOMAIN}/config/get"})
+    result = await client.receive_json()
+
+    build = result["result"]["build"]
+    assert build["version"] == integration_version()
+    assert build["version"] != ""
+    assert build["restart_pending"] is False
+
+
+async def test_a_rebuilt_bundle_is_reported_until_the_next_start(
+    hass: HomeAssistant, hass_ws_client, setup_kustos_vision
+) -> None:
+    """The sidebar entry is registered once per Home Assistant run, so an
+    update through HACS leaves the address naming the previous bundle. Nothing
+    else would ever mention that."""
+    await setup_kustos_vision([])
+    client = await hass_ws_client(hass)
+
+    with patch(
+        "custom_components.kustos_vision.api.bundle_fingerprint",
+        return_value="somethingelse",
+    ):
+        await client.send_json_auto_id({"type": f"{DOMAIN}/config/get"})
+        result = await client.receive_json()
+
+    assert result["result"]["build"]["restart_pending"] is True

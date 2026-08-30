@@ -9,7 +9,7 @@ import { LitElement, css, html, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import { CamwatchApi, errorText } from "./api";
 import { shared } from "./styles";
-import type { HomeAssistant, Snapshot } from "./types";
+import { BUILT_VERSION, type HomeAssistant, type Snapshot } from "./types";
 import "./views/live";
 import "./views/recordings";
 import "./views/settings";
@@ -86,6 +86,21 @@ export class CamwatchPanel extends LitElement {
       .body > kustos-vision-settings {
         flex: 0 0 auto;
       }
+      .stale {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+        padding: 10px 16px;
+        background: var(--warning-color, #ffa600);
+        color: #000;
+        font-size: 0.9em;
+      }
+      .stale button {
+        background: rgba(0, 0, 0, 0.75);
+        color: #fff;
+        padding: 6px 12px;
+      }
       .notice {
         padding: 32px 16px;
         text-align: center;
@@ -124,6 +139,36 @@ export class CamwatchPanel extends LitElement {
     }
   }
 
+  /**
+   * Say so when what is on screen is not what is installed.
+   *
+   * Both cases below are invisible without this. Everything looks like the
+   * update worked, the change is simply not there, and the only way to find
+   * out is to know how browser caches and panel registration behave. Neither
+   * is something anybody should have to know to see their own settings.
+   */
+  private renderStaleNotice(snapshot: Snapshot) {
+    const installed = snapshot.build?.version;
+    if (snapshot.build?.restart_pending) {
+      return html`<div class="stale">
+        <span>
+          Kustos Vision wurde aktualisiert. Bis Home Assistant neu gestartet
+          wird, liefert es weiterhin die vorherige Oberfläche aus.
+        </span>
+      </div>`;
+    }
+    if (installed && BUILT_VERSION && installed !== BUILT_VERSION) {
+      return html`<div class="stale">
+        <span>
+          Diese Seite zeigt noch Version ${BUILT_VERSION}, installiert ist
+          ${installed}. Der Browser hält eine ältere Oberfläche fest.
+        </span>
+        <button @click=${() => location.reload()}>Neu laden</button>
+      </div>`;
+    }
+    return nothing;
+  }
+
   override render() {
     if (this.error) {
       return html`<div class="notice">
@@ -139,6 +184,7 @@ export class CamwatchPanel extends LitElement {
     const view = snapshot.views.find((v) => v.id === this.active);
 
     return html`
+      ${this.renderStaleNotice(snapshot)}
       <div class="tabs">
         ${snapshot.views.map(
           (v) => html`
