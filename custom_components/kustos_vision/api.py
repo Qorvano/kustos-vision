@@ -464,29 +464,74 @@ def _device_candidates(hass: HomeAssistant, device_id: str | None) -> list[Entit
 async def ws_available_cameras(
     hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict
 ) -> None:
-    """List the camera entities that could be added.
+    """List what could be added, one entry per physical camera.
 
-    Cameras kustos_vision itself might publish later are excluded, so that the panel
-    cannot offer to record its own output.
+    Grouped by device rather than listed per entity. A camera that offers a
+    main and a sub stream appears in Home Assistant as two camera entities, and
+    offering both separately invites picking one of them as if it were a second
+    camera. It is one camera; its streams are chosen afterwards, together.
+
+    Entities without a device stay on their own, because for them that really
+    is one camera each. Cameras kustos_vision itself might publish are excluded,
+    so the panel cannot offer to record its own output.
+
+    Devices already in use are marked rather than hidden: hiding them makes an
+    existing camera look missing, and marking them says why it cannot be added
+    again while still allowing it to be seen.
     """
     entity_registry = er.async_get(hass)
-    cameras = []
+    device_registry = dr.async_get(hass)
+
+    if (coordinator := _coordinator(hass)) is not None:
+        taken = {
+            stream.entity_id
+            for camera in coordinator.config.cameras
+            for stream in camera.streams
+        }
+    else:
+        taken = set()
+
+    groups: dict[str, dict[str, Any]] = {}
     for entry in entity_registry.entities.values():
         if entry.domain != "camera" or entry.platform == DOMAIN or entry.disabled:
             continue
         state = hass.states.get(entry.entity_id)
-        cameras.append(
-            {
+        entity_name = (
+            entry.name or entry.original_name or (state.name if state else None)
+        )
+        available = state is not None and state.state != "unavailable"
+
+        # One key per device, and a key of its own for an entity that has none.
+        key = f"device:{entry.device_id}" if entry.device_id else f"entity:{entry.entity_id}"
+        group = groups.get(key)
+        if group is None:
+            name = entity_name
+            if entry.device_id:
+                device = device_registry.async_get(entry.device_id)
+                if device is not None:
+                    name = device.name_by_user or device.name or entity_name
+            groups[key] = {
                 "entity_id": entry.entity_id,
-                "name": (
-                    entry.name or entry.original_name or (state.name if state else None)
-                ),
+                "name": name,
                 "device_id": entry.device_id,
                 "area_id": entry.area_id,
-                "available": state is not None and state.state != "unavailable",
+                "available": available,
+                "streams": [{"entity_id": entry.entity_id, "name": entity_name}],
+                "in_use": entry.entity_id in taken,
             }
-        )
-    cameras.sort(key=lambda c: (c["name"] or c["entity_id"]).lower())
+            continue
+
+        group["streams"].append({"entity_id": entry.entity_id, "name": entity_name})
+        # A device counts as reachable when any of its streams is, and as taken
+        # when any of them is already recorded.
+        group["available"] = group["available"] or available
+        group["in_use"] = group["in_use"] or entry.entity_id in taken
+
+    cameras = sorted(
+        groups.values(), key=lambda c: (c["name"] or c["entity_id"]).lower()
+    )
+    for camera in cameras:
+        camera["streams"].sort(key=lambda s: (s["name"] or s["entity_id"]).lower())
     connection.send_result(msg["id"], {"cameras": cameras})
 
 

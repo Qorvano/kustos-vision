@@ -319,23 +319,49 @@ export class CamwatchCameraEditor extends LitElement {
     `;
   }
 
+  /** What to append to a picker entry: stream count, reachability, and
+   *  whether it is already taken. */
+  private pickerSuffix(entry: AvailableCamera): string {
+    const parts: string[] = [];
+    if (entry.streams.length > 1) parts.push(`${entry.streams.length} Streams`);
+    if (!entry.available) parts.push("nicht erreichbar");
+    if (entry.in_use) parts.push("bereits eingerichtet");
+    return parts.length ? ` (${parts.join(", ")})` : "";
+  }
+
   private renderPicker() {
-    if (this.camera) return nothing;
+    const editing = this.camera !== undefined;
     return html`
-      <label>Kamera in Home Assistant</label>
+      <label>
+        ${editing ? "Andere Kamera zuordnen" : "Kamera in Home Assistant"}
+      </label>
       <select
-        @change=${(e: Event) => this.pick((e.target as HTMLSelectElement).value)}
+        @change=${(e: Event) => {
+          const target = e.target as HTMLSelectElement;
+          void this.pick(target.value);
+          target.value = "";
+        }}
       >
-        <option value="">Bitte wählen …</option>
+        <option value="">
+          ${editing ? "unverändert lassen" : "Bitte wählen …"}
+        </option>
         ${this.available.map(
-          (c) => html`<option value=${c.entity_id}>
-            ${c.name ?? c.entity_id}${c.available ? "" : " (nicht verfügbar)"}
+          (c) => html`<option
+            value=${c.entity_id}
+            ?disabled=${c.in_use && !editing}
+          >
+            ${c.name ?? c.entity_id}${this.pickerSuffix(c)}
           </option>`,
         )}
       </select>
       <p class="hint">
-        kustos_vision schlägt danach Streams und Bedienelemente vor, die zum selben
-        Gerät gehören. Alles davon lässt sich ändern.
+        ${editing
+          ? html`Ersetzt Streams und Bedienelemente durch die des gewählten
+              Geräts, damit sich ein Vertippen beim Anlegen korrigieren lässt,
+              ohne die Kamera zu löschen. Kennung und Name bleiben, denn die
+              Kennung ist der Ordner der bisherigen Aufnahmen.`
+          : html`Jede Kamera erscheint einmal, mit allen ihren Streams.
+              Welche davon aufgezeichnet werden, wählen Sie gleich darunter.`}
       </p>
     `;
   }

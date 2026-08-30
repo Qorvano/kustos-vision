@@ -166,11 +166,17 @@ export interface Timeline {
 }
 
 export interface AvailableCamera {
+  /** A representative entity of the camera; the suggestion starts from it. */
   entity_id: string;
   name: string | null;
   device_id: string | null;
   area_id: string | null;
   available: boolean;
+  /** Every camera entity of this device, so the picker can say how many
+   *  streams it brings without listing them as separate cameras. */
+  streams: { entity_id: string; name: string | null }[];
+  /** Already recorded by a camera in Kustos Vision. */
+  in_use: boolean;
 }
 
 export interface Suggestion {

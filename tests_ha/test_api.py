@@ -964,3 +964,132 @@ async def test_editing_a_camera_still_works(
     )
     assert result["success"]
     assert result["result"]["cameras"][0]["name"] == "Hof umbenannt"
+
+
+# ----------------------------------------------------------------------
+# The camera picker
+# ----------------------------------------------------------------------
+
+
+async def test_a_camera_with_two_streams_is_offered_once(
+    hass: HomeAssistant,
+    hass_ws_client,
+    setup_kustos_vision,
+    device_registry: dr.DeviceRegistry,
+    entity_registry: er.EntityRegistry,
+) -> None:
+    """A camera offering a main and a sub stream is two entities in Home
+    Assistant. Listing both invites picking one of them as if it were a second
+    camera; it is one camera, and its streams are chosen afterwards."""
+    await setup_kustos_vision()
+    config_entry = MockConfigEntry(domain="demo")
+    config_entry.add_to_hass(hass)
+    device = device_registry.async_get_or_create(
+        config_entry_id=config_entry.entry_id,
+        identifiers={("demo", "cam")},
+        name="Kamera Hof",
+    )
+    for unique, object_id, name in (
+        ("hd", "hof_hd_stream", "Hof HD Stream"),
+        ("sd", "hof_sd_stream", "Hof SD Stream"),
+    ):
+        entity_registry.async_get_or_create(
+            "camera", "demo", unique, device_id=device.id,
+            suggested_object_id=object_id, original_name=name,
+        )
+
+    client = await hass_ws_client(hass)
+    result = await send(client, type=f"{DOMAIN}/cameras/available")
+    cameras = result["result"]["cameras"]
+
+    assert len(cameras) == 1
+    assert cameras[0]["name"] == "Kamera Hof"
+    assert len(cameras[0]["streams"]) == 2
+
+
+async def test_cameras_without_a_device_stay_separate(
+    hass: HomeAssistant, hass_ws_client, setup_kustos_vision,
+    entity_registry: er.EntityRegistry,
+) -> None:
+    """For a generic camera pointed at a URL there is no device to group by,
+    and each really is one camera."""
+    await setup_kustos_vision()
+    for unique, object_id in (("a", "erste"), ("b", "zweite")):
+        entity_registry.async_get_or_create(
+            "camera", "generic", unique, suggested_object_id=object_id,
+            original_name=object_id.title(),
+        )
+
+    client = await hass_ws_client(hass)
+    result = await send(client, type=f"{DOMAIN}/cameras/available")
+    names = {c["name"] for c in result["result"]["cameras"]}
+    assert {"Erste", "Zweite"} <= names
+
+
+async def test_a_camera_already_in_use_is_marked(
+    hass: HomeAssistant,
+    hass_ws_client,
+    setup_kustos_vision,
+    device_registry: dr.DeviceRegistry,
+    entity_registry: er.EntityRegistry,
+) -> None:
+    """Marked rather than hidden: hiding it makes an existing camera look
+    missing, marking it says why it cannot be added again."""
+    config_entry = MockConfigEntry(domain="demo")
+    config_entry.add_to_hass(hass)
+    device = device_registry.async_get_or_create(
+        config_entry_id=config_entry.entry_id,
+        identifiers={("demo", "cam")}, name="Kamera Hof",
+    )
+    entry = entity_registry.async_get_or_create(
+        "camera", "demo", "hd", device_id=device.id,
+        suggested_object_id="hof_hd", original_name="Hof HD",
+    )
+    await setup_kustos_vision(
+        [camera_dict(streams=[{"key": "hd", "entity_id": entry.entity_id}])]
+    )
+
+    client = await hass_ws_client(hass)
+    result = await send(client, type=f"{DOMAIN}/cameras/available")
+    hof = next(c for c in result["result"]["cameras"] if c["name"] == "Kamera Hof")
+    assert hof["in_use"] is True
+
+
+async def test_a_camera_not_yet_used_is_not_marked(
+    hass: HomeAssistant, hass_ws_client, setup_kustos_vision,
+    entity_registry: er.EntityRegistry,
+) -> None:
+    await setup_kustos_vision()
+    entity_registry.async_get_or_create(
+        "camera", "generic", "frei", suggested_object_id="frei", original_name="Frei",
+    )
+    client = await hass_ws_client(hass)
+    result = await send(client, type=f"{DOMAIN}/cameras/available")
+    frei = next(c for c in result["result"]["cameras"] if c["name"] == "Frei")
+    assert frei["in_use"] is False
+
+
+async def test_the_device_name_is_preferred_over_the_entity_name(
+    hass: HomeAssistant,
+    hass_ws_client,
+    setup_kustos_vision,
+    device_registry: dr.DeviceRegistry,
+    entity_registry: er.EntityRegistry,
+) -> None:
+    """"Kamera Hof" reads better than "Hof HD Stream" when the entry stands for
+    the whole camera."""
+    await setup_kustos_vision()
+    config_entry = MockConfigEntry(domain="demo")
+    config_entry.add_to_hass(hass)
+    device = device_registry.async_get_or_create(
+        config_entry_id=config_entry.entry_id,
+        identifiers={("demo", "cam")}, name="Kamera Hof",
+    )
+    entity_registry.async_get_or_create(
+        "camera", "demo", "hd", device_id=device.id,
+        suggested_object_id="hof_hd_stream", original_name="Hof HD Stream",
+    )
+
+    client = await hass_ws_client(hass)
+    result = await send(client, type=f"{DOMAIN}/cameras/available")
+    assert any(c["name"] == "Kamera Hof" for c in result["result"]["cameras"])
