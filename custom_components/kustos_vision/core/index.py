@@ -222,6 +222,20 @@ class SegmentIndex:
         with self._connect() as conn:
             return conn.execute("SELECT COUNT(*) FROM segments").fetchone()[0]
 
+    def largest_segment_bytes(self) -> int:
+        """Size of the biggest segment on record.
+
+        Used to size the headroom the retention run keeps free: between two
+        runs each stream can add at most one more segment, so the largest one
+        seen is the right unit to measure that growth in. Measuring it beats
+        assuming a bitrate, because it adapts to whatever the cameras actually
+        produce.
+        """
+        with self._connect() as conn:
+            return conn.execute(
+                "SELECT COALESCE(MAX(size_bytes), 0) FROM segments"
+            ).fetchone()[0]
+
     def total_bytes(self) -> int:
         with self._connect() as conn:
             return conn.execute(

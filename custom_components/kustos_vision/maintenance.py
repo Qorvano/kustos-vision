@@ -31,7 +31,15 @@ from .core.config import CamwatchConfig
 from .core.index import ScanResult, Segment, SegmentIndex, scan_incremental
 from .core.paths import prune_empty_day_dirs, thumbnail_for
 from .core.recorder import build_thumbnail_args
-from .core.retention import RetentionPlan, RetentionPolicy, newest_per_stream, plan_retention
+from .core.retention import (
+    RetentionPlan,
+    RetentionPolicy,
+    effective_budget,
+    headroom_bytes,
+    newest_per_stream,
+    plan_retention,
+    usable_capacity,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -202,16 +210,54 @@ class MaintenanceRunner:
         # having a preview is not worth a warning every run.
         return code == 0 and await self._run(target.is_file)
 
+    async def async_ceiling(self, config: CamwatchConfig, base: Path) -> int:
+        """The largest size limit that makes sense at this location.
+
+        Everything the recordings could occupy, minus the headroom a retention
+        run needs to work with. Both the automatic fallback and the check on a
+        user-entered budget go through here, so the two can never disagree
+        about what fits.
+        """
+        usage = await self._run(_disk_usage, base)
+        used = await self._run(self._index.total_bytes)
+        largest = await self._run(self._index.largest_segment_bytes)
+        streams = sum(len(camera.recorded_streams) for camera in config.cameras)
+
+        capacity = usable_capacity(usage.free if usage else 0, used)
+        return effective_budget(None, capacity, headroom_bytes(largest, streams))
+
+    async def _async_budget(self, config: CamwatchConfig, base: Path) -> int:
+        """The size limit this run applies, configured or not.
+
+        Recording that fills the disk and then dies is not an acceptable
+        default, so an installation without a configured budget gets one
+        derived from what is physically there. The headroom is measured, not
+        assumed: see ``core.retention.headroom_bytes``.
+        """
+        ceiling = await self.async_ceiling(config, base)
+        budget = effective_budget(config.storage.max_total_bytes, ceiling, 0)
+
+        if budget <= 0:
+            # Less space left than the headroom asks for. Freeing everything
+            # that can be freed is the only useful response; the alternative is
+            # recording stopping outright within the next few minutes.
+            _LOGGER.warning(
+                "kustos_vision: nothing usable is left at %s once the headroom "
+                "a retention run needs is accounted for; freeing everything "
+                "that is not currently being written",
+                base,
+            )
+            return 1
+        return budget
+
     async def _async_apply_retention(
         self, config: CamwatchConfig, base: Path
     ) -> RetentionPlan:
         """Plan and carry out deletions."""
         policy = RetentionPolicy(
             max_age_days=config.retention_days_by_camera,
-            max_total_bytes=config.storage.max_total_bytes,
+            max_total_bytes=await self._async_budget(config, base),
         )
-        if not policy.is_active:
-            return RetentionPlan()
 
         segments = await self._run(self._index.oldest_first)
         plan = plan_retention(segments, policy, dt_util.utcnow().timestamp())
@@ -257,3 +303,13 @@ class MaintenanceRunner:
     async def _run(self, func, *args):
         """Run a blocking call off the event loop."""
         return await self._hass.async_add_executor_job(func, *args)
+
+
+def _disk_usage(path: Path):
+    """Free space at the recording location, or None when it cannot be read."""
+    import shutil
+
+    try:
+        return shutil.disk_usage(path)
+    except OSError:
+        return None

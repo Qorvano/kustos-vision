@@ -22,14 +22,14 @@ let Te = class {
     return this.cssText;
   }
 };
-const Ne = (t) => new Te(typeof t == "string" ? t : t + "", void 0, ue), H = (t, ...e) => {
+const Re = (t) => new Te(typeof t == "string" ? t : t + "", void 0, ue), H = (t, ...e) => {
   const s = t.length === 1 ? t[0] : e.reduce((i, r, a) => i + ((n) => {
     if (n._$cssResult$ === !0) return n.cssText;
     if (typeof n == "number") return n;
     throw Error("Value passed to 'css' function must be a 'css' function result: " + n + ". Use 'unsafeCSS' to pass non-literal values, but take care to ensure page security.");
   })(r) + t[a + 1], t[0]);
   return new Te(s, t, ue);
-}, Re = (t, e) => {
+}, Ne = (t, e) => {
   if (pe) t.adoptedStyleSheets = e.map((s) => s instanceof CSSStyleSheet ? s : s.styleSheet);
   else for (const s of e) {
     const i = document.createElement("style"), r = ae.litNonce;
@@ -38,14 +38,14 @@ const Ne = (t) => new Te(typeof t == "string" ? t : t + "", void 0, ue), H = (t,
 }, ye = pe ? (t) => t : (t) => t instanceof CSSStyleSheet ? ((e) => {
   let s = "";
   for (const i of e.cssRules) s += i.cssText;
-  return Ne(s);
+  return Re(s);
 })(t) : t;
 /**
  * @license
  * Copyright 2017 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
  */
-const { is: Ue, defineProperty: Be, getOwnPropertyDescriptor: He, getOwnPropertyNames: Ie, getOwnPropertySymbols: Ve, getPrototypeOf: Ke } = Object, le = globalThis, $e = le.trustedTypes, We = $e ? $e.emptyScript : "", Le = le.reactiveElementPolyfillSupport, G = (t, e) => t, ne = { toAttribute(t, e) {
+const { is: Be, defineProperty: Ue, getOwnPropertyDescriptor: He, getOwnPropertyNames: Ie, getOwnPropertySymbols: Ve, getPrototypeOf: Ke } = Object, le = globalThis, $e = le.trustedTypes, We = $e ? $e.emptyScript : "", Le = le.reactiveElementPolyfillSupport, G = (t, e) => t, ne = { toAttribute(t, e) {
   switch (e) {
     case Boolean:
       t = t ? We : null;
@@ -73,7 +73,7 @@ const { is: Ue, defineProperty: Be, getOwnPropertyDescriptor: He, getOwnProperty
       }
   }
   return s;
-} }, me = (t, e) => !Ue(t, e), we = { attribute: !0, type: String, converter: ne, reflect: !1, useDefault: !1, hasChanged: me };
+} }, me = (t, e) => !Be(t, e), we = { attribute: !0, type: String, converter: ne, reflect: !1, useDefault: !1, hasChanged: me };
 Symbol.metadata ??= Symbol("metadata"), le.litPropertyMetadata ??= /* @__PURE__ */ new WeakMap();
 let I = class extends HTMLElement {
   static addInitializer(e) {
@@ -85,7 +85,7 @@ let I = class extends HTMLElement {
   static createProperty(e, s = we) {
     if (s.state && (s.attribute = !1), this._$Ei(), this.prototype.hasOwnProperty(e) && ((s = Object.create(s)).wrapped = !0), this.elementProperties.set(e, s), !s.noAccessor) {
       const i = Symbol(), r = this.getPropertyDescriptor(e, i, s);
-      r !== void 0 && Be(this.prototype, e, r);
+      r !== void 0 && Ue(this.prototype, e, r);
     }
   }
   static getPropertyDescriptor(e, s, i) {
@@ -156,7 +156,7 @@ let I = class extends HTMLElement {
   }
   createRenderRoot() {
     const e = this.shadowRoot ?? this.attachShadow(this.constructor.shadowRootOptions);
-    return Re(e, this.constructor.elementStyles), e;
+    return Ne(e, this.constructor.elementStyles), e;
   }
   connectedCallback() {
     this.renderRoot ??= this.createRenderRoot(), this.enableUpdating(!0), this._$EO?.forEach((e) => e.hostConnected?.());
@@ -262,9 +262,9 @@ I.elementStyles = [], I.shadowRootOptions = { mode: "open" }, I[G("elementProper
  * Copyright 2017 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
  */
-const ge = globalThis, _e = (t) => t, oe = ge.trustedTypes, ke = oe ? oe.createPolicy("lit-html", { createHTML: (t) => t }) : void 0, ze = "$lit$", P = `lit$${Math.random().toFixed(9).slice(2)}$`, De = "?" + P, qe = `<${De}>`, R = document, Z = () => R.createComment(""), J = (t) => t === null || typeof t != "object" && typeof t != "function", be = Array.isArray, Fe = (t) => be(t) || typeof t?.[Symbol.iterator] == "function", ce = `[ 	
+const ge = globalThis, _e = (t) => t, oe = ge.trustedTypes, ke = oe ? oe.createPolicy("lit-html", { createHTML: (t) => t }) : void 0, ze = "$lit$", P = `lit$${Math.random().toFixed(9).slice(2)}$`, De = "?" + P, qe = `<${De}>`, N = document, Z = () => N.createComment(""), J = (t) => t === null || typeof t != "object" && typeof t != "function", be = Array.isArray, Fe = (t) => be(t) || typeof t?.[Symbol.iterator] == "function", ce = `[ 	
 \f\r]`, F = /<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g, Ae = /-->/g, xe = />/g, M = RegExp(`>|${ce}(?:([^\\s"'>=/]+)(${ce}*=${ce}*(?:[^ 	
-\f\r"'\`<>=]|("|')|))|$)`, "g"), Se = /'/g, Ee = /"/g, je = /^(?:script|style|textarea|title)$/i, Ge = (t) => (e, ...s) => ({ _$litType$: t, strings: e, values: s }), o = Ge(1), V = Symbol.for("lit-noChange"), l = Symbol.for("lit-nothing"), Ce = /* @__PURE__ */ new WeakMap(), N = R.createTreeWalker(R, 129);
+\f\r"'\`<>=]|("|')|))|$)`, "g"), Se = /'/g, Ee = /"/g, je = /^(?:script|style|textarea|title)$/i, Ge = (t) => (e, ...s) => ({ _$litType$: t, strings: e, values: s }), o = Ge(1), V = Symbol.for("lit-noChange"), l = Symbol.for("lit-nothing"), Ce = /* @__PURE__ */ new WeakMap(), R = N.createTreeWalker(N, 129);
 function Me(t, e) {
   if (!be(t) || !t.hasOwnProperty("raw")) throw Error("invalid template strings array");
   return ke !== void 0 ? ke.createHTML(e) : e;
@@ -287,11 +287,11 @@ class X {
     this.parts = [];
     let a = 0, n = 0;
     const p = e.length - 1, c = this.parts, [m, g] = Ze(e, s);
-    if (this.el = X.createElement(m, i), N.currentNode = this.el.content, s === 2 || s === 3) {
+    if (this.el = X.createElement(m, i), R.currentNode = this.el.content, s === 2 || s === 3) {
       const d = this.el.content.firstChild;
       d.replaceWith(...d.childNodes);
     }
-    for (; (r = N.nextNode()) !== null && c.length < p; ) {
+    for (; (r = R.nextNode()) !== null && c.length < p; ) {
       if (r.nodeType === 1) {
         if (r.hasAttributes()) for (const d of r.getAttributeNames()) if (d.endsWith(ze)) {
           const C = g[n++], O = r.getAttribute(d).split(P), se = /([.?@])?(.*)/.exec(C);
@@ -301,7 +301,7 @@ class X {
           const d = r.textContent.split(P), C = d.length - 1;
           if (C > 0) {
             r.textContent = oe ? oe.emptyScript : "";
-            for (let O = 0; O < C; O++) r.append(d[O], Z()), N.nextNode(), c.push({ type: 2, index: ++a });
+            for (let O = 0; O < C; O++) r.append(d[O], Z()), R.nextNode(), c.push({ type: 2, index: ++a });
             r.append(d[C], Z());
           }
         }
@@ -314,7 +314,7 @@ class X {
     }
   }
   static createElement(e, s) {
-    const i = R.createElement("template");
+    const i = N.createElement("template");
     return i.innerHTML = e, i;
   }
 }
@@ -335,17 +335,17 @@ class Je {
     return this._$AM._$AU;
   }
   u(e) {
-    const { el: { content: s }, parts: i } = this._$AD, r = (e?.creationScope ?? R).importNode(s, !0);
-    N.currentNode = r;
-    let a = N.nextNode(), n = 0, p = 0, c = i[0];
+    const { el: { content: s }, parts: i } = this._$AD, r = (e?.creationScope ?? N).importNode(s, !0);
+    R.currentNode = r;
+    let a = R.nextNode(), n = 0, p = 0, c = i[0];
     for (; c !== void 0; ) {
       if (n === c.index) {
         let m;
         c.type === 2 ? m = new Y(a, a.nextSibling, this, e) : c.type === 1 ? m = new c.ctor(a, c.name, c.strings, this, e) : c.type === 6 && (m = new et(a, this, e)), this._$AV.push(m), c = i[++p];
       }
-      n !== c?.index && (a = N.nextNode(), n++);
+      n !== c?.index && (a = R.nextNode(), n++);
     }
-    return N.currentNode = R, r;
+    return R.currentNode = N, r;
   }
   p(e) {
     let s = 0;
@@ -380,7 +380,7 @@ class Y {
     this._$AH !== e && (this._$AR(), this._$AH = this.O(e));
   }
   _(e) {
-    this._$AH !== l && J(this._$AH) ? this._$AA.nextSibling.data = e : this.T(R.createTextNode(e)), this._$AH = e;
+    this._$AH !== l && J(this._$AH) ? this._$AA.nextSibling.data = e : this.T(N.createTextNode(e)), this._$AH = e;
   }
   $(e) {
     const { values: s, _$litType$: i } = e, r = typeof i == "number" ? this._$AC(e) : (i.el === void 0 && (i.el = X.createElement(Me(i.h, i.h[0]), this.options)), i);
@@ -1103,7 +1103,7 @@ var dt = Object.defineProperty, pt = Object.getOwnPropertyDescriptor, ee = (t, e
     (n = t[a]) && (r = (i ? n(e, s, r) : n(r)) || r);
   return i && r && dt(e, s, r), r;
 };
-let U = class extends w {
+let B = class extends w {
   constructor() {
     super(...arguments), this.cameras = [];
   }
@@ -1134,7 +1134,7 @@ let U = class extends w {
     `;
   }
 };
-U.styles = H`
+B.styles = H`
     :host {
       display: block;
       padding: 16px;
@@ -1155,19 +1155,19 @@ U.styles = H`
   `;
 ee([
   u({ attribute: !1 })
-], U.prototype, "hass", 2);
+], B.prototype, "hass", 2);
 ee([
   u({ attribute: !1 })
-], U.prototype, "api", 2);
+], B.prototype, "api", 2);
 ee([
   u({ attribute: !1 })
-], U.prototype, "view", 2);
+], B.prototype, "view", 2);
 ee([
   u({ attribute: !1 })
-], U.prototype, "cameras", 2);
-U = ee([
+], B.prototype, "cameras", 2);
+B = ee([
   S("kustos-vision-live-view")
-], U);
+], B);
 var ut = Object.defineProperty, mt = Object.getOwnPropertyDescriptor, te = (t, e, s, i) => {
   for (var r = i > 1 ? void 0 : i ? mt(e, s) : e, a = t.length - 1, n; a >= 0; a--)
     (n = t[a]) && (r = (i ? n(e, s, r) : n(r)) || r);
@@ -1197,7 +1197,7 @@ function yt(t) {
     }
   return null;
 }
-let B = class extends w {
+let U = class extends w {
   constructor() {
     super(...arguments), this.segments = [], this.seekTo = 0, this.segmentUrlBase = "/api/kustos_vision/segment", this.message = "", this.withAudio = !0, this.queue = [], this.appended = /* @__PURE__ */ new Set(), this.origin = 0, this.loading = !1, this.generation = 0;
   }
@@ -1325,7 +1325,7 @@ let B = class extends w {
     `;
   }
 };
-B.styles = H`
+U.styles = H`
     :host {
       display: block;
       background: #000;
@@ -1353,19 +1353,19 @@ B.styles = H`
   `;
 te([
   u({ attribute: !1 })
-], B.prototype, "segments", 2);
+], U.prototype, "segments", 2);
 te([
   u({ type: Number })
-], B.prototype, "seekTo", 2);
+], U.prototype, "seekTo", 2);
 te([
   u()
-], B.prototype, "segmentUrlBase", 2);
+], U.prototype, "segmentUrlBase", 2);
 te([
   h()
-], B.prototype, "message", 2);
-B = te([
+], U.prototype, "message", 2);
+U = te([
   S("kustos-vision-player")
-], B);
+], U);
 var $t = Object.defineProperty, wt = Object.getOwnPropertyDescriptor, j = (t, e, s, i) => {
   for (var r = i > 1 ? void 0 : i ? wt(e, s) : e, a = t.length - 1, n; a >= 0; a--)
     (n = t[a]) && (r = (i ? n(e, s, r) : n(r)) || r);
@@ -2717,7 +2717,7 @@ let A = class extends w {
             />
           </div>
           <div class="grow">
-            <label>Gesamtbudget in GB (leer = unbegrenzt)</label>
+            <label>Gesamtbudget in GB (leer = automatisch)</label>
             <input id="budget" type="number" min="0" step="0.1" .value=${s} />
           </div>
         </div>
@@ -2725,6 +2725,14 @@ let A = class extends w {
           Kürzere Segmente lassen die Aufbewahrung feiner arbeiten, erzeugen aber
           mehr Dateien. Das Budget gilt über alle Kameras zusammen; ist es
           überschritten, fällt jeweils die global älteste Aufnahme.
+        </p>
+        <p class="hint">
+          Bleibt das Budget leer, heißt das nicht „unbegrenzt": es gilt dann
+          automatisch der Platz, der am Speicherort tatsächlich vorhanden ist,
+          abzüglich einer Reserve. Die Aufzeichnung läuft also weiter und
+          überschreibt die ältesten Aufnahmen, statt irgendwann an einer vollen
+          Platte stehenzubleiben. Ein selbst gesetztes Budget kann diesen Platz
+          nicht überschreiten.
         </p>
         <button ?disabled=${this.busy} @click=${this.saveStorage}>Speichern</button>
       </div>

@@ -731,3 +731,43 @@ async def test_the_picked_entity_is_offered_even_when_its_device_has_others(
     )["result"]
     assert data["capabilities"]["ptz_up"] == "button.mit_dev_move_up"
     assert [s["entity_id"] for s in data["streams"]] == ["camera.mit_dev"]
+
+
+async def test_a_budget_larger_than_the_volume_is_refused(
+    hass: HomeAssistant, hass_ws_client, setup_kustos_vision
+) -> None:
+    """A limit larger than what exists is not a limit. Accepting it would look
+    like protection while the disk fills anyway."""
+    await setup_kustos_vision()
+    client = await hass_ws_client(hass)
+
+    result = await send(
+        client, type=f"{DOMAIN}/storage/set", max_total_bytes=999 * 1024**4
+    )
+    assert not result["success"]
+    assert result["error"]["code"] == "budget_too_large"
+    assert "at most" in result["error"]["message"]
+
+
+async def test_a_budget_that_fits_is_accepted(
+    hass: HomeAssistant, hass_ws_client, setup_kustos_vision
+) -> None:
+    await setup_kustos_vision()
+    client = await hass_ws_client(hass)
+
+    result = await send(client, type=f"{DOMAIN}/storage/set", max_total_bytes=64 * 1024**2)
+    assert result["success"]
+    assert result["result"]["storage"]["max_total_bytes"] == 64 * 1024**2
+
+
+async def test_the_budget_can_still_be_cleared(
+    hass: HomeAssistant, hass_ws_client, setup_kustos_vision
+) -> None:
+    """Clearing it does not mean unlimited; it means the automatic limit."""
+    await setup_kustos_vision()
+    client = await hass_ws_client(hass)
+
+    await send(client, type=f"{DOMAIN}/storage/set", max_total_bytes=64 * 1024**2)
+    result = await send(client, type=f"{DOMAIN}/storage/set", max_total_bytes=None)
+    assert result["success"]
+    assert result["result"]["storage"]["max_total_bytes"] is None

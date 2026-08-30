@@ -336,3 +336,35 @@ async def test_export_requires_its_parameters(
     client = await hass_client()
     response = await client.get(f"/api/{DOMAIN}/export", params={"camera": "vorgarten"})
     assert response.status == 400
+
+
+async def test_retention_runs_even_without_a_configured_budget(
+    hass: HomeAssistant, recorded, monkeypatch
+) -> None:
+    """The point of the automatic fallback: an installation that configured
+    nothing must not fill the disk and then die with "no space left on
+    device". It behaves as though a budget were set.
+    """
+    entry, _base, _files, _ = recorded
+    coordinator = entry.runtime_data
+    assert coordinator.config.storage.max_total_bytes is None
+
+    index = coordinator.index
+    before = await hass.async_add_executor_job(index.oldest_first)
+    assert len(before) == 3
+
+    # A volume with almost nothing left. The headroom alone exceeds it, so
+    # everything that can go, goes.
+    class _Full:
+        free = 0
+
+    monkeypatch.setattr(
+        "custom_components.kustos_vision.maintenance._disk_usage",
+        lambda _p: _Full(),
+    )
+
+    await coordinator.async_refresh()
+    await hass.async_block_till_done()
+
+    after = await hass.async_add_executor_job(index.oldest_first)
+    assert len(after) < len(before), "nothing was freed despite a full volume"

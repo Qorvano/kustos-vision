@@ -13,6 +13,7 @@ requires an admin, because it changes what gets recorded and where.
 from __future__ import annotations
 
 import logging
+from pathlib import Path
 from typing import Any
 
 import voluptuous as vol
@@ -215,6 +216,19 @@ async def ws_set_storage(
     except ConfigError as err:
         connection.send_error(msg["id"], "invalid_config", str(err))
         return
+
+    if storage.max_total_bytes is not None:
+        ceiling = await coordinator.maintenance.async_ceiling(
+            coordinator.config, Path(base_path)
+        )
+        if storage.max_total_bytes > ceiling:
+            connection.send_error(
+                msg["id"],
+                "budget_too_large",
+                f"{storage.max_total_bytes} bytes is more than fits at "
+                f"{base_path}; at most {ceiling} bytes can be used there",
+            )
+            return
 
     moved = base_path != current.base_path
     if moved:

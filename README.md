@@ -150,6 +150,18 @@ each stream is currently writing into is never deleted. If the budget cannot be
 met without deleting those, the `Over budget` sensor says by how much rather
 than the setting being silently ignored.
 
+**Leaving the size budget unset does not mean unlimited.** Recording that fills
+a disk and then dies with "no space left on device" is not an acceptable
+default, so the limit falls back to what the location actually holds, minus
+headroom for one retention interval. A budget you set yourself is capped by the
+same ceiling: a limit larger than the volume is not a limit.
+
+The headroom is measured rather than assumed. A retention run happens once per
+segment length, and between two runs each recorded stream can add at most one
+more segment, so the largest segment seen so far times the number of streams
+bounds the growth. That also absorbs the preview images, which are three orders
+of magnitude smaller than the segments and are not counted in the index.
+
 ## Entities
 
 Per camera:

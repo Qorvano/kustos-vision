@@ -12,9 +12,14 @@ from datetime import UTC, datetime
 import pytest
 from kustos_vision.core.index import Segment
 from kustos_vision.core.retention import (
+    HEADROOM_INTERVALS,
+    MINIMUM_HEADROOM_BYTES,
     RetentionPolicy,
+    effective_budget,
+    headroom_bytes,
     newest_per_stream,
     plan_retention,
+    usable_capacity,
 )
 
 NOW = datetime(2026, 8, 30, 12, 0, tzinfo=UTC).timestamp()
@@ -293,3 +298,84 @@ def test_planning_over_an_empty_tree_is_harmless() -> None:
     )
     assert not plan
     assert plan.shortfall_bytes == 0
+
+
+# ----------------------------------------------------------------------
+# Headroom and the automatic budget
+# ----------------------------------------------------------------------
+
+
+def test_headroom_scales_with_what_is_actually_recorded() -> None:
+    """A retention run happens once per segment length, and between two runs
+    each stream can add at most one more segment. Measuring the largest segment
+    seen beats assuming a bitrate, because it adapts to the cameras."""
+    one_segment = 500 * 1024**2  # a large 4K segment
+    assert headroom_bytes(one_segment, 4) == one_segment * 4 * HEADROOM_INTERVALS
+
+
+def test_headroom_never_falls_below_its_floor() -> None:
+    """Before anything is indexed there is nothing to measure, and a headroom
+    of zero would let the disk fill completely."""
+    assert headroom_bytes(0, 0) == MINIMUM_HEADROOM_BYTES
+    assert headroom_bytes(1024, 1) == MINIMUM_HEADROOM_BYTES
+
+
+def test_headroom_rejects_nonsense_inputs() -> None:
+    with pytest.raises(ValueError):
+        headroom_bytes(-1, 1)
+    with pytest.raises(ValueError):
+        headroom_bytes(1, -1)
+
+
+def test_capacity_counts_what_deleting_would_free() -> None:
+    """Our own recordings are part of the capacity, because removing them is
+    exactly what makes room."""
+    assert usable_capacity(free_bytes=100, used_by_us_bytes=400) == 500
+
+
+def test_capacity_excludes_whatever_else_is_on_the_volume() -> None:
+    """Something else growing on the same volume shrinks the free space, and
+    the budget follows without anyone adjusting a setting."""
+    before = usable_capacity(free_bytes=600, used_by_us_bytes=400)
+    after = usable_capacity(free_bytes=100, used_by_us_bytes=400)
+    assert after < before
+    assert after == 500
+
+
+def test_capacity_never_goes_negative() -> None:
+    assert usable_capacity(free_bytes=-1, used_by_us_bytes=-1) == 0
+
+
+def test_without_a_configured_budget_the_capacity_is_the_budget() -> None:
+    """An installation that configured nothing must still not fill the disk
+    and die; it behaves as though a budget were set."""
+    assert effective_budget(None, capacity=1000, headroom=100) == 900
+
+
+def test_a_configured_budget_is_used_when_it_fits() -> None:
+    assert effective_budget(500, capacity=1000, headroom=100) == 500
+
+
+def test_a_configured_budget_cannot_exceed_what_exists() -> None:
+    """A limit larger than the volume is not a limit."""
+    assert effective_budget(99_999, capacity=1000, headroom=100) == 900
+
+
+def test_a_budget_is_capped_even_when_it_only_ignores_the_headroom() -> None:
+    assert effective_budget(950, capacity=1000, headroom=100) == 900
+
+
+def test_a_volume_smaller_than_the_headroom_yields_no_budget() -> None:
+    """Signals the caller that the situation needs freeing, not filling."""
+    assert effective_budget(None, capacity=50, headroom=100) == 0
+    assert effective_budget(10, capacity=50, headroom=100) == 0
+
+
+def test_the_automatic_budget_deletes_the_oldest_like_any_other() -> None:
+    """The fallback is not a special mode: it produces a number, and the same
+    retention runs against it."""
+    budget = effective_budget(None, capacity=350, headroom=50)
+    segments = [seg(days, size=100) for days in (5, 4, 3)] + [seg(0, size=100)]
+    plan = plan_retention(segments, RetentionPolicy(max_total_bytes=budget), NOW)
+    assert plan.by_size
+    assert plan.doomed[0].start_utc == min(s.start_utc for s in segments)

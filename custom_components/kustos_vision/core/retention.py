@@ -24,6 +24,68 @@ from datetime import timedelta
 
 from .index import Segment
 
+# How much space a retention run leaves free, expressed in retention intervals.
+# One interval covers the growth between two runs; the second covers a run that
+# was missed because the previous one overran or the storage was briefly away.
+HEADROOM_INTERVALS = 2
+
+# Floor for the headroom, used before any segment has been indexed and as a
+# lower bound afterwards. Two gibibytes is comfortably more than one round of
+# segments on any ordinary installation, and negligible against the volumes
+# recording actually needs.
+MINIMUM_HEADROOM_BYTES = 2 * 1024**3
+
+
+def headroom_bytes(largest_segment_bytes: int, stream_count: int) -> int:
+    """How much room to leave free above the recordings.
+
+    Derived from the topology rather than picked: a retention run happens once
+    per segment length, and between two runs each recorded stream can add at
+    most one more segment. The largest segment seen so far times the number of
+    streams is therefore an upper bound on that growth, and the interval factor
+    covers a run that does not happen on time.
+
+    This also absorbs the preview images, which are not counted in the index
+    and would otherwise sit outside the budget entirely. They are three orders
+    of magnitude smaller than the segments they belong to.
+    """
+    if largest_segment_bytes < 0 or stream_count < 0:
+        raise ValueError("sizes and counts must not be negative")
+    measured = largest_segment_bytes * stream_count * HEADROOM_INTERVALS
+    return max(MINIMUM_HEADROOM_BYTES, measured)
+
+
+def usable_capacity(free_bytes: int, used_by_us_bytes: int) -> int:
+    """How much space the recordings could occupy at most.
+
+    Free space plus what the recordings already take, because deleting them is
+    what would free it. Anything else on the same volume is therefore excluded
+    automatically: if something else grows, this shrinks, and the budget
+    follows without anyone having to adjust it.
+    """
+    return max(0, free_bytes) + max(0, used_by_us_bytes)
+
+
+def effective_budget(
+    configured: int | None, capacity: int, headroom: int
+) -> int:
+    """The size limit a retention run actually applies.
+
+    An installation without a configured budget must not simply fill the disk
+    until recording dies with "no space left on device", so the limit falls
+    back to what is physically available minus the headroom. That fallback is
+    deliberately not surfaced as a setting: it is not a preference, it is the
+    floor below which the integration cannot function, and presenting it as an
+    option would invite someone to raise it past what exists.
+
+    A configured budget is still capped by the same ceiling, because a limit
+    larger than the volume is not a limit at all.
+    """
+    ceiling = max(0, capacity - headroom)
+    if configured is None:
+        return ceiling
+    return min(configured, ceiling)
+
 
 @dataclass(frozen=True, slots=True)
 class RetentionPolicy:

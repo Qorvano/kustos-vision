@@ -304,7 +304,7 @@ export class CamwatchSettings extends LitElement {
             />
           </div>
           <div class="grow">
-            <label>Gesamtbudget in GB (leer = unbegrenzt)</label>
+            <label>Gesamtbudget in GB (leer = automatisch)</label>
             <input id="budget" type="number" min="0" step="0.1" .value=${budgetGb} />
           </div>
         </div>
@@ -312,6 +312,14 @@ export class CamwatchSettings extends LitElement {
           Kürzere Segmente lassen die Aufbewahrung feiner arbeiten, erzeugen aber
           mehr Dateien. Das Budget gilt über alle Kameras zusammen; ist es
           überschritten, fällt jeweils die global älteste Aufnahme.
+        </p>
+        <p class="hint">
+          Bleibt das Budget leer, heißt das nicht „unbegrenzt": es gilt dann
+          automatisch der Platz, der am Speicherort tatsächlich vorhanden ist,
+          abzüglich einer Reserve. Die Aufzeichnung läuft also weiter und
+          überschreibt die ältesten Aufnahmen, statt irgendwann an einer vollen
+          Platte stehenzubleiben. Ein selbst gesetztes Budget kann diesen Platz
+          nicht überschreiten.
         </p>
         <button ?disabled=${this.busy} @click=${this.saveStorage}>Speichern</button>
       </div>
