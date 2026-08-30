@@ -111,7 +111,10 @@ class CapabilityBinding:
     data: dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
-        if self.entity_id is None and self.action is None:
+        # An empty string is what a form sends for "nothing chosen", and it is
+        # not None, so checking against None alone let it through and produced
+        # a control bound to nothing.
+        if not (self.entity_id or "").strip() and not (self.action or "").strip():
             raise ConfigError("a capability must bind either an entity or an action")
         if self.action is not None and self.action.count(".") != 1:
             raise ConfigError(f"{self.action!r} is not a domain.service action")
@@ -148,6 +151,39 @@ class ControlKind(StrEnum):
     """A value within a range the entity itself defines."""
 
 
+# Which ways of operating an entity its domain actually supports, most
+# obvious first. A select cannot be driven with on and off, and a button has
+# no state to switch, so offering those would produce a control that fails the
+# moment it is pressed. Domains not listed here accept anything, because a
+# free service call can do whatever the user wrote.
+KINDS_BY_DOMAIN: dict[str, tuple[str, ...]] = {
+    "button": ("button",),
+    "scene": ("button",),
+    "script": ("button",),
+    "switch": ("switch", "button"),
+    "light": ("switch", "button"),
+    "siren": ("switch", "button"),
+    "fan": ("switch", "button"),
+    "input_boolean": ("switch", "button"),
+    "select": ("select",),
+    "input_select": ("select",),
+    "number": ("number",),
+    "input_number": ("number",),
+}
+
+
+def kinds_for_entity(entity_id: str | None) -> tuple[str, ...]:
+    """The ways this entity can be operated, most obvious first.
+
+    An empty tuple means no restriction: either there is no entity, or its
+    domain is one this does not know, and guessing wrong would block something
+    that works.
+    """
+    if not entity_id or "." not in entity_id:
+        return ()
+    return KINDS_BY_DOMAIN.get(entity_id.split(".", 1)[0], ())
+
+
 @dataclass(frozen=True, slots=True)
 class CustomControl:
     """A control the user put on a camera themselves.
@@ -173,6 +209,17 @@ class CustomControl:
             raise ConfigError(f"control key {self.key!r} is not a usable identifier")
         if not self.name.strip():
             raise ConfigError(f"control {self.key!r} needs a name")
+
+        # A control whose kind its entity cannot do fails the moment it is
+        # pressed, and it fails inside Home Assistant where the reason is hard
+        # to connect back to this setting. Refusing it here says so plainly.
+        allowed = kinds_for_entity(self.binding.entity_id)
+        if allowed and str(self.kind) not in allowed:
+            entity = self.binding.entity_id
+            raise ConfigError(
+                f"control {self.key!r} is set to '{self.kind}', which "
+                f"{entity} cannot do; it supports: {', '.join(allowed)}"
+            )
 
     def as_dict(self) -> dict[str, Any]:
         return {

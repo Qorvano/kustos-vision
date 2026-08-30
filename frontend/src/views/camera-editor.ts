@@ -19,7 +19,7 @@ import type {
   Suggestion,
   View,
 } from "../types";
-import { capabilityLabel } from "../capabilities";
+import { capabilityLabel, KIND_LABELS, kindsForEntity } from "../capabilities";
 import { shared } from "../styles";
 
 function slugify(value: string): string {
@@ -236,13 +236,27 @@ export class CamwatchCameraEditor extends LitElement {
     ];
   }
 
+  /** Why saving is blocked, or undefined when it is not. */
+  private get incompleteControl(): string | undefined {
+    for (const control of this.controls) {
+      if (!control.binding.entity_id && !control.binding.action) {
+        return `Bedienelement "${control.name || control.key}" hat keine Entity`;
+      }
+      if (!control.name.trim()) {
+        return `Ein Bedienelement hat keine Beschriftung`;
+      }
+    }
+    return undefined;
+  }
+
   private renderControlRow(control: CustomControl, index: number) {
-    const kinds: [ControlKind, string][] = [
-      ["button", "Knopf"],
-      ["switch", "An/Aus"],
-      ["select", "Auswahl"],
-      ["number", "Wert"],
-    ];
+    // Only what this entity can actually do. Offering the rest and letting
+    // the save fail is a worse way to say the same thing.
+    const possible = kindsForEntity(control.binding.entity_id);
+    const kinds: ControlKind[] = possible.length
+      ? possible
+      : ["button", "switch", "select", "number"];
+    const chosenEntity = control.binding.entity_id;
     return html`
       <div style="border-bottom:1px solid var(--divider-color,#eee);padding:12px 0">
         <div class="row">
@@ -260,12 +274,19 @@ export class CamwatchCameraEditor extends LitElement {
           <div class="grow">
             <label>Entity</label>
             <select
-              @change=${(e: Event) =>
+              @change=${(e: Event) => {
+                const entityId = (e.target as HTMLSelectElement).value;
+                // The kind that was set may be impossible for the new entity,
+                // so it moves to what this one can do rather than staying
+                // behind and failing on save.
+                const [first] = kindsForEntity(entityId);
                 this.patchControl(index, {
-                  binding: { entity_id: (e.target as HTMLSelectElement).value },
-                })}
+                  binding: { entity_id: entityId },
+                  ...(first ? { kind: first } : {}),
+                });
+              }}
             >
-              <option value="">Bitte wählen …</option>
+              <option value="" ?selected=${!chosenEntity}>Bitte wählen …</option>
               ${this.candidates.map(
                 (c) => html`<option
                   value=${c.entity_id}
@@ -285,11 +306,11 @@ export class CamwatchCameraEditor extends LitElement {
                 })}
             >
               ${kinds.map(
-                ([value, label]) => html`<option
+                (value) => html`<option
                   value=${value}
                   ?selected=${control.kind === value}
                 >
-                  ${label}
+                  ${KIND_LABELS[value]}
                 </option>`,
               )}
             </select>
@@ -694,7 +715,14 @@ export class CamwatchCameraEditor extends LitElement {
         ${this.error ? html`<p class="error">${this.error}</p>` : nothing}
 
         <div class="row" style="margin-top:16px">
-          <button ?disabled=${this.busy || !this.slug || !this.name} @click=${this.save}>
+          <button
+            ?disabled=${this.busy ||
+            !this.slug ||
+            !this.name ||
+            this.incompleteControl !== undefined}
+            title=${this.incompleteControl ?? ""}
+            @click=${this.save}
+          >
             Speichern
           </button>
           <button

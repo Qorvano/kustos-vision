@@ -15,6 +15,7 @@ from kustos_vision.core.config import (
     StorageConfig,
     StreamConfig,
     ViewConfig,
+    kinds_for_entity,
 )
 from kustos_vision.core.recorder import AudioMode
 
@@ -672,8 +673,18 @@ def test_without_a_selection_every_custom_control_is_offered() -> None:
 
 
 def test_controls_round_trip_with_every_kind() -> None:
-    for kind in ControlKind:
-        original = camera(controls=(control(kind=kind),))
+    entities = {
+        ControlKind.BUTTON: "button.a",
+        ControlKind.SWITCH: "switch.a",
+        ControlKind.SELECT: "select.a",
+        ControlKind.NUMBER: "number.a",
+    }
+    for kind, entity_id in entities.items():
+        original = camera(
+            controls=(
+                control(kind=kind, binding=CapabilityBinding(entity_id=entity_id)),
+            )
+        )
         assert CameraConfig.from_dict(original.as_dict()) == original
 
 
@@ -682,3 +693,69 @@ def test_an_unknown_control_kind_is_refused() -> None:
         CustomControl.from_dict(
             {"key": "x", "name": "X", "kind": "telepathie", "binding": {"entity_id": "a.b"}}
         )
+
+
+def test_the_kinds_an_entity_supports_are_derived_from_its_domain() -> None:
+    assert kinds_for_entity("select.x") == ("select",)
+    assert kinds_for_entity("button.x") == ("button",)
+    assert kinds_for_entity("number.x") == ("number",)
+    assert kinds_for_entity("switch.x") == ("switch", "button")
+
+
+def test_an_unknown_domain_places_no_restriction() -> None:
+    """Guessing wrong would block something that works."""
+    assert kinds_for_entity("vacuum.x") == ()
+    assert kinds_for_entity(None) == ()
+    assert kinds_for_entity("kaputt") == ()
+
+
+def test_a_control_a_select_cannot_perform_is_refused() -> None:
+    """Reported from use: a select set to on/off is sent true and false, which
+    it does not accept. It failed on the first press, inside Home Assistant,
+    where the cause is hard to connect back to this setting."""
+    with pytest.raises(ConfigError, match="cannot do"):
+        control(
+            kind=ControlKind.SWITCH,
+            binding=CapabilityBinding(entity_id="select.person_detection"),
+        )
+
+
+def test_a_button_cannot_be_a_switch() -> None:
+    with pytest.raises(ConfigError, match="cannot do"):
+        control(
+            kind=ControlKind.SWITCH,
+            binding=CapabilityBinding(entity_id="button.reboot"),
+        )
+
+
+def test_a_switch_may_also_be_a_plain_button() -> None:
+    """Switching one on without offering the off half is legitimate."""
+    assert control(
+        kind=ControlKind.BUTTON, binding=CapabilityBinding(entity_id="switch.x")
+    )
+
+
+def test_an_unrestricted_domain_accepts_any_kind() -> None:
+    for kind in ControlKind:
+        assert control(
+            kind=kind, binding=CapabilityBinding(entity_id="vacuum.x")
+        )
+
+
+def test_a_free_action_places_no_restriction() -> None:
+    """A service call can do whatever the user wrote."""
+    assert control(
+        kind=ControlKind.NUMBER,
+        binding=CapabilityBinding(action="script.zoom", data={"level": 3}),
+    )
+
+
+def test_an_empty_entity_is_not_a_binding() -> None:
+    """A form sends "" for "nothing chosen", which is not None; checking only
+    against None let it through and produced a control bound to nothing."""
+    with pytest.raises(ConfigError, match="entity or an action"):
+        CapabilityBinding(entity_id="")
+    with pytest.raises(ConfigError, match="entity or an action"):
+        CapabilityBinding(entity_id="   ")
+    with pytest.raises(ConfigError, match="entity or an action"):
+        CapabilityBinding(action="")

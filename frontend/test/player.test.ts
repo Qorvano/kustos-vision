@@ -5,7 +5,7 @@
 import { describe, expect, it } from "vitest";
 import { hasAudioTrack, readVideoCodec } from "../src/components/player";
 import { errorText } from "../src/api";
-import { capabilityLabel } from "../src/capabilities";
+import { capabilityLabel, kindsForEntity } from "../src/capabilities";
 
 /** A byte run with an avcC box carrying the given profile, flags and level. */
 function withAvcC(profile: number, compat: number, level: number): Uint8Array {
@@ -127,5 +127,40 @@ describe("capabilityLabel", () => {
 
   it("never returns an empty label", () => {
     expect(capabilityLabel("x").length).toBeGreaterThan(0);
+  });
+});
+
+describe("kindsForEntity", () => {
+  it("gives a select only the choice it can perform", () => {
+    // Reported from use: a select set to on/off is sent true and false, which
+    // it does not accept, and it failed on the first press.
+    expect(kindsForEntity("select.person_detection")).toEqual(["select"]);
+  });
+
+  it("gives a button only a press", () => {
+    expect(kindsForEntity("button.reboot")).toEqual(["button"]);
+  });
+
+  it("lets a switch also be a plain button", () => {
+    expect(kindsForEntity("switch.privacy")).toEqual(["switch", "button"]);
+  });
+
+  it("places no restriction on a domain it does not know", () => {
+    // Guessing wrong would block something that works.
+    expect(kindsForEntity("vacuum.arielle")).toEqual([]);
+    expect(kindsForEntity(undefined)).toEqual([]);
+    expect(kindsForEntity("kaputt")).toEqual([]);
+  });
+
+  it("matches what the backend accepts", () => {
+    // Both sides encode the same table; a drift here means the panel offers
+    // something the save then refuses.
+    for (const [entity, expected] of [
+      ["number.volume", ["number"]],
+      ["light.flood", ["switch", "button"]],
+      ["input_select.mode", ["select"]],
+    ] as const) {
+      expect(kindsForEntity(entity)).toEqual(expected);
+    }
   });
 });

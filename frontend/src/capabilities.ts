@@ -1,3 +1,5 @@
+import type { ControlKind } from "./types";
+
 // Readable names for the capability slots.
 //
 // The keys are identifiers: stable, lowercase, and meaningless to anyone who
@@ -41,4 +43,41 @@ export const PTZ_SYMBOLS: Record<string, string> = {
   ptz_down: "▼",
   ptz_left: "◀",
   ptz_right: "▶",
+};
+
+
+/**
+ * The ways an entity can be operated, most obvious first.
+ *
+ * Mirrors KINDS_BY_DOMAIN on the Python side, which refuses a control its
+ * entity cannot perform. Offering the impossible choice here and letting the
+ * save fail would be a worse way to say the same thing.
+ *
+ * An empty result means no restriction: no entity, or a domain neither side
+ * knows, where guessing would block something that works.
+ */
+export function kindsForEntity(entityId: string | undefined): ControlKind[] {
+  if (!entityId || !entityId.includes(".")) return [];
+  const byDomain: Record<string, ControlKind[]> = {
+    button: ["button"],
+    scene: ["button"],
+    script: ["button"],
+    switch: ["switch", "button"],
+    light: ["switch", "button"],
+    siren: ["switch", "button"],
+    fan: ["switch", "button"],
+    input_boolean: ["switch", "button"],
+    select: ["select"],
+    input_select: ["select"],
+    number: ["number"],
+    input_number: ["number"],
+  };
+  return byDomain[entityId.split(".", 1)[0]] ?? [];
+}
+
+export const KIND_LABELS: Record<ControlKind, string> = {
+  button: "Knopf",
+  switch: "An/Aus",
+  select: "Auswahl",
+  number: "Wert",
 };
