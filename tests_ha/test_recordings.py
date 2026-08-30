@@ -429,3 +429,111 @@ async def test_an_unreadable_volume_still_honours_a_configured_budget(
 
     after = await hass.async_add_executor_job(index.oldest_first)
     assert len(after) < len(rows)
+
+
+# ----------------------------------------------------------------------
+# How the panel actually reaches these files
+# ----------------------------------------------------------------------
+#
+# The tests above use hass_client, which puts an Authorization header on every
+# request by itself. That is exactly why a real bug got past them: an <img>, a
+# download link and a plain fetch in the panel send no such header, so every
+# one of those requests was refused. The player reported that a recording could
+# not be loaded when the recording was perfectly intact, and previews stayed
+# blank. These tests use the two ways a browser really has.
+
+
+def _sign(hass: HomeAssistant, path: str) -> str:
+    """Sign a path the way the panel asks Home Assistant to sign it."""
+    from datetime import timedelta
+
+    from homeassistant.components.http.auth import async_sign_path
+
+    return async_sign_path(hass, path, timedelta(seconds=60))
+
+
+async def test_a_file_request_without_credentials_is_refused(
+    hass: HomeAssistant, hass_client_no_auth, recorded
+) -> None:
+    """The reason the panel has to authenticate at all, pinned down.
+
+    There is no cookie to fall back on: Home Assistant accepts an
+    Authorization header or a signed path and nothing else.
+    """
+    _, _, files, _ = recorded
+    client = await hass_client_no_auth()
+    for endpoint in ("segment", "thumbnail"):
+        response = await client.get(f"/api/{DOMAIN}/{endpoint}/{files[0][0]}")
+        assert response.status == 401, endpoint
+
+
+async def test_a_signed_address_serves_a_segment(
+    hass: HomeAssistant, hass_client_no_auth, recorded
+) -> None:
+    """What the player falls back to when it has no token to present."""
+    _, _, files, _ = recorded
+    client = await hass_client_no_auth()
+    response = await client.get(_sign(hass, f"/api/{DOMAIN}/segment/{files[0][0]}"))
+    assert response.status == 200
+    assert await response.read() == files[0][1].read_bytes()
+
+
+async def test_a_signed_address_serves_a_preview(
+    hass: HomeAssistant, hass_client_no_auth, recorded
+) -> None:
+    """How the timeline shows previews: an <img> cannot send a header, so the
+    address itself has to carry the permission."""
+    _, _, files, _ = recorded
+    client = await hass_client_no_auth()
+    response = await client.get(_sign(hass, f"/api/{DOMAIN}/thumbnail/{files[0][0]}"))
+    assert response.status == 200
+    assert response.headers["Content-Type"] == "image/jpeg"
+
+
+async def test_a_signed_address_survives_a_range_request(
+    hass: HomeAssistant, hass_client_no_auth, recorded
+) -> None:
+    """Seeking asks for a byte range. The signature covers the path and the
+    query, not the headers, so ranges have to keep working."""
+    _, _, files, _ = recorded
+    client = await hass_client_no_auth()
+    response = await client.get(
+        _sign(hass, f"/api/{DOMAIN}/segment/{files[0][0]}"),
+        headers={"Range": "bytes=0-4"},
+    )
+    assert response.status == 206
+    assert await response.read() == files[0][1].read_bytes()[:5]
+
+
+async def test_a_signed_export_keeps_its_query(
+    hass: HomeAssistant, hass_client_no_auth, recorded
+) -> None:
+    """The export carries camera and range in the query, and the signature
+    covers those in order. If the panel rebuilt the address after signing, or
+    reordered it, the request would be refused."""
+    _, _, _, first = recorded
+    client = await hass_client_no_auth()
+    query = f"camera=vorgarten&from={first}&to={first + 3600}&stream=hd"
+    with patch(
+        "custom_components.kustos_vision.http_views.stream_export"
+    ) as export:
+        export.return_value = _async_bytes(b"joined")
+        response = await client.get(_sign(hass, f"/api/{DOMAIN}/export?{query}"))
+    assert response.status == 200
+    assert await response.read() == b"joined"
+
+
+async def test_a_signature_does_not_cover_a_different_file(
+    hass: HomeAssistant, hass_client_no_auth, recorded
+) -> None:
+    """A signed address is a key to one file, not to the recordings folder."""
+    _, _, files, _ = recorded
+    signed = _sign(hass, f"/api/{DOMAIN}/segment/{files[0][0]}")
+    swapped = signed.replace(files[0][0], files[2][0])
+    client = await hass_client_no_auth()
+    assert (await client.get(swapped)).status == 401
+
+
+async def _async_bytes(*chunks: bytes):
+    for chunk in chunks:
+        yield chunk

@@ -34,7 +34,18 @@ export class CamwatchPanel extends LitElement {
       :host {
         display: flex;
         flex-direction: column;
+        /* Home Assistant hangs a custom panel straight into ha-panel-custom
+           and puts no toolbar of its own above it, so the panel owns the full
+           height beside the sidebar. It does pad that element by the device's
+           safe-area insets, which come off the top here: without that the
+           panel is exactly the inset too tall and the whole page scrolls by
+           that much. The plain vh line is the fallback for browsers without
+           dvh, which follows the address bar on a phone. */
         height: 100vh;
+        height: calc(
+          100dvh - var(--safe-area-inset-top, 0px) -
+            var(--safe-area-inset-bottom, 0px)
+        );
       }
       .tabs {
         display: flex;
@@ -57,7 +68,23 @@ export class CamwatchPanel extends LitElement {
       }
       .body {
         flex: 1;
+        /* A flex child does not shrink below its content without this, so a
+           long tab would push the panel past the window instead of scrolling
+           inside it. */
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        /* Kept for the tabs that are meant to scroll: the live view shows as
+           many cameras as there are, and the settings are a long form. Only
+           the recordings tab opts out by filling the height exactly. */
         overflow: auto;
+      }
+      /* These two keep their natural height and let .body scroll, which is
+         what they did before .body became a flex container. Only the
+         recordings view asks to be stretched. */
+      .body > kustos-vision-live-view,
+      .body > kustos-vision-settings {
+        flex: 0 0 auto;
       }
       .notice {
         padding: 32px 16px;

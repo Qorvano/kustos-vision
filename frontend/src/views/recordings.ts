@@ -1,6 +1,6 @@
 // The recordings tab: pick a camera and a day, see what exists, watch it.
 
-import { LitElement, html, nothing } from "lit";
+import { LitElement, css, html, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import { errorText, type CamwatchApi } from "../api";
 import { shared } from "../styles";
@@ -22,9 +22,61 @@ export class CamwatchRecordings extends LitElement {
   @state() private position = 0;
   @state() private seekTo = 0;
   @state() private busy = false;
+  @state() private downloading = false;
   @state() private error = "";
 
-  static override styles = shared;
+  static override styles = [
+    shared,
+    css`
+      /* The tab has to fit on one screen: picker, picture and timeline all
+         visible at once, because scrolling to reach the timeline while
+         watching the picture defeats the point of having both. So the view
+         takes exactly the height it is given and hands what is left over to
+         the player, rather than letting the player's aspect ratio decide how
+         tall the page is. On a wide window 16:9 came out taller than the
+         window itself. */
+      :host {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        /* Without this a flex child never shrinks below its content, and the
+           player's own height would win again. */
+        min-height: 0;
+      }
+      .page {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        min-height: 0;
+        padding: 16px;
+        box-sizing: border-box;
+        gap: 12px;
+        /* Not hidden. On a window too short for even the smallest useful
+           picture the leftover has to stay reachable; clipping it would hide
+           the camera picker or a error message with no way to get at them. */
+        overflow: auto;
+      }
+      /* The picker, the timeline and the download row keep their natural
+         height; only the picture grows into what is left. */
+      kustos-vision-player {
+        flex: 1;
+        /* Lets the picture shrink past its own 16:9 shape, which is the whole
+           point: the window decides how tall it is, not the aspect ratio. */
+        min-height: 0;
+        /* But not to nothing. flex-basis 0 plus min-height 0 leaves a flex
+           item with no floor at all, so on a short window the picture
+           collapsed to zero pixels and even the error overlay inside it went
+           with it, leaving no sign that a player was there. A video element
+           spends roughly the first forty pixels on its own control bar, so
+           below this there is no picture left to look at and scrolling is the
+           better answer than a strip. */
+        min-height: 160px;
+      }
+      .page .card {
+        margin-bottom: 0;
+      }
+    `,
+  ];
 
   override updated(changed: Map<string, unknown>): void {
     if (changed.has("cameras") && !this.camera && this.cameras.length > 0) {
@@ -103,6 +155,34 @@ export class CamwatchRecordings extends LitElement {
     return `/api/kustos_vision/export?${params.toString()}`;
   }
 
+  /**
+   * Hand the browser a download it can actually fetch.
+   *
+   * A plain link would go out without credentials and be refused, because the
+   * export endpoint requires authentication and an anchor cannot send a
+   * header. Signing the address first is Home Assistant's own answer to this,
+   * and letting the browser do the transfer keeps a recording of several
+   * gigabytes out of the page's memory.
+   */
+  private async download(): Promise<void> {
+    this.downloading = true;
+    this.error = "";
+    try {
+      const url = await this.api.signedUrl(this.exportUrl());
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = "";
+      anchor.style.display = "none";
+      this.renderRoot.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+    } catch (err) {
+      this.error = errorText(err);
+    } finally {
+      this.downloading = false;
+    }
+  }
+
   override render() {
     if (this.cameras.length === 0) {
       return html`<div style="padding:32px" class="muted">
@@ -112,7 +192,7 @@ export class CamwatchRecordings extends LitElement {
 
     const keys = this.streamKeys;
     return html`
-      <div style="padding:16px">
+      <div class="page">
         <div class="card">
           <div class="row">
             <div class="grow">
@@ -168,12 +248,14 @@ export class CamwatchRecordings extends LitElement {
         </div>
 
         <kustos-vision-player
+          .api=${this.api}
           .segments=${this.segments}
           .seekTo=${this.seekTo}
         ></kustos-vision-player>
 
-        <div style="margin-top:12px">
+        <div>
           <kustos-vision-timeline
+            .api=${this.api}
             .from=${this.bounds[0]}
             .to=${this.bounds[1]}
             .blocks=${this.blocks}
@@ -187,12 +269,14 @@ export class CamwatchRecordings extends LitElement {
         </div>
 
         ${this.segments.length > 0
-          ? html`<div class="row" style="margin-top:16px">
-              <a href=${this.exportUrl()} download>
-                <button class="secondary" ?disabled=${this.busy}>
-                  Diesen Tag herunterladen
-                </button>
-              </a>
+          ? html`<div class="row">
+              <button
+                class="secondary"
+                ?disabled=${this.busy || this.downloading}
+                @click=${this.download}
+              >
+                Diesen Tag herunterladen
+              </button>
               <span class="muted">
                 Die Segmente werden ohne Neukodierung zusammengefügt.
               </span>

@@ -2,9 +2,11 @@
 // one is rejected with a decode error rather than anything useful. These check
 // the three bytes are read from the right place.
 
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { hasAudioTrack, readVideoCodec } from "../src/components/player";
-import { errorText } from "../src/api";
+import { CamwatchApi, errorText } from "../src/api";
+import type { HomeAssistant } from "../src/types";
+import { readFileSync } from "node:fs";
 import { capabilityLabel, kindsForEntity } from "../src/capabilities";
 
 /** A byte run with an avcC box carrying the given profile, flags and level. */
@@ -161,6 +163,192 @@ describe("kindsForEntity", () => {
       ["input_select.mode", ["select"]],
     ] as const) {
       expect(kindsForEntity(entity)).toEqual(expected);
+    }
+  });
+});
+
+// Regression: the recordings tab fetched segments, previews and the export
+// with no credentials at all. Home Assistant accepts an Authorization header
+// or a signed path and nothing else, so every one of those requests was
+// refused. The player reported "Die Aufnahme konnte nicht geladen werden" for
+// a recording that was intact, previews stayed blank, and the download link
+// led nowhere.
+describe("authenticating the file endpoints", () => {
+  afterEach(() => {
+    // In the test body a failing expectation would skip it and leak the stub
+    // into whatever runs next.
+    vi.unstubAllGlobals();
+    vi.useRealTimers();
+  });
+
+  function fakeHass(token?: string, signed = "/signed?authSig=x") {
+    const calls: Record<string, unknown>[] = [];
+    return {
+      calls,
+      hass: {
+        callWS: async (message: Record<string, unknown>) => {
+          calls.push(message);
+          return { path: signed };
+        },
+        auth: token ? { data: { access_token: token } } : undefined,
+      } as unknown as HomeAssistant,
+    };
+  }
+
+  it("sends the access token when it fetches a segment itself", async () => {
+    const { hass } = fakeHass("tok");
+    const seen: { url: string; init?: RequestInit }[] = [];
+    vi.stubGlobal("fetch", async (url: string, init?: RequestInit) => {
+      seen.push({ url, init });
+      return new Response("");
+    });
+
+    await new CamwatchApi(hass).authorizedFetch("/api/kustos_vision/segment/a");
+
+    expect(seen[0].url).toBe("/api/kustos_vision/segment/a");
+    expect(new Headers(seen[0].init?.headers).get("Authorization")).toBe(
+      "Bearer tok",
+    );
+  });
+
+  it("keeps the caller's own headers, so a range request stays a range request", async () => {
+    const { hass } = fakeHass("tok");
+    const seen: RequestInit[] = [];
+    vi.stubGlobal("fetch", async (_url: string, init?: RequestInit) => {
+      seen.push(init ?? {});
+      return new Response("");
+    });
+
+    await new CamwatchApi(hass).authorizedFetch("/api/kustos_vision/segment/a", {
+      headers: { Range: "bytes=0-8191" },
+    });
+
+    const headers = new Headers(seen[0].headers);
+    expect(headers.get("Range")).toBe("bytes=0-8191");
+    expect(headers.get("Authorization")).toBe("Bearer tok");
+  });
+
+  it("falls back to a signed address when there is no token to present", async () => {
+    const { hass, calls } = fakeHass(undefined, "/api/kustos_vision/segment/a?authSig=s");
+    const seen: string[] = [];
+    vi.stubGlobal("fetch", async (url: string) => {
+      seen.push(url);
+      return new Response("");
+    });
+
+    await new CamwatchApi(hass).authorizedFetch("/api/kustos_vision/segment/a");
+
+    expect(calls[0].type).toBe("auth/sign_path");
+    expect(seen[0]).toBe("/api/kustos_vision/segment/a?authSig=s");
+  });
+
+  it("signs a path through Home Assistant and asks for it only once", async () => {
+    const { hass, calls } = fakeHass("tok", "/api/kustos_vision/thumbnail/a?authSig=s");
+    const api = new CamwatchApi(hass);
+
+    const first = await api.signedUrl("/api/kustos_vision/thumbnail/a");
+    const second = await api.signedUrl("/api/kustos_vision/thumbnail/a");
+
+    expect(first).toBe("/api/kustos_vision/thumbnail/a?authSig=s");
+    expect(second).toBe(first);
+    // Sweeping a timeline returns to the same preview constantly; asking again
+    // every time would put a round trip in front of every mouse move.
+    expect(calls.filter((c) => c.type === "auth/sign_path")).toHaveLength(1);
+  });
+
+  it("signs each address separately, because the signature covers the path", async () => {
+    const { hass, calls } = fakeHass("tok");
+    const api = new CamwatchApi(hass);
+
+    await api.signedUrl("/api/kustos_vision/thumbnail/a");
+    await api.signedUrl("/api/kustos_vision/thumbnail/b");
+
+    expect(calls.filter((c) => c.type === "auth/sign_path")).toHaveLength(2);
+    expect(calls.map((c) => c.path)).toEqual([
+      "/api/kustos_vision/thumbnail/a",
+      "/api/kustos_vision/thumbnail/b",
+    ]);
+  });
+
+  it("asks for a validity long enough to survive looking at the page", async () => {
+    const { hass, calls } = fakeHass("tok");
+    await new CamwatchApi(hass).signedUrl("/api/kustos_vision/thumbnail/a");
+    // Home Assistant's own default is 30 seconds, which is meant for a link
+    // that is fetched at once, not one that waits in the DOM for a hover.
+    expect(Number(calls[0].expires)).toBeGreaterThan(30);
+  });
+});
+
+describe("re-signing an address that is about to expire", () => {
+  afterEach(() => vi.useRealTimers());
+
+  it("asks again once the margin before expiry is reached", async () => {
+    const calls: Record<string, unknown>[] = [];
+    const hass = {
+      callWS: async (message: Record<string, unknown>) => {
+        calls.push(message);
+        return { path: `/signed?authSig=${calls.length}` };
+      },
+      auth: { data: { access_token: "tok" } },
+    } as unknown as HomeAssistant;
+    const api = new CamwatchApi(hass);
+
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-08-30T12:00:00Z"));
+    const first = await api.signedUrl("/api/kustos_vision/segment/a");
+
+    // Just inside the window: still the same address, so the browser keeps
+    // whatever it has cached under it.
+    vi.setSystemTime(new Date("2026-08-30T12:30:00Z"));
+    expect(await api.signedUrl("/api/kustos_vision/segment/a")).toBe(first);
+
+    // Past the safety margin. Handing this one out again would let a long
+    // download start on a signature that expires while it is running.
+    vi.setSystemTime(new Date("2026-08-30T13:00:00Z"));
+    const later = await api.signedUrl("/api/kustos_vision/segment/a");
+
+    expect(later).not.toBe(first);
+    expect(calls).toHaveLength(2);
+  });
+});
+
+// The tests above exercise CamwatchApi directly. That leaves the thing that
+// actually broke untested: the three places that have to go through it. None
+// of them can be driven here, because playback needs MediaSource and hovering
+// needs a laid-out box, neither of which exists outside a browser. So the
+// sources are read instead. It is a coarse check, but it fails on exactly the
+// change that caused the original bug, which is what it is for.
+describe("no file endpoint is reached without credentials", () => {
+  const read = (name: string) =>
+    readFileSync(new URL(`../src/${name}`, import.meta.url), "utf8");
+
+  it("the player never calls fetch directly", () => {
+    const source = read("components/player.ts");
+    // Only through the api, which puts the credentials on.
+    expect(source).toContain("this.api.authorizedFetch(");
+    const bare = source.match(/(?<![.\w])fetch\(/g) ?? [];
+    expect(bare).toHaveLength(0);
+  });
+
+  it("the timeline builds its preview address from a signed one", () => {
+    const source = read("components/timeline.ts");
+    expect(source).toContain("signedUrl(");
+    // An <img> cannot send a header, so the raw base must never reach src.
+    expect(source).not.toMatch(/src="?\$\{this\.thumbnailUrlBase\}/);
+  });
+
+  it("the download goes through a signed address", () => {
+    const source = read("views/recordings.ts");
+    expect(source).toContain("signedUrl(this.exportUrl())");
+    // A plain link would go out without credentials and be refused.
+    expect(source).not.toMatch(/href=\$\{this\.exportUrl\(\)\}/);
+  });
+
+  it("both components are actually handed the api", () => {
+    const source = read("views/recordings.ts");
+    for (const tag of ["kustos-vision-player", "kustos-vision-timeline"]) {
+      const opening = source.slice(source.indexOf(`<${tag}`));
+      expect(opening.slice(0, opening.indexOf(">"))).toContain(".api=${this.api}");
     }
   });
 });

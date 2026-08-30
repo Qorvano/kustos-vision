@@ -12,7 +12,7 @@
 
 import { LitElement, css, html, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
-import { errorText } from "../api";
+import { errorText, type CamwatchApi } from "../api";
 
 export interface PlayableSegment {
   path: string;
@@ -91,6 +91,16 @@ export function readVideoCodec(header: Uint8Array): string | null {
 
 @customElement("kustos-vision-player")
 export class CamwatchPlayer extends LitElement {
+  /**
+   * The websocket client, which is also how the segments are fetched.
+   *
+   * The file endpoints require authentication and there is no cookie to fall
+   * back on: Home Assistant accepts either an Authorization header or a signed
+   * path, and nothing else. Fetching without either answered 401 for every
+   * segment, which surfaced as "Die Aufnahme konnte nicht geladen werden" on a
+   * recording that was perfectly intact.
+   */
+  @property({ attribute: false }) api?: CamwatchApi;
   @property({ attribute: false }) segments: PlayableSegment[] = [];
   /** Where to start, as a UTC timestamp in seconds. */
   @property({ type: Number }) seekTo = 0;
@@ -104,6 +114,8 @@ export class CamwatchPlayer extends LitElement {
   private objectUrl?: string;
   private queue: PlayableSegment[] = [];
   private appended = new Set<string>();
+  /** Segments that really made it into the buffer, as opposed to skipped. */
+  private accepted = 0;
   private origin = 0;
   private loading = false;
   private generation = 0;
@@ -180,6 +192,7 @@ export class CamwatchPlayer extends LitElement {
     this.media = undefined;
     this.queue = [];
     this.appended.clear();
+    this.accepted = 0;
     this.loading = false;
   }
 
@@ -273,11 +286,16 @@ export class CamwatchPlayer extends LitElement {
     // The moov box sits at the front of a fragmented MP4, so the first few
     // kilobytes describe the whole thing and the file need not be fetched to
     // find out what it is.
-    const response = await fetch(this.urlFor(segment), {
+    const response = await this.fetchSegment(segment, {
       headers: { Range: "bytes=0-8191" },
     });
     if (!response.ok && response.status !== 206) {
-      throw new Error("Die Aufnahme konnte nicht geladen werden.");
+      // The status is part of the message on purpose. Without it a refused
+      // request and a missing file read identically, and the reason the
+      // recording will not play never reaches the person looking at it.
+      throw new Error(
+        `Die Aufnahme konnte nicht geladen werden (HTTP ${response.status}).`,
+      );
     }
     const header = new Uint8Array(await response.arrayBuffer());
     this.withAudio = hasAudioTrack(header);
@@ -286,6 +304,22 @@ export class CamwatchPlayer extends LitElement {
 
   private urlFor(segment: PlayableSegment): string {
     return `${this.segmentUrlBase}/${segment.path}`;
+  }
+
+  /** Fetch a segment with credentials, which the endpoint insists on. */
+  private fetchSegment(
+    segment: PlayableSegment,
+    init?: RequestInit,
+  ): Promise<Response> {
+    const url = this.urlFor(segment);
+    if (!this.api) {
+      // Nothing to authenticate with. Saying so beats a bare 401, which is
+      // what a plain fetch would produce here.
+      return Promise.reject(
+        new Error("Die Wiedergabe ist nicht mit Home Assistant verbunden."),
+      );
+    }
+    return this.api.authorizedFetch(url, init);
   }
 
   /** Keep a little footage buffered ahead of the playhead. */
@@ -298,6 +332,12 @@ export class CamwatchPlayer extends LitElement {
     const video = this.renderRoot.querySelector("video");
     const ahead = this.queue.filter((s) => !this.appended.has(s.path));
     if (ahead.length === 0) {
+      if (this.accepted === 0) {
+        // Everything was skipped, so there is nothing to play and nothing
+        // that will ever say so on its own.
+        this.message = "Keines der Segmente dieses Zeitraums ließ sich laden.";
+        return;
+      }
       if (media.readyState === "open") {
         try {
           media.endOfStream();
@@ -323,8 +363,9 @@ export class CamwatchPlayer extends LitElement {
     const next = ahead[0];
     const generation = this.generation;
     this.loading = true;
+    let skipped = false;
     try {
-      const response = await fetch(this.urlFor(next));
+      const response = await this.fetchSegment(next);
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const data = await response.arrayBuffer();
       if (generation !== this.generation || !this.buffer) return;
@@ -332,14 +373,25 @@ export class CamwatchPlayer extends LitElement {
       this.buffer.timestampOffset = next.start - this.origin;
       this.buffer.appendBuffer(data);
       this.appended.add(next.path);
+      this.accepted += 1;
     } catch (err) {
       // One unreadable segment must not end the playback: it is skipped and
       // shows up as a short jump, which is what the file actually is.
       this.appended.add(next.path);
+      skipped = true;
       // eslint-disable-next-line no-console
       console.warn("kustos_vision: segment could not be appended", next.path, err);
     } finally {
       this.loading = false;
+    }
+
+    if (skipped && generation === this.generation) {
+      // Nothing else will ask for the next one. The buffer only reports
+      // updateend after an append that actually happened, and the video
+      // element only reports timeupdate once it is playing, so a segment that
+      // failed before either of those left the player sitting silently on a
+      // black rectangle with no message and no further attempt.
+      void this.pump();
     }
   }
 

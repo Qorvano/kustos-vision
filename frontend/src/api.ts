@@ -19,7 +19,42 @@ import type {
 
 const DOMAIN = "kustos_vision";
 
+// How long a signed URL stays valid.
+//
+// Home Assistant defaults to 30 seconds, which is meant for a URL that is
+// handed to the browser and fetched immediately. That is too short here: a
+// preview image or a download link sits in the DOM while somebody looks at the
+// page and decides, and re-signing on every mouse move would put a websocket
+// round trip in front of every hover. An hour covers a normal sitting in front
+// of the recordings, and it is short enough that a URL copied out of the
+// network tab has stopped working by the time anyone could pass it on.
+const SIGNATURE_SECONDS = 3600;
+
+// A signature must still be valid when the request it belongs to finishes, not
+// only when it starts. A segment of several dozen megabytes over a slow link
+// can take a while, so a signature this close to expiry is replaced rather
+// than reused.
+const SIGNATURE_MIN_REMAINING_SECONDS = 60;
+
+/**
+ * A URL the browser may load on its own.
+ *
+ * The file endpoints require authentication, and an `<img>`, a `<video src>`
+ * or a download link cannot send an Authorization header. Home Assistant
+ * solves this with signed paths: the websocket connection asks for a signature
+ * over the exact path and query, and the http middleware accepts the request
+ * on the strength of it. Signed paths are the only mechanism that works for
+ * those three cases, which is why they exist here at all.
+ */
+interface Signature {
+  url: string;
+  /** Wall-clock milliseconds after which this must not be handed out again. */
+  usableUntil: number;
+}
+
 export class CamwatchApi {
+  private readonly signatures = new Map<string, Signature>();
+
   constructor(private hass: HomeAssistant) {}
 
   getConfig(): Promise<Snapshot> {
@@ -91,6 +126,53 @@ export class CamwatchApi {
       capability,
       ...(value === undefined ? {} : { value }),
     });
+  }
+
+  /**
+   * Fetch a file endpoint with the credentials the panel already has.
+   *
+   * Used where the code does the fetching itself and can therefore set a
+   * header. That is better than a signed URL in two ways: the address stays
+   * the same between calls, so the browser cache can do its job when the
+   * viewer seeks back over footage it already has, and nothing can expire
+   * halfway through a long playback.
+   */
+  async authorizedFetch(url: string, init?: RequestInit): Promise<Response> {
+    const token = this.hass.auth?.data?.access_token;
+    if (!token) {
+      // No token to present. Signing works over the websocket connection,
+      // which is authenticated by other means, so this still succeeds.
+      return fetch(await this.signedUrl(url), init);
+    }
+    const headers = new Headers(init?.headers);
+    headers.set("Authorization", `Bearer ${token}`);
+    return fetch(url, { ...init, headers });
+  }
+
+  /**
+   * Sign a path so the browser can load it without a header.
+   *
+   * Signatures are kept until they are close to expiring. Handing out the same
+   * address for the same file lets the browser cache it, which matters for
+   * preview images: sweeping along the timeline would otherwise refetch a
+   * picture the browser is already holding.
+   */
+  async signedUrl(url: string): Promise<string> {
+    const cached = this.signatures.get(url);
+    const now = Date.now();
+    if (cached && cached.usableUntil > now) return cached.url;
+
+    const { path } = await this.hass.callWS<{ path: string }>({
+      type: "auth/sign_path",
+      path: url,
+      expires: SIGNATURE_SECONDS,
+    });
+    this.signatures.set(url, {
+      url: path,
+      usableUntil:
+        now + (SIGNATURE_SECONDS - SIGNATURE_MIN_REMAINING_SECONDS) * 1000,
+    });
+    return path;
   }
 
   recordingDays(camera: string): Promise<{ days: string[] }> {

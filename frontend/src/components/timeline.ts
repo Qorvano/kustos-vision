@@ -7,7 +7,16 @@
 import { LitElement, css, html, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 
+import type { CamwatchApi } from "../api";
 import type { TimelineBlock, TimelineSegment } from "../types";
+
+// How long the pointer has to rest on one segment before its preview is
+// fetched. A preview costs a signature, and a signature costs a websocket
+// round trip; without this pause, dragging the pointer across a day would
+// ask for one for every segment it swept over, hundreds of them, for
+// pictures nobody ever sees. Short enough that stopping on a spot still
+// feels immediate.
+const PREVIEW_SETTLE_MS = 120;
 
 @customElement("kustos-vision-timeline")
 export class CamwatchTimeline extends LitElement {
@@ -17,8 +26,69 @@ export class CamwatchTimeline extends LitElement {
   @property({ attribute: false }) segments: TimelineSegment[] = [];
   @property({ type: Number }) position = 0;
   @property() thumbnailUrlBase = "/api/kustos_vision/thumbnail";
+  /**
+   * The websocket client, used to sign the preview addresses.
+   *
+   * An `<img>` cannot send an Authorization header, and the thumbnail endpoint
+   * requires authentication, so a plain address answers 401 and the preview
+   * stays blank. Home Assistant's answer to exactly this is a signed path, and
+   * asking for one needs the connection.
+   */
+  @property({ attribute: false }) api?: CamwatchApi;
 
   @state() private hover?: { x: number; time: number; segment?: TimelineSegment };
+  /** The signed address of the preview, and the segment it belongs to. */
+  @state() private preview?: { path: string; url: string };
+
+  private settleTimer?: ReturnType<typeof setTimeout>;
+
+  override disconnectedCallback(): void {
+    super.disconnectedCallback();
+    this.clearSettle();
+  }
+
+  private clearSettle(): void {
+    if (this.settleTimer !== undefined) clearTimeout(this.settleTimer);
+    this.settleTimer = undefined;
+  }
+
+  /**
+   * Fetch the preview address once the pointer has come to rest.
+   *
+   * Signing is cached per address by the api client, so coming back to a
+   * segment costs nothing and the browser can reuse the picture it already
+   * holds.
+   */
+  private schedulePreview(segment: TimelineSegment | undefined): void {
+    if (!segment?.thumbnail || !this.api) {
+      this.clearSettle();
+      this.preview = undefined;
+      return;
+    }
+    if (this.preview?.path === segment.path) {
+      // Already showing the right picture. Anything still on its way belongs
+      // to a segment the pointer has left behind.
+      this.clearSettle();
+      return;
+    }
+    this.clearSettle();
+    const wanted = segment.path;
+    this.settleTimer = setTimeout(() => {
+      void this.api
+        ?.signedUrl(`${this.thumbnailUrlBase}/${wanted}`)
+        .then((url) => {
+          // The pointer may have moved on while the signature was in flight.
+          if (this.hover?.segment?.path === wanted) {
+            this.preview = { path: wanted, url };
+          }
+        })
+        .catch(() => {
+          // A preview is a convenience. Failing to sign one is not worth
+          // interrupting somebody who is looking for a moment in the footage.
+          this.preview = undefined;
+        });
+    }, PREVIEW_SETTLE_MS);
+  }
 
   static override styles = css`
     :host {
@@ -101,6 +171,18 @@ export class CamwatchTimeline extends LitElement {
     }
   `;
 
+  override updated(changed: Map<string, unknown>): void {
+    if (changed.has("segments")) {
+      // Picking another day or another stream replaces everything the bar
+      // shows. Without this the preview under a pointer that has not moved
+      // would still be the one from before, because it is matched by path and
+      // the stale hover still names the old one.
+      this.clearSettle();
+      this.hover = undefined;
+      this.preview = undefined;
+    }
+  }
+
   private get span(): number {
     return Math.max(1, this.to - this.from);
   }
@@ -122,6 +204,7 @@ export class CamwatchTimeline extends LitElement {
       (s) => time >= s.start && time < s.start + s.duration,
     );
     this.hover = { x: this.percent(time), time, segment };
+    this.schedulePreview(segment);
   }
 
   private onClick(event: MouseEvent): void {
@@ -170,24 +253,23 @@ export class CamwatchTimeline extends LitElement {
 
     return html`
       <div class="wrap">
-        ${this.hover && this.hover.segment?.thumbnail
+        ${this.hover
           ? html`<div class="preview" style="left:${this.hover.x}%">
-              <img
-                alt=""
-                src="${this.thumbnailUrlBase}/${this.hover.segment.path}"
-              />
+              ${this.preview && this.preview.path === this.hover.segment?.path
+                ? html`<img alt="" src=${this.preview.url} />`
+                : nothing}
               <div class="time">${this.formatTime(this.hover.time)}</div>
             </div>`
-          : this.hover
-            ? html`<div class="preview" style="left:${this.hover.x}%">
-                <div class="time">${this.formatTime(this.hover.time)}</div>
-              </div>`
-            : nothing}
+          : nothing}
 
         <div
           class="bar"
           @mousemove=${this.onMove}
-          @mouseleave=${() => (this.hover = undefined)}
+          @mouseleave=${() => {
+            this.hover = undefined;
+            this.clearSettle();
+            this.preview = undefined;
+          }}
           @click=${this.onClick}
         >
           ${this.blocks.map(

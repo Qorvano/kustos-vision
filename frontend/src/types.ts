@@ -211,7 +211,9 @@ export interface HomeAssistant {
     ): Promise<() => Promise<void>>;
   };
   states: Record<string, { state: string; attributes: Record<string, unknown> }>;
-  auth: { data?: { access_token?: string } };
+  /** Absent in contexts that never authenticated; the file endpoints
+   *  fall back to a signed path there. */
+  auth?: { data?: { access_token?: string } };
   hassUrl(path?: string): string;
   language: string;
   themes: unknown;
