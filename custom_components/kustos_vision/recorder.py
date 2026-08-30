@@ -190,23 +190,31 @@ class StreamProcess:
         args = build_record_args(self._spec, self._base)
         _LOGGER.debug("kustos_vision: starting %s", self._spec.stream_id)
 
-        self._process = await create_subprocess_exec(
+        process = await create_subprocess_exec(
             binary,
             *args,
             stdin=asyncio.subprocess.DEVNULL,
             stdout=asyncio.subprocess.DEVNULL,
             stderr=asyncio.subprocess.PIPE,
         )
+        self._process = process
         self.status.running = True
         self.status.started_at = self._hass.loop.time()
         self.status.last_error = None
         self._notify()
 
+        # Waited on through the LOCAL reference on purpose. async_stop nulls
+        # self._process while this coroutine may still sit in the stderr
+        # drain; waking up into self._process.wait() then dereferenced None
+        # and logged three "failed unexpectedly" errors for a perfectly
+        # ordinary pause. Seen live while recording was paused for a storage
+        # migration.
         try:
-            await self._async_drain_stderr(self._process)
-            code = await self._process.wait()
+            await self._async_drain_stderr(process)
+            code = await process.wait()
         finally:
-            self._process = None
+            if self._process is process:
+                self._process = None
 
         self.status.recent_output = tuple(self._output)
         if code != 0:

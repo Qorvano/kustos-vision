@@ -843,7 +843,7 @@ const se = R`
     color: var(--secondary-text-color);
     font-size: 0.85em;
   }
-`, me = "0.5.1", bt = {
+`, me = "0.5.2", bt = {
   ptz_up: "Schwenken hoch",
   ptz_down: "Schwenken runter",
   ptz_left: "Schwenken links",

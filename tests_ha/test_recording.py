@@ -493,3 +493,61 @@ async def test_a_vanishing_location_pauses_recording_with_a_reason(
         assert recording_env[0].terminated or recording_env[0].killed
     finally:
         os.chmod(base, 0o755)
+
+
+async def test_stopping_a_stream_is_not_an_error(
+    hass: HomeAssistant,
+    hass_storage: dict,
+    tmp_path: Path,
+    spawned: list[list[str]],
+    caplog,
+) -> None:
+    """Regression: async_stop nulls the shared process reference while the
+    supervisor still sits in the stderr drain. Waking up into
+    self._process.wait() dereferenced None and logged "failed unexpectedly"
+    three times for a perfectly ordinary pause, seen live during a storage
+    migration. The drain here blocks until the process dies, which is exactly
+    how a real ffmpeg behaves."""
+
+    class SlowDrain(FakeProcess):
+        def __init__(self) -> None:
+            super().__init__()
+            self.stderr.readline = self._readline
+
+        async def _readline(self) -> bytes:
+            await self._exit.wait()
+            return b""
+
+    async def _spawn(program, *args, **kwargs):
+        spawned.append([program, *args])
+        return SlowDrain()
+
+    with (
+        patch(
+            "custom_components.kustos_vision.recorder.async_get_stream_source",
+            AsyncMock(return_value=STREAM_URL),
+        ),
+        patch(
+            "custom_components.kustos_vision.recorder.get_ffmpeg_manager",
+            MagicMock(return_value=MagicMock(binary="/usr/bin/ffmpeg")),
+        ),
+        patch(
+            "custom_components.kustos_vision.maintenance.get_ffmpeg_manager",
+            MagicMock(return_value=MagicMock(binary="/usr/bin/ffmpeg")),
+        ),
+        patch(
+            "custom_components.kustos_vision.recorder.create_subprocess_exec", _spawn
+        ),
+    ):
+        base = tmp_path / "recordings"
+        hass_storage[STORAGE_KEY_CONFIG] = stored_config(base)
+        entry = MockConfigEntry(domain=DOMAIN, data={CONF_BASE_PATH: str(base)})
+        entry.add_to_hass(hass)
+        assert await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+        assert len(spawned) == 1
+
+        await entry.runtime_data.recorder.async_stop_all()
+        await hass.async_block_till_done()
+
+    assert "failed unexpectedly" not in caplog.text
