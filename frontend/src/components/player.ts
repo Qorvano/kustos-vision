@@ -12,6 +12,7 @@
 
 import { LitElement, css, html, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
+import { errorText } from "../api";
 
 export interface PlayableSegment {
   path: string;
@@ -208,7 +209,7 @@ export class CamwatchPlayer extends LitElement {
     try {
       codec = await this.inspect(this.queue[0]);
     } catch (err) {
-      this.message = err instanceof Error ? err.message : String(err);
+      this.message = errorText(err);
       return;
     }
     if (generation !== this.generation) return;
@@ -259,7 +260,7 @@ export class CamwatchPlayer extends LitElement {
           buffer.addEventListener("updateend", () => void this.pump());
           void this.pump();
         } catch (err) {
-          this.message = err instanceof Error ? err.message : String(err);
+          this.message = errorText(err);
         }
       },
       { once: true },

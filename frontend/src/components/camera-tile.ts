@@ -4,7 +4,7 @@
 
 import { LitElement, css, html, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
-import type { CamwatchApi } from "../api";
+import { errorText, type CamwatchApi } from "../api";
 import { capabilityLabel, PTZ_SYMBOLS } from "../capabilities";
 import type { Camera, CustomControl, HomeAssistant } from "../types";
 import "./live-stream";
@@ -138,7 +138,7 @@ export class CamwatchCameraTile extends LitElement {
     try {
       await this.api.trigger(this.camera.slug, capability, value);
     } catch (err) {
-      this.error = err instanceof Error ? err.message : String(err);
+      this.error = errorText(err);
     } finally {
       this.busy = "";
     }

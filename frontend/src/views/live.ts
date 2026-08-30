@@ -62,6 +62,7 @@ export class CamwatchLiveView extends LitElement {
               .hass=${this.hass}
               .api=${this.api}
               .camera=${camera}
+              .viewId=${this.view.id}
             ></kustos-vision-camera-tile>
           `,
         )}

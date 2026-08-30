@@ -17,6 +17,7 @@
 
 import { LitElement, css, html, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
+import { errorText } from "../api";
 import type { HomeAssistant } from "../types";
 
 type Mode = "idle" | "webrtc" | "hls" | "mjpeg" | "still" | "error";
@@ -140,7 +141,7 @@ export class CamwatchLiveStream extends LitElement {
 
   private fail(err: unknown): void {
     this.mode = "error";
-    this.message = err instanceof Error ? err.message : String(err);
+    this.message = errorText(err);
   }
 
   // --------------------------------------------------------------------

@@ -374,38 +374,45 @@ export class CamwatchCameraEditor extends LitElement {
               ${bound.length === 0
                 ? html`<p class="hint">Dieser Kamera ist nichts zugeordnet.</p>`
                 : html`<div class="row">
-                    <label style="margin:0">
-                      <input
-                        type="checkbox"
-                        .checked=${chosen === null}
-                        @change=${(e: Event) =>
-                          this.patchView(view.id, {
-                            capabilities: (e.target as HTMLInputElement).checked
-                              ? null
-                              : [],
-                          })}
-                      />
-                      alle
-                    </label>
-                    ${bound.map(
-                      (key) => html`<label style="margin:0">
-                        <input
-                          type="checkbox"
-                          ?disabled=${chosen === null}
-                          .checked=${chosen === null || chosen.includes(key)}
-                          @change=${(e: Event) => {
-                            const on = (e.target as HTMLInputElement).checked;
-                            const next = new Set(chosen ?? []);
-                            if (on) next.add(key);
-                            else next.delete(key);
-                            this.patchView(view.id, { capabilities: [...next] });
-                          }}
-                        />
-                        ${this.controls.find((c) => c.key === key)?.name ||
-                        capabilityLabel(key)}
-                      </label>`,
-                    )}
-                  </div>`}
+                      ${bound.map(
+                        (key) => html`<label style="margin:0">
+                          <input
+                            type="checkbox"
+                            .checked=${chosen === null || chosen.includes(key)}
+                            @change=${(e: Event) => {
+                              const on = (e.target as HTMLInputElement).checked;
+                              // null means "all", so the first change has to
+                              // turn it into an explicit list before removing
+                              // anything from it.
+                              const next = new Set(chosen ?? bound);
+                              if (on) next.add(key);
+                              else next.delete(key);
+                              this.patchView(view.id, {
+                                capabilities: bound.filter((k) => next.has(k)),
+                              });
+                            }}
+                          />
+                          ${this.controls.find((c) => c.key === key)?.name ||
+                          capabilityLabel(key)}
+                        </label>`,
+                      )}
+                    </div>
+                    <div class="row" style="margin-top:6px">
+                      <button
+                        class="secondary"
+                        @click=${() =>
+                          this.patchView(view.id, { capabilities: null })}
+                      >
+                        alle
+                      </button>
+                      <button
+                        class="secondary"
+                        @click=${() =>
+                          this.patchView(view.id, { capabilities: [] })}
+                      >
+                        keines
+                      </button>
+                    </div>`}
 
               <label>Reihenfolge in dieser Ansicht</label>
               <p class="hint">
