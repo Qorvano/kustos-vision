@@ -159,3 +159,48 @@ async def test_everything_works_without_the_front_end(
 
     await hass.config_entries.async_unload(entry.entry_id)
     await hass.async_block_till_done()
+
+
+def test_the_cache_key_follows_the_bundle() -> None:
+    """Regression: the key was the integration version, which does not change
+    when the panel is rebuilt. Browsers therefore kept serving a stale bundle,
+    and no amount of reloading helped."""
+    from custom_components.kustos_vision.panel import bundle_fingerprint
+
+    first = bundle_fingerprint()
+    assert first != "missing"
+    assert len(first) == 12
+    # Same bytes, same key: a restart must not invalidate a cache needlessly.
+    assert bundle_fingerprint() == first
+
+
+def test_a_changed_bundle_gets_a_different_cache_key(tmp_path, monkeypatch) -> None:
+    from custom_components.kustos_vision import panel as panel_module
+
+    monkeypatch.setattr(panel_module, "FRONTEND_DIR", tmp_path)
+    (tmp_path / "panel.js").write_text("alt")
+    before = panel_module.bundle_fingerprint()
+    (tmp_path / "panel.js").write_text("neu")
+    assert panel_module.bundle_fingerprint() != before
+
+
+def test_a_missing_bundle_does_not_break_registration(tmp_path, monkeypatch) -> None:
+    """The panel should still appear and say what is wrong, rather than
+    vanishing from the sidebar with no explanation."""
+    from custom_components.kustos_vision import panel as panel_module
+
+    monkeypatch.setattr(panel_module, "FRONTEND_DIR", tmp_path / "nope")
+    assert panel_module.bundle_fingerprint() == "missing"
+
+
+async def test_the_registered_url_carries_the_fingerprint(hass: HomeAssistant) -> None:
+    from homeassistant.components import frontend
+
+    from custom_components.kustos_vision.panel import bundle_fingerprint
+
+    await async_setup_component(hass, DOMAIN, {})
+    await hass.async_block_till_done()
+
+    config = hass.data[frontend.DATA_PANELS][DOMAIN].config or {}
+    module_url = str(config.get("_panel_custom", {}).get("module_url", ""))
+    assert bundle_fingerprint() in module_url
