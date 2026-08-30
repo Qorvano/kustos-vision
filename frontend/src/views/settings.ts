@@ -8,7 +8,13 @@ import { LitElement, html, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import { errorText, formatBytes, type CamwatchApi } from "../api";
 import { shared } from "../styles";
-import type { AvailableCamera, Camera, Snapshot, View } from "../types";
+import type {
+  AvailableCamera,
+  Camera,
+  Snapshot,
+  StreamState,
+  View,
+} from "../types";
 import "./camera-editor";
 import "./vision-editor";
 
@@ -131,17 +137,7 @@ export class CamwatchSettings extends LitElement {
           ${camera.retention_days === null ? "unbegrenzt" : `${camera.retention_days} Tage`}
         </td>
         <td class="muted">${formatBytes(camera.state.used_bytes)}</td>
-        <td>
-          ${!camera.enabled
-            ? html`<span class="muted">deaktiviert</span>`
-            : camera.state.recording
-              ? html`<span>zeichnet auf</span>`
-              : html`<span class="error"
-                  >steht${failing[0]?.last_error
-                    ? html` (${failing[0].last_error})`
-                    : nothing}</span
-                >`}
-        </td>
+        <td>${this.renderRecordingState(camera, failing)}</td>
         <td>
           <div class="row">
             <button
@@ -164,6 +160,27 @@ export class CamwatchSettings extends LitElement {
         </td>
       </tr>
     `;
+  }
+
+  /** Three states, not two: a camera that is not meant to record is not the
+   *  same as one that is meant to and cannot. */
+  private renderRecordingState(camera: Camera, failing: StreamState[]) {
+    if (!camera.enabled) {
+      return html`<span class="muted">deaktiviert</span>`;
+    }
+    if (!camera.state.wants_recording) {
+      return html`<span class="muted">keine Aufzeichnung</span>`;
+    }
+    if (camera.state.paused) {
+      return html`<span class="muted">pausiert</span>`;
+    }
+    if (camera.state.recording) {
+      return html`<span>zeichnet auf</span>`;
+    }
+    const reason = failing[0]?.last_error;
+    return html`<span class="error"
+      >steht${reason ? html` (${reason})` : nothing}</span
+    >`;
   }
 
   private confirmDelete(camera: Camera): void {

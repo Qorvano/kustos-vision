@@ -6,7 +6,7 @@ import { LitElement, css, html, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import type { CamwatchApi } from "../api";
 import { capabilityLabel, PTZ_SYMBOLS } from "../capabilities";
-import type { Camera, HomeAssistant } from "../types";
+import type { Camera, CustomControl, HomeAssistant } from "../types";
 import "./live-stream";
 
 /** Capabilities that are a single press, in the order a tile shows them. */
@@ -49,6 +49,10 @@ export class CamwatchCameraTile extends LitElement {
     .dot.recording {
       background: var(--success-color, #43a047);
     }
+    /* Grey, not red: nothing is wrong, nothing is meant to be recorded. */
+    .dot.idle {
+      background: var(--disabled-text-color, #888);
+    }
     .spacer {
       flex: 1;
     }
@@ -76,6 +80,23 @@ export class CamwatchCameraTile extends LitElement {
     button:disabled {
       opacity: 0.5;
       cursor: default;
+    }
+    label.inline {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.85em;
+      color: var(--secondary-text-color);
+    }
+    label.inline select,
+    label.inline input {
+      font: inherit;
+      padding: 4px 6px;
+      border-radius: 6px;
+      border: 1px solid var(--divider-color, #ccc);
+      background: var(--card-background-color, #fff);
+      color: var(--primary-text-color);
+      max-width: 130px;
     }
     .error {
       padding: 0 12px 10px;
@@ -108,7 +129,10 @@ export class CamwatchCameraTile extends LitElement {
     return wanted.filter((key) => key in this.camera.capabilities);
   }
 
-  private async run(capability: string, value?: boolean | string): Promise<void> {
+  private async run(
+    capability: string,
+    value?: boolean | string | number,
+  ): Promise<void> {
     this.busy = capability;
     this.error = "";
     try {
@@ -130,9 +154,74 @@ export class CamwatchCameraTile extends LitElement {
     </button>`;
   }
 
+  /** Custom controls this view shows, in the order they were defined. */
+  private get shownControls(): CustomControl[] {
+    const chosen = this.camera.view_settings?.[this.viewId]?.capabilities;
+    const controls = this.camera.controls ?? [];
+    if (!chosen) return controls;
+    const wanted = new Set(chosen);
+    return controls.filter((c) => wanted.has(c.key));
+  }
+
+  /** The live state of the entity behind a control, for its options and range. */
+  private entityState(control: CustomControl) {
+    const entityId = control.binding.entity_id;
+    return entityId ? this.hass?.states?.[entityId] : undefined;
+  }
+
+  private renderCustom(control: CustomControl) {
+    const state = this.entityState(control);
+    switch (control.kind) {
+      case "switch":
+        return html`
+          ${this.renderButton(control.key, `${control.name} an`, true)}
+          ${this.renderButton(control.key, `${control.name} aus`, false)}
+        `;
+      case "select": {
+        const options = (state?.attributes?.options as string[]) ?? [];
+        if (!options.length) {
+          return html`<span class="meta">${control.name}: keine Optionen</span>`;
+        }
+        return html`<label class="inline">
+          ${control.name}
+          <select
+            ?disabled=${this.busy !== ""}
+            @change=${(e: Event) =>
+              this.run(control.key, (e.target as HTMLSelectElement).value)}
+          >
+            ${options.map(
+              (option) => html`<option
+                value=${option}
+                ?selected=${state?.state === option}
+              >
+                ${option}
+              </option>`,
+            )}
+          </select>
+        </label>`;
+      }
+      case "number":
+        return html`<label class="inline">
+          ${control.name}
+          <input
+            type="number"
+            min=${String(state?.attributes?.min ?? "")}
+            max=${String(state?.attributes?.max ?? "")}
+            .value=${state?.state ?? ""}
+            ?disabled=${this.busy !== ""}
+            @change=${(e: Event) =>
+              this.run(control.key, Number((e.target as HTMLInputElement).value))}
+          />
+        </label>`;
+      default:
+        return this.renderButton(control.key, control.name);
+    }
+  }
+
   private renderControls() {
     const shown = this.shownCapabilities;
-    if (!shown.length) return nothing;
+    const custom = this.shownControls;
+    if (!shown.length && !custom.length) return nothing;
 
     const buttons = [];
     for (const key of MOMENTARY) {
@@ -146,7 +235,9 @@ export class CamwatchCameraTile extends LitElement {
         this.renderButton(key, `${capabilityLabel(key)} aus`, false),
       );
     }
-    return html`<div class="controls">${buttons}</div>`;
+    return html`<div class="controls">
+      ${buttons}${custom.map((control) => this.renderCustom(control))}
+    </div>`;
   }
 
   override render() {
@@ -157,12 +248,18 @@ export class CamwatchCameraTile extends LitElement {
     return html`
       <header>
         <span
-          class="dot ${state.recording ? "recording" : ""}"
-          title=${state.recording
-            ? `${streams} Stream(s) werden aufgezeichnet`
-            : state.paused
-              ? "Aufzeichnung pausiert"
-              : "Aufzeichnung laeuft nicht"}
+          class="dot ${state.recording ? "recording" : ""} ${
+            state.wants_recording ? "" : "idle"
+          }"
+          title=${
+            state.recording
+              ? `${streams} Stream(s) werden aufgezeichnet`
+              : !state.wants_recording
+                ? "Für diese Kamera ist keine Aufzeichnung eingerichtet"
+                : state.paused
+                  ? "Aufzeichnung pausiert"
+                  : "Aufzeichnung läuft nicht"
+          }
         ></span>
         <span>${this.camera.name}</span>
         <span class="spacer"></span>

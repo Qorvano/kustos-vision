@@ -10,6 +10,8 @@ from kustos_vision.core.config import (
     CamwatchConfig,
     CapabilityBinding,
     ConfigError,
+    ControlKind,
+    CustomControl,
     StorageConfig,
     StreamConfig,
     ViewConfig,
@@ -598,3 +600,85 @@ def test_ordering_ignores_a_camera_that_is_not_in_the_view() -> None:
         views=(view(id="v", name="V"),),
     )
     assert config.with_view_order("v", ["a"]) == config
+
+
+# ----------------------------------------------------------------------
+# Custom controls
+# ----------------------------------------------------------------------
+
+
+def control(**overrides) -> CustomControl:
+    values = {
+        "key": "zoom_rein",
+        "name": "Zoom rein",
+        "kind": ControlKind.BUTTON,
+        "binding": CapabilityBinding(entity_id="button.zoom_in"),
+    }
+    values.update(overrides)
+    return CustomControl(**values)
+
+
+def test_a_custom_control_covers_what_no_slot_does() -> None:
+    """Measured against one ordinary camera, eighteen of its thirty-one
+    entities fit no built-in slot."""
+    cam = camera(controls=(control(),))
+    assert cam.control("zoom_rein") is not None
+    assert cam.control("gibtsnicht") is None
+
+
+def test_a_control_needs_a_usable_key_and_a_name() -> None:
+    with pytest.raises(ConfigError, match="identifier"):
+        control(key="Zoom rein")
+    with pytest.raises(ConfigError, match="name"):
+        control(name="  ")
+
+
+def test_controls_may_not_repeat_a_key() -> None:
+    with pytest.raises(ConfigError, match="duplicate control keys"):
+        camera(controls=(control(), control()))
+
+
+def test_a_control_may_not_shadow_a_built_in_slot() -> None:
+    """Both share one namespace because a view selects from them together, so
+    an ambiguous key would make that selection undecidable."""
+    with pytest.raises(ConfigError, match="built-in"):
+        camera(
+            capabilities={"light": CapabilityBinding(entity_id="light.a")},
+            controls=(control(key="light"),),
+        )
+
+
+def test_every_control_key_is_listed_together() -> None:
+    cam = camera(
+        capabilities={"light": CapabilityBinding(entity_id="light.a")},
+        controls=(control(),),
+    )
+    assert set(cam.all_control_keys) == {"light", "zoom_rein"}
+
+
+def test_a_view_can_select_among_custom_controls_too() -> None:
+    cam = camera(
+        controls=(control(), control(key="wischer", name="Wischer")),
+        view_settings={"v": CameraViewSettings(capabilities=("wischer",))},
+    )
+    assert [c.key for c in cam.controls_for("v")] == ["wischer"]
+
+
+def test_without_a_selection_every_custom_control_is_offered() -> None:
+    cam = camera(
+        controls=(control(),), view_settings={"v": CameraViewSettings()}
+    )
+    assert [c.key for c in cam.controls_for("v")] == ["zoom_rein"]
+
+
+def test_controls_round_trip_with_every_kind() -> None:
+    for kind in ControlKind:
+        original = camera(controls=(control(kind=kind),))
+        assert CameraConfig.from_dict(original.as_dict()) == original
+
+
+def test_an_unknown_control_kind_is_refused() -> None:
+    with pytest.raises(ConfigError, match="control kind"):
+        CustomControl.from_dict(
+            {"key": "x", "name": "X", "kind": "telepathie", "binding": {"entity_id": "a.b"}}
+        )

@@ -38,6 +38,7 @@ from .core.config import (
     CameraViewSettings,
     CapabilityBinding,
     ConfigError,
+    CustomControl,
     StorageConfig,
     StreamConfig,
     ViewConfig,
@@ -106,6 +107,7 @@ def _snapshot(coordinator: CamwatchCoordinator) -> dict[str, Any]:
                 **camera.as_dict(),
                 "state": {
                     "recording": state.recording if state else False,
+                    "wants_recording": state.wants_recording if state else False,
                     "paused": state.paused if state else False,
                     "used_bytes": state.used_bytes if state else 0,
                     "oldest_start": (
@@ -279,6 +281,14 @@ CAMERA_SCHEMA = {
     ),
     vol.Optional("enabled", default=True): bool,
     vol.Optional("area_id", default=None): vol.Any(None, str),
+    vol.Optional("controls", default=[]): [
+        {
+            vol.Required("key"): str,
+            vol.Required("name"): str,
+            vol.Required("kind"): vol.In(["button", "switch", "select", "number"]),
+            vol.Required("binding"): dict,
+        }
+    ],
     vol.Optional("view_settings", default={}): {
         str: {
             vol.Optional("visible", default=True): bool,
@@ -326,6 +336,7 @@ async def ws_set_camera(
                 view_id: CameraViewSettings.from_dict(value)
                 for view_id, value in msg["view_settings"].items()
             },
+            controls=tuple(CustomControl.from_dict(c) for c in msg["controls"]),
         )
     except ConfigError as err:
         connection.send_error(msg["id"], "invalid_config", str(err))
@@ -428,7 +439,12 @@ async def ws_suggest_camera(
             ],
             "capabilities": suggest_capabilities(candidates),
             "candidates": [
-                {"entity_id": c.entity_id, "name": c.name} for c in candidates
+                {
+                    "entity_id": c.entity_id,
+                    "name": c.name,
+                    "domain": c.domain,
+                }
+                for c in candidates
             ],
         },
     )

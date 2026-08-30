@@ -34,6 +34,14 @@ class CameraState:
     slug: str
     name: str
     recording: bool
+    wants_recording: bool
+    """Whether any stream is meant to be recorded at all.
+
+    Distinct from ``recording``, which says whether one is. A camera that is
+    not supposed to record is not the same as one that is supposed to and
+    cannot, and showing both as "not recording" makes a deliberate setting look
+    like a fault.
+    """
     paused: bool
     used_bytes: int
     oldest_start: datetime | None
@@ -148,6 +156,7 @@ class CamwatchCoordinator(DataUpdateCoordinator[CamwatchData]):
                 slug=camera.slug,
                 name=camera.name,
                 recording=any(s.running for s in streams),
+                wants_recording=bool(camera.recorded_streams),
                 paused=self.recorder.is_paused(camera.slug),
                 used_bytes=by_camera.get(camera.slug, 0),
                 oldest_start=(

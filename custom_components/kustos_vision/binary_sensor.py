@@ -69,6 +69,9 @@ class RecordingBinarySensor(CamwatchCameraEntity, BinarySensorEntity):
         if state is None:
             return {}
         return {
+            # Says whether "off" means "should not" or "should but cannot",
+            # which the state alone cannot express.
+            "recording_configured": state.wants_recording,
             "streams": {
                 stream.stream_key: {
                     "running": stream.running,
@@ -76,7 +79,7 @@ class RecordingBinarySensor(CamwatchCameraEntity, BinarySensorEntity):
                     "last_error": stream.last_error,
                 }
                 for stream in state.streams
-            }
+            },
         }
 
 

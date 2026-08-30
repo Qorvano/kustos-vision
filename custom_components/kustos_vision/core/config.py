@@ -135,6 +135,67 @@ class CapabilityBinding:
         )
 
 
+class ControlKind(StrEnum):
+    """How a control is operated, which decides how a tile draws it."""
+
+    BUTTON = "button"
+    """One press, no state. A PTZ step, a reboot, a siren trigger."""
+    SWITCH = "switch"
+    """On and off."""
+    SELECT = "select"
+    """One of a set the entity itself offers."""
+    NUMBER = "number"
+    """A value within a range the entity itself defines."""
+
+
+@dataclass(frozen=True, slots=True)
+class CustomControl:
+    """A control the user put on a camera themselves.
+
+    The fourteen named slots cover what nearly every pan-tilt camera has, and
+    the heuristic can guess them because their meaning is fixed. Everything
+    else a camera offers had nowhere to go: zoom, a wiper, lens heating,
+    detection sensitivity, siren volume. Measured against one ordinary camera,
+    that was eighteen of its thirty-one entities.
+
+    A custom control carries what a slot gets for free: a name to show and how
+    it is operated. Beyond that it is the same binding, so triggering it goes
+    through exactly the same path.
+    """
+
+    key: str
+    name: str
+    kind: ControlKind
+    binding: CapabilityBinding
+
+    def __post_init__(self) -> None:
+        if not is_valid_slug(self.key):
+            raise ConfigError(f"control key {self.key!r} is not a usable identifier")
+        if not self.name.strip():
+            raise ConfigError(f"control {self.key!r} needs a name")
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "key": self.key,
+            "name": self.name,
+            "kind": str(self.kind),
+            "binding": self.binding.as_dict(),
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> Self:
+        try:
+            kind = ControlKind(data["kind"])
+        except (KeyError, ValueError) as err:
+            raise ConfigError(f"unknown control kind {data.get('kind')!r}") from err
+        return cls(
+            key=data["key"],
+            name=data["name"],
+            kind=kind,
+            binding=CapabilityBinding.from_dict(data["binding"]),
+        )
+
+
 @dataclass(frozen=True, slots=True)
 class CameraViewSettings:
     """How one camera appears in one view.
@@ -193,6 +254,8 @@ class CameraConfig:
     area_id: str | None = None
     view_settings: dict[str, CameraViewSettings] = field(default_factory=dict)
     """Per view id. A view not listed here does not show this camera."""
+    controls: tuple[CustomControl, ...] = ()
+    """Controls beyond the named slots, defined by the user."""
 
     def __post_init__(self) -> None:
         if not is_valid_slug(self.slug):
@@ -206,6 +269,18 @@ class CameraConfig:
         keys = [s.key for s in self.streams]
         if len(keys) != len(set(keys)):
             raise ConfigError(f"camera {self.slug!r} has duplicate stream keys")
+
+        control_keys = [c.key for c in self.controls]
+        if len(control_keys) != len(set(control_keys)):
+            raise ConfigError(f"camera {self.slug!r} has duplicate control keys")
+        # Both kinds share one namespace, because a view selects from them
+        # together and an ambiguous key would make that selection undecidable.
+        clashing = set(control_keys) & set(self.capabilities)
+        if clashing:
+            raise ConfigError(
+                f"control keys already used by a built-in control: "
+                f"{', '.join(sorted(clashing))}"
+            )
 
     @property
     def recorded_streams(self) -> tuple[StreamConfig, ...]:
@@ -241,6 +316,22 @@ class CameraConfig:
                 return chosen
         return next((s for s in self.streams if not s.record), self.streams[0])
 
+    def control(self, key: str) -> CustomControl | None:
+        return next((c for c in self.controls if c.key == key), None)
+
+    @property
+    def all_control_keys(self) -> tuple[str, ...]:
+        """Every control this camera can offer, built-in and custom."""
+        return (*self.capabilities.keys(), *(c.key for c in self.controls))
+
+    def controls_for(self, view_id: str) -> tuple[CustomControl, ...]:
+        """The custom controls a view should offer, in the order defined."""
+        settings = self.view_settings.get(view_id)
+        if settings is None or settings.capabilities is None:
+            return self.controls
+        wanted = set(settings.capabilities)
+        return tuple(c for c in self.controls if c.key in wanted)
+
     def capabilities_for(self, view_id: str) -> tuple[str, ...]:
         """The controls a view should offer, in the configured order.
 
@@ -268,6 +359,7 @@ class CameraConfig:
                 view_id: settings.as_dict()
                 for view_id, settings in self.view_settings.items()
             },
+            "controls": [c.as_dict() for c in self.controls],
         }
 
     @classmethod
@@ -287,6 +379,9 @@ class CameraConfig:
                 view_id: CameraViewSettings.from_dict(value)
                 for view_id, value in data.get("view_settings", {}).items()
             },
+            controls=tuple(
+                CustomControl.from_dict(c) for c in data.get("controls", [])
+            ),
         )
 
 

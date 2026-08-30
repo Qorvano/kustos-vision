@@ -55,6 +55,11 @@ async def async_trigger(
     """
     binding = camera.capabilities.get(capability)
     if binding is None:
+        # Custom controls share the namespace with the built-in slots and are
+        # triggered the same way; only where they are defined differs.
+        custom = camera.control(capability)
+        binding = custom.binding if custom is not None else None
+    if binding is None:
         raise CapabilityError(
             f"camera {camera.slug!r} has no entity bound to {capability!r}"
         )

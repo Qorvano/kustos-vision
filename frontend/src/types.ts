@@ -24,6 +24,9 @@ export interface StreamState {
 
 export interface CameraState {
   recording: boolean;
+  /** Whether any stream is meant to be recorded. Distinguishes "not supposed
+   *  to" from "supposed to but cannot", which the panel must not conflate. */
+  wants_recording: boolean;
   paused: boolean;
   used_bytes: number;
   oldest_start: string | null;
@@ -37,6 +40,15 @@ export interface CameraViewSettings {
   position: number;
 }
 
+export type ControlKind = "button" | "switch" | "select" | "number";
+
+export interface CustomControl {
+  key: string;
+  name: string;
+  kind: ControlKind;
+  binding: CapabilityBinding;
+}
+
 export interface Camera {
   slug: string;
   name: string;
@@ -46,6 +58,8 @@ export interface Camera {
   enabled: boolean;
   area_id: string | null;
   view_settings: Record<string, CameraViewSettings>;
+  /** Controls beyond the fourteen named slots, defined by the user. */
+  controls: CustomControl[];
   state: CameraState;
 }
 
@@ -184,7 +198,7 @@ export interface Suggestion {
   area_id: string | null;
   streams: { key: string; entity_id: string }[];
   capabilities: Record<string, string>;
-  candidates: { entity_id: string; name: string }[];
+  candidates: { entity_id: string; name: string; domain: string }[];
 }
 
 // The slice of Home Assistant's frontend object a custom panel is handed.

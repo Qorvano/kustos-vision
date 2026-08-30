@@ -11,6 +11,8 @@ import { errorText, type CamwatchApi } from "../api";
 import type {
   AvailableCamera,
   CameraViewSettings,
+  ControlKind,
+  CustomControl,
   CapabilityBinding,
   Camera,
   StreamConfig,
@@ -50,6 +52,7 @@ export class CamwatchCameraEditor extends LitElement {
   @state() private retentionDays: number | null = null;
   @state() private enabled = true;
   @state() private viewSettings: Record<string, CameraViewSettings> = {};
+  @state() private controls: CustomControl[] = [];
   @state() private candidates: { entity_id: string; name: string }[] = [];
   @state() private busy = false;
   @state() private error = "";
@@ -66,6 +69,24 @@ export class CamwatchCameraEditor extends LitElement {
       this.retentionDays = this.camera.retention_days;
       this.enabled = this.camera.enabled;
       this.viewSettings = structuredClone(this.camera.view_settings ?? {});
+      this.controls = structuredClone(this.camera.controls ?? []);
+      // The candidate list is what custom controls are built from, and
+      // editing starts without one. Fetch it from this camera's own
+      // device so the section works straight away.
+      void this.loadCandidates();
+    }
+  }
+
+  /** Fetch the sibling entities of this camera's device, without changing
+   *  anything about the camera itself. */
+  private async loadCandidates(): Promise<void> {
+    const first = this.streams[0]?.entity_id;
+    if (!first) return;
+    try {
+      this.candidates = (await this.api.suggest(first)).candidates;
+    } catch {
+      // Not fatal: the section simply stays empty and says so.
+      this.candidates = [];
     }
   }
 
@@ -132,6 +153,7 @@ export class CamwatchCameraEditor extends LitElement {
           enabled: this.enabled,
           area_id: this.camera?.area_id ?? null,
           view_settings: this.viewSettings,
+          controls: this.controls,
         },
         // Editing an existing camera is the only case allowed to replace one.
         this.camera !== undefined,
@@ -190,12 +212,122 @@ export class CamwatchCameraEditor extends LitElement {
     }
   }
 
+  private patchControl(index: number, patch: Partial<CustomControl>): void {
+    this.controls = this.controls.map((c, i) =>
+      i === index ? { ...c, ...patch } : c,
+    );
+  }
+
+  private addControl(): void {
+    let n = this.controls.length + 1;
+    const used = new Set([
+      ...this.controls.map((c) => c.key),
+      ...Object.keys(this.capabilities),
+    ]);
+    while (used.has(`bedienelement_${n}`)) n += 1;
+    this.controls = [
+      ...this.controls,
+      {
+        key: `bedienelement_${n}`,
+        name: "",
+        kind: "button",
+        binding: { entity_id: "" },
+      },
+    ];
+  }
+
+  private renderControlRow(control: CustomControl, index: number) {
+    const kinds: [ControlKind, string][] = [
+      ["button", "Knopf"],
+      ["switch", "An/Aus"],
+      ["select", "Auswahl"],
+      ["number", "Wert"],
+    ];
+    return html`
+      <div style="border-bottom:1px solid var(--divider-color,#eee);padding:12px 0">
+        <div class="row">
+          <div class="grow">
+            <label>Beschriftung</label>
+            <input
+              placeholder="Zoom rein"
+              .value=${control.name}
+              @change=${(e: Event) =>
+                this.patchControl(index, {
+                  name: (e.target as HTMLInputElement).value,
+                })}
+            />
+          </div>
+          <div class="grow">
+            <label>Entity</label>
+            <select
+              @change=${(e: Event) =>
+                this.patchControl(index, {
+                  binding: { entity_id: (e.target as HTMLSelectElement).value },
+                })}
+            >
+              <option value="">Bitte wählen …</option>
+              ${this.candidates.map(
+                (c) => html`<option
+                  value=${c.entity_id}
+                  ?selected=${control.binding.entity_id === c.entity_id}
+                >
+                  ${c.name || c.entity_id}
+                </option>`,
+              )}
+            </select>
+          </div>
+          <div>
+            <label>Bedienart</label>
+            <select
+              @change=${(e: Event) =>
+                this.patchControl(index, {
+                  kind: (e.target as HTMLSelectElement).value as ControlKind,
+                })}
+            >
+              ${kinds.map(
+                ([value, label]) => html`<option
+                  value=${value}
+                  ?selected=${control.kind === value}
+                >
+                  ${label}
+                </option>`,
+              )}
+            </select>
+          </div>
+          <div>
+            <label>Kennung</label>
+            <input
+              .value=${control.key}
+              @change=${(e: Event) =>
+                this.patchControl(index, {
+                  key: (e.target as HTMLInputElement).value,
+                })}
+            />
+          </div>
+        </div>
+        <div class="row" style="margin-top:8px">
+          <span class="grow"></span>
+          <button
+            class="danger"
+            @click=${() =>
+              (this.controls = this.controls.filter((_, i) => i !== index))}
+          >
+            Entfernen
+          </button>
+        </div>
+      </div>
+    `;
+  }
+
   private renderViewBlock(view: View) {
     const settings = this.viewSettings[view.id];
     const shown = settings?.visible ?? false;
     const members = this.membersOf(view);
     const chosen = settings?.capabilities ?? null;
-    const bound = Object.keys(this.capabilities);
+    const bound = [
+      ...Object.keys(this.capabilities),
+      ...this.controls.map((c) => c.key),
+    ];
 
     return html`
       <div style="border-bottom:1px solid var(--divider-color,#eee);padding:12px 0">
@@ -269,7 +401,8 @@ export class CamwatchCameraEditor extends LitElement {
                             this.patchView(view.id, { capabilities: [...next] });
                           }}
                         />
-                        ${capabilityLabel(key)}
+                        ${this.controls.find((c) => c.key === key)?.name ||
+                        capabilityLabel(key)}
                       </label>`,
                     )}
                   </div>`}
@@ -510,6 +643,32 @@ export class CamwatchCameraEditor extends LitElement {
             `,
           )}
         </table>
+
+        <h3>Eigene Bedienelemente</h3>
+        <p class="hint">
+          Für alles, was die vierzehn vorgegebenen Plätze nicht abdecken: Zoom,
+          Wischer, Empfindlichkeit, Sirenenlautstärke und was Ihre Kamera sonst
+          noch anbietet. Jedes davon erscheint danach genauso in den Ansichten
+          wie die vorgegebenen.
+        </p>
+        ${this.controls.map((control, index) =>
+          this.renderControlRow(control, index),
+        )}
+        <div class="row" style="margin-top:12px">
+          <button
+            class="secondary"
+            ?disabled=${this.candidates.length === 0}
+            @click=${this.addControl}
+          >
+            Bedienelement hinzufügen
+          </button>
+          ${this.candidates.length === 0
+            ? html`<span class="muted"
+                >Erst eine Kamera auswählen, dann stehen ihre Entities zur
+                Wahl.</span
+              >`
+            : nothing}
+        </div>
 
         <h3>Ansichten</h3>
         ${this.views.length === 0

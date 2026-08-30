@@ -1093,3 +1093,97 @@ async def test_the_device_name_is_preferred_over_the_entity_name(
     client = await hass_ws_client(hass)
     result = await send(client, type=f"{DOMAIN}/cameras/available")
     assert any(c["name"] == "Kamera Hof" for c in result["result"]["cameras"])
+
+
+async def test_a_custom_control_can_be_saved_and_triggered(
+    hass: HomeAssistant, hass_ws_client, setup_kustos_vision
+) -> None:
+    """The fourteen named slots cover what nearly every camera has; everything
+    else it offers had nowhere to go. A custom control is triggered through
+    exactly the same path as a built-in one."""
+    calls = []
+
+    async def _record(call):
+        calls.append(call)
+
+    hass.services.async_register("button", "press", _record)
+    await setup_kustos_vision()
+    client = await hass_ws_client(hass)
+
+    result = await send(
+        client,
+        type=f"{DOMAIN}/camera/set",
+        **camera_dict(
+            controls=[
+                {
+                    "key": "zoom_rein",
+                    "name": "Zoom rein",
+                    "kind": "button",
+                    "binding": {"entity_id": "button.hof_zoom_in"},
+                }
+            ]
+        ),
+    )
+    assert result["success"]
+
+    result = await send(
+        client,
+        type=f"{DOMAIN}/camera/trigger",
+        slug="vorgarten",
+        capability="zoom_rein",
+    )
+    assert result["success"]
+    assert calls[0].data["entity_id"] == "button.hof_zoom_in"
+
+
+async def test_a_custom_control_cannot_shadow_a_built_in_one(
+    hass: HomeAssistant, hass_ws_client, setup_kustos_vision
+) -> None:
+    await setup_kustos_vision()
+    client = await hass_ws_client(hass)
+
+    result = await send(
+        client,
+        type=f"{DOMAIN}/camera/set",
+        **camera_dict(
+            capabilities={"light": {"entity_id": "light.a"}},
+            controls=[
+                {
+                    "key": "light",
+                    "name": "Anderes Licht",
+                    "kind": "switch",
+                    "binding": {"entity_id": "switch.b"},
+                }
+            ],
+        ),
+    )
+    assert not result["success"]
+    assert result["error"]["code"] == "invalid_config"
+
+
+async def test_a_camera_that_records_nothing_says_so_rather_than_failing(
+    hass: HomeAssistant, hass_ws_client, setup_kustos_vision
+) -> None:
+    """Not meant to record is not the same as meant to and cannot. Showing
+    both as "not recording" makes a deliberate setting look like a fault."""
+    await setup_kustos_vision(
+        [camera_dict(streams=[{"key": "hd", "entity_id": "camera.a", "record": False}])]
+    )
+    client = await hass_ws_client(hass)
+
+    result = await send(client, type=f"{DOMAIN}/config/get")
+    state = result["result"]["cameras"][0]["state"]
+    assert state["recording"] is False
+    assert state["wants_recording"] is False
+
+
+async def test_a_camera_that_should_record_reports_that_it_wants_to(
+    hass: HomeAssistant, hass_ws_client, setup_kustos_vision
+) -> None:
+    await setup_kustos_vision(
+        [camera_dict(streams=[{"key": "hd", "entity_id": "camera.a", "record": True}])]
+    )
+    client = await hass_ws_client(hass)
+
+    result = await send(client, type=f"{DOMAIN}/config/get")
+    assert result["result"]["cameras"][0]["state"]["wants_recording"] is True
