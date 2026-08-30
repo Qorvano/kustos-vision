@@ -264,3 +264,29 @@ async def test_a_disabled_camera_is_not_recorded(
     assert spawned == []
     await hass.config_entries.async_unload(entry.entry_id)
     await hass.async_block_till_done()
+
+
+async def test_moving_the_storage_location_restarts_the_recording(
+    hass: HomeAssistant, loaded: MockConfigEntry, spawned: list[list[str]], tmp_path: Path
+) -> None:
+    """Regression: the storage path is not part of the stream spec, so
+    reconciliation saw an unchanged spec and left the running ffmpeg writing
+    into the previous location."""
+    coordinator = loaded.runtime_data
+    target = tmp_path / "moved"
+    target.mkdir()
+
+    await coordinator.async_set_config(
+        coordinator.config.with_storage(
+            type(coordinator.config.storage)(
+                base_path=str(target),
+                segment_seconds=coordinator.config.storage.segment_seconds,
+            )
+        )
+    )
+    await hass.async_block_till_done()
+    await asyncio.sleep(0)
+    await hass.async_block_till_done()
+
+    assert len(spawned) == 2, "ffmpeg was not restarted for the new location"
+    assert spawned[1][-1].startswith(str(target))

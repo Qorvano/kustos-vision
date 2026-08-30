@@ -264,10 +264,6 @@ export class CamwatchSettings extends LitElement {
         <h2>Speicher</h2>
         <table>
           <tr>
-            <th>Ort</th>
-            <td class="muted">${storage.base_path}</td>
-          </tr>
-          <tr>
             <th>Belegt</th>
             <td>${formatBytes(totals.used_bytes)}</td>
           </tr>
@@ -276,9 +272,16 @@ export class CamwatchSettings extends LitElement {
             <td>${formatBytes(totals.free_bytes)}</td>
           </tr>
         </table>
+
+        <label>Ort</label>
+        <input id="base_path" .value=${storage.base_path} />
         <p class="hint">
-          Der Ort wird beim Einrichten festgelegt und lässt sich hier nicht
-          ändern: ein Wechsel würde die vorhandenen Aufnahmen zurücklassen.
+          Ein Wechsel verschiebt und löscht nichts: die bereits vorhandenen
+          Aufnahmen bleiben unangetastet liegen, nur neue landen am neuen Ort.
+          Wenn Sie die alten Aufnahmen behalten möchten, kopieren Sie den
+          bisherigen Ordner vorher an die neue Stelle; sie werden dort wieder
+          erkannt. Der Ordner muss beschreibbar sein, bei einem Netzlaufwerk
+          also eingebunden.
         </p>
 
         ${totals.over_budget_bytes > 0
@@ -321,8 +324,21 @@ export class CamwatchSettings extends LitElement {
       (root.querySelector("#segment") as HTMLInputElement).value,
     );
     const budgetRaw = (root.querySelector("#budget") as HTMLInputElement).value;
+    const path = (root.querySelector("#base_path") as HTMLInputElement).value.trim();
+
+    if (path !== this.snapshot.storage.base_path) {
+      const ok = confirm(
+        `Aufnahmen künftig unter ${path} ablegen?\n\n` +
+          `Was bereits unter ${this.snapshot.storage.base_path} liegt, bleibt ` +
+          `unverändert dort und verschwindet aus der Übersicht, bis Sie es an ` +
+          `den neuen Ort kopieren.`,
+      );
+      if (!ok) return;
+    }
+
     void this.run(() =>
       this.api.setStorage({
+        base_path: path,
         segment_seconds: segment,
         max_total_bytes:
           budgetRaw === "" ? null : Math.round(Number(budgetRaw) * GIGABYTE),

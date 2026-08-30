@@ -7,7 +7,10 @@ import { defineConfig } from "vite";
 export default defineConfig({
   build: {
     outDir: "../custom_components/kustos_vision/frontend/dist",
-    emptyOutDir: true,
+    // The build writes exactly one file under a fixed name, so wiping the
+    // directory first gains nothing. It also fails outright when the output
+    // sits on a network share that still holds a lock on the previous file.
+    emptyOutDir: false,
     target: "es2022",
     lib: {
       entry: "src/panel.ts",

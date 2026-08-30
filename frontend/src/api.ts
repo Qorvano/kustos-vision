@@ -50,6 +50,7 @@ export class CamwatchApi {
   }
 
   setStorage(patch: {
+    base_path?: string;
     segment_seconds?: number;
     max_total_bytes?: number | null;
     max_gap_seconds?: number;

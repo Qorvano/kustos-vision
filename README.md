@@ -123,6 +123,16 @@ Plain files in plain directories, readable in any file manager. Put the storage
 location under your media folder and Home Assistant's media browser will play
 them without Kustos Vision being involved at all.
 
+Those two are the only things written there. Snapshots sent to a model are held
+in memory and never land on disk, the segment index lives beside your Home
+Assistant configuration, and an export is streamed to the browser rather than
+assembled somewhere first.
+
+The location can be changed at any time under Settings, Storage. Nothing is
+moved or deleted: existing recordings stay where they are and new ones go to
+the new place. Copy the old tree across first and it is picked up again, because
+the index stores paths relative to the root.
+
 File names are in local time because you read them. The index stores UTC,
 which is what every comparison and retention decision uses, so the twice-yearly
 clock change cannot confuse it.

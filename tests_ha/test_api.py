@@ -374,18 +374,100 @@ async def test_the_size_budget_can_be_switched_off(
     assert result["result"]["storage"]["max_total_bytes"] is None
 
 
-async def test_the_storage_path_is_not_settable_here(
+async def test_the_storage_path_can_be_changed(
     hass: HomeAssistant, hass_ws_client, setup_kustos_vision, tmp_path: Path
 ) -> None:
-    """Moving it would strand every existing recording."""
+    """Starting on the internal disk and moving to a share later is the normal
+    course of events, so it cannot require editing storage files by hand."""
     await setup_kustos_vision()
+    client = await hass_ws_client(hass)
+    target = tmp_path / "elsewhere"
+
+    result = await send(client, type=f"{DOMAIN}/storage/set", base_path=str(target))
+    assert result["success"]
+    assert result["result"]["storage"]["base_path"] == str(target)
+    assert target.is_dir()
+
+
+async def test_changing_the_path_leaves_the_old_recordings_alone(
+    hass: HomeAssistant, hass_ws_client, setup_kustos_vision, tmp_path: Path
+) -> None:
+    """Deleting footage as a side effect of a settings change would be the
+    worst possible surprise."""
+    entry = await setup_kustos_vision()
+    old = Path(entry.runtime_data.config.storage.base_path)
+    day = old / "vorgarten" / "2026-08-30"
+    day.mkdir(parents=True)
+    recording = day / "14-30-00_hd.mp4"
+    recording.write_bytes(b"important")
+
+    client = await hass_ws_client(hass)
+    await send(
+        client, type=f"{DOMAIN}/storage/set", base_path=str(tmp_path / "elsewhere")
+    )
+
+    assert recording.is_file()
+    assert recording.read_bytes() == b"important"
+
+
+async def test_recordings_carried_across_by_hand_are_found_again(
+    hass: HomeAssistant, hass_ws_client, setup_kustos_vision, tmp_path: Path
+) -> None:
+    """The index stores paths relative to the root precisely so that the root
+    can move. Copying the tree across has to be enough."""
+    entry = await setup_kustos_vision()
+    target = tmp_path / "elsewhere"
+    day = target / "vorgarten" / "2026-08-30"
+    day.mkdir(parents=True)
+    (day / "14-30-00_hd.mp4").write_bytes(b"x" * 64)
+
+    client = await hass_ws_client(hass)
+    result = await send(client, type=f"{DOMAIN}/storage/set", base_path=str(target))
+    assert result["success"]
+
+    await entry.runtime_data.async_refresh()
+    await hass.async_block_till_done()
+    rows = await hass.async_add_executor_job(entry.runtime_data.index.oldest_first)
+    assert [r.rel_path for r in rows] == ["vorgarten/2026-08-30/14-30-00_hd.mp4"]
+
+
+async def test_an_unusable_path_is_refused_with_a_reason(
+    hass: HomeAssistant, hass_ws_client, setup_kustos_vision, tmp_path: Path
+) -> None:
+    """A share that is not mounted is the common case here, and the user needs
+    to be told rather than have recording quietly stop."""
+    await setup_kustos_vision()
+    blocker = tmp_path / "a-file-not-a-directory"
+    blocker.write_text("x")
     client = await hass_ws_client(hass)
 
     result = await send(
-        client, type=f"{DOMAIN}/storage/set", base_path=str(tmp_path / "elsewhere")
+        client, type=f"{DOMAIN}/storage/set", base_path=str(blocker / "under")
     )
     assert not result["success"]
-    assert result["error"]["code"] == "invalid_format"
+    assert result["error"]["code"] == "path_not_writable"
+
+
+async def test_a_relative_path_is_refused(
+    hass: HomeAssistant, hass_ws_client, setup_kustos_vision
+) -> None:
+    await setup_kustos_vision()
+    client = await hass_ws_client(hass)
+    result = await send(client, type=f"{DOMAIN}/storage/set", base_path="recordings")
+    assert not result["success"]
+    assert result["error"]["code"] == "path_not_absolute"
+
+
+async def test_the_limits_can_still_be_changed_without_touching_the_path(
+    hass: HomeAssistant, hass_ws_client, setup_kustos_vision
+) -> None:
+    entry = await setup_kustos_vision()
+    before = entry.runtime_data.config.storage.base_path
+    client = await hass_ws_client(hass)
+
+    result = await send(client, type=f"{DOMAIN}/storage/set", segment_seconds=90)
+    assert result["result"]["storage"]["base_path"] == before
+    assert result["result"]["storage"]["segment_seconds"] == 90
 
 
 # ----------------------------------------------------------------------

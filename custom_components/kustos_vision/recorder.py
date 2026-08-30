@@ -98,6 +98,17 @@ class StreamProcess:
     def spec(self) -> StreamSpec:
         return self._spec
 
+    @property
+    def base(self) -> Path:
+        """Where this process is writing.
+
+        Kept separate from the spec because it is not a property of the stream
+        but of the installation, and compared alongside it when reconciling:
+        a process whose spec is unchanged but whose target moved is still
+        writing to the old place.
+        """
+        return self._base
+
     async def async_start(self) -> None:
         """Start supervising this stream. Returns once the loop is running."""
         if self._supervisor is not None:
@@ -289,7 +300,14 @@ class RecorderManager:
 
         for stream_id, spec in wanted.items():
             existing = self._streams.get(stream_id)
-            if existing is not None and existing.spec == spec:
+            # Both have to match. Comparing only the spec would leave a running
+            # ffmpeg writing into the previous location after the storage path
+            # is changed, because the path is not part of the spec.
+            if (
+                existing is not None
+                and existing.spec == spec
+                and existing.base == self._base
+            ):
                 continue
             if existing is not None:
                 await existing.async_stop()

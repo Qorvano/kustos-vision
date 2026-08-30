@@ -23,6 +23,7 @@ from homeassistant.helpers import entity_registry as er
 from homeassistant.util import dt as dt_util
 
 from .actions import CapabilityError, async_trigger
+from .config_flow import async_validate_base_path
 from .const import DOMAIN
 from .coordinator import CamwatchCoordinator
 from .core.capabilities import (
@@ -174,6 +175,7 @@ async def ws_get_config(
 @websocket_api.websocket_command(
     {
         vol.Required("type"): f"{DOMAIN}/storage/set",
+        vol.Optional("base_path"): str,
         vol.Optional("segment_seconds"): vol.All(int, vol.Range(min=1)),
         vol.Optional("max_total_bytes"): vol.Any(None, vol.All(int, vol.Range(min=1))),
         vol.Optional("max_gap_seconds"): vol.All(vol.Coerce(float), vol.Range(min=0)),
@@ -183,17 +185,29 @@ async def ws_get_config(
 async def ws_set_storage(
     hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict
 ) -> None:
-    """Change the storage limits.
+    """Change where recordings go, and the limits that apply to them.
 
-    The base path is deliberately not settable here: moving it would strand
-    every existing recording, so it stays where the config flow put it.
+    Changing the location does NOT move or delete anything. The recordings
+    already written stay exactly where they are; recording simply continues in
+    the new place. The index is rebuilt from whatever is at the new location,
+    which is why moving the files across by hand first works: the index stores
+    paths relative to the root, so it recognises them again on the other side.
     """
     if (coordinator := _require(hass, connection, msg)) is None:
         return
     current = coordinator.config.storage
+
+    base_path = current.base_path
+    if "base_path" in msg and msg["base_path"] != current.base_path:
+        cleaned, error = await async_validate_base_path(hass, msg["base_path"])
+        if error is not None:
+            connection.send_error(msg["id"], error, f"cannot use {cleaned!r}")
+            return
+        base_path = cleaned
+
     try:
         storage = StorageConfig(
-            base_path=current.base_path,
+            base_path=base_path,
             segment_seconds=msg.get("segment_seconds", current.segment_seconds),
             max_total_bytes=msg.get("max_total_bytes", current.max_total_bytes),
             max_gap_seconds=msg.get("max_gap_seconds", current.max_gap_seconds),
@@ -202,7 +216,22 @@ async def ws_set_storage(
         connection.send_error(msg["id"], "invalid_config", str(err))
         return
 
+    moved = base_path != current.base_path
+    if moved:
+        # The index describes what is under the old root. Clearing it lets the
+        # next scan describe the new one, whether the user brought the
+        # recordings along or started fresh.
+        await hass.async_add_executor_job(coordinator.index.clear)
+
     await coordinator.async_set_config(coordinator.config.with_storage(storage))
+    if moved:
+        _LOGGER.info(
+            "kustos_vision: recordings now go to %s; anything under %s was left "
+            "untouched",
+            base_path,
+            current.base_path,
+        )
+        await coordinator.async_refresh()
     connection.send_result(msg["id"], _snapshot(coordinator))
 
 
