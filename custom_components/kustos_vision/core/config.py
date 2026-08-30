@@ -12,6 +12,8 @@ the websocket API, so every field here is something the panel renders.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
+from copy import deepcopy
 from dataclasses import dataclass, field, replace
 from enum import StrEnum
 from typing import Any, Self
@@ -20,7 +22,7 @@ from .observations import Observation, ObservationError
 from .paths import is_valid_slug
 from .recorder import AudioMode
 
-CONFIG_VERSION = 1
+CONFIG_VERSION = 2
 
 # Five minutes balances the two things segment length trades off: retention can
 # only free whole segments, so shorter means finer control over disk use, while
@@ -134,6 +136,49 @@ class CapabilityBinding:
 
 
 @dataclass(frozen=True, slots=True)
+class CameraViewSettings:
+    """How one camera appears in one view.
+
+    Kept on the camera rather than on the view because everything else about a
+    camera lives here too: which stream to show and which controls to offer are
+    decisions about that camera, and having to open a view to change them would
+    split one thought across two screens.
+
+    It also makes the interesting case natural: the same camera can appear in a
+    control view with its substream and every button, and in a wall view with
+    its main stream and nothing else.
+    """
+
+    visible: bool = True
+    stream_key: str | None = None
+    """Which stream to show. None picks one automatically."""
+    capabilities: tuple[str, ...] | None = None
+    """Which controls to offer. None means every one that is bound; an empty
+    tuple means none at all, which is what a pure wall display wants."""
+    position: int = 0
+    """Sort order within the view. Ties fall back to the camera name, so the
+    layout is stable without anyone having to number every camera."""
+
+    def as_dict(self) -> dict[str, Any]:
+        stored: dict[str, Any] = {"visible": self.visible, "position": self.position}
+        if self.stream_key is not None:
+            stored["stream_key"] = self.stream_key
+        if self.capabilities is not None:
+            stored["capabilities"] = list(self.capabilities)
+        return stored
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> Self:
+        capabilities = data.get("capabilities")
+        return cls(
+            visible=bool(data.get("visible", True)),
+            stream_key=data.get("stream_key"),
+            capabilities=None if capabilities is None else tuple(capabilities),
+            position=int(data.get("position", 0)),
+        )
+
+
+@dataclass(frozen=True, slots=True)
 class CameraConfig:
     """One camera as kustos_vision knows it."""
 
@@ -146,6 +191,8 @@ class CameraConfig:
     size budget, if one is set."""
     enabled: bool = True
     area_id: str | None = None
+    view_settings: dict[str, CameraViewSettings] = field(default_factory=dict)
+    """Per view id. A view not listed here does not show this camera."""
 
     def __post_init__(self) -> None:
         if not is_valid_slug(self.slug):
@@ -170,6 +217,44 @@ class CameraConfig:
     def stream(self, key: str) -> StreamConfig | None:
         return next((s for s in self.streams if s.key == key), None)
 
+    def settings_for(self, view_id: str) -> CameraViewSettings | None:
+        """How this camera appears in a view, or None when it does not."""
+        settings = self.view_settings.get(view_id)
+        if settings is None or not settings.visible:
+            return None
+        return settings
+
+    def stream_for(self, view_id: str) -> StreamConfig | None:
+        """The stream a view should show.
+
+        Falls back to a stream that is NOT being recorded when the view does
+        not name one: on a camera with both, that is the substream, and
+        watching it live leaves the main stream to the recorder rather than
+        pulling it a second time.
+        """
+        if not self.streams:
+            return None
+        settings = self.view_settings.get(view_id)
+        if settings is not None and settings.stream_key:
+            chosen = self.stream(settings.stream_key)
+            if chosen is not None:
+                return chosen
+        return next((s for s in self.streams if not s.record), self.streams[0])
+
+    def capabilities_for(self, view_id: str) -> tuple[str, ...]:
+        """The controls a view should offer, in the configured order.
+
+        Only ever capabilities that are actually bound: offering a button that
+        cannot work is worse than offering none.
+        """
+        settings = self.view_settings.get(view_id)
+        wanted = (
+            tuple(self.capabilities)
+            if settings is None or settings.capabilities is None
+            else settings.capabilities
+        )
+        return tuple(key for key in wanted if key in self.capabilities)
+
     def as_dict(self) -> dict[str, Any]:
         return {
             "slug": self.slug,
@@ -179,6 +264,10 @@ class CameraConfig:
             "retention_days": self.retention_days,
             "enabled": self.enabled,
             "area_id": self.area_id,
+            "view_settings": {
+                view_id: settings.as_dict()
+                for view_id, settings in self.view_settings.items()
+            },
         }
 
     @classmethod
@@ -194,6 +283,10 @@ class CameraConfig:
             retention_days=data.get("retention_days"),
             enabled=bool(data.get("enabled", True)),
             area_id=data.get("area_id"),
+            view_settings={
+                view_id: CameraViewSettings.from_dict(value)
+                for view_id, value in data.get("view_settings", {}).items()
+            },
         )
 
 
@@ -346,8 +439,6 @@ class ViewConfig:
 
     id: str
     name: str
-    cameras: tuple[str, ...] = ()
-    """Camera slugs, in the order they are shown."""
     icon: str = "mdi:cctv"
     columns: int = 0
     """0 lets the layout choose from the available width."""
@@ -359,28 +450,23 @@ class ViewConfig:
             raise ConfigError("a view needs a name")
         if self.columns < 0:
             raise ConfigError("columns must not be negative")
-        if len(self.cameras) != len(set(self.cameras)):
-            raise ConfigError(f"view {self.id!r} lists a camera twice")
-
-    def without_camera(self, slug: str) -> Self:
-        """Drop a camera from this view, for when it is deleted entirely."""
-        return replace(self, cameras=tuple(c for c in self.cameras if c != slug))
 
     def as_dict(self) -> dict[str, Any]:
         return {
             "id": self.id,
             "name": self.name,
-            "cameras": list(self.cameras),
             "icon": self.icon,
             "columns": self.columns,
         }
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> Self:
+        # "cameras" appears in configurations written before the membership
+        # moved onto the cameras themselves. It is read during migration in
+        # CamwatchConfig.from_dict and ignored here.
         return cls(
             id=data["id"],
             name=data["name"],
-            cameras=tuple(data.get("cameras", [])),
             icon=data.get("icon", "mdi:cctv"),
             columns=int(data.get("columns", 0)),
         )
@@ -502,7 +588,6 @@ class CamwatchConfig:
         return replace(
             self,
             cameras=tuple(c for c in self.cameras if c.slug != slug),
-            views=tuple(v.without_camera(slug) for v in self.views),
             vision=tuple(p for p in self.vision if p.camera_slug != slug),
         )
 
@@ -522,14 +607,99 @@ class CamwatchConfig:
         )
 
     def without_view(self, view_id: str) -> Self:
-        return replace(self, views=tuple(v for v in self.views if v.id != view_id))
+        """Remove a view, and the per-camera settings that referenced it.
+
+        Leaving them behind would silently resurrect the old layout if a view
+        with the same id were created again later.
+        """
+        remaining = tuple(v for v in self.views if v.id != view_id)
+        cameras = tuple(
+            replace(
+                camera,
+                view_settings={
+                    key: value
+                    for key, value in camera.view_settings.items()
+                    if key != view_id
+                },
+            )
+            for camera in self.cameras
+        )
+        return replace(self, views=remaining, cameras=cameras)
+
+    def with_view_order(self, view_id: str, ordered: Sequence[str]) -> Self:
+        """Set the order of every camera in one view at once.
+
+        The order is a property of the view, not of any single camera, so it is
+        edited as a whole list rather than as a number on each camera. Doing it
+        the other way round would mean opening every camera in turn to work out
+        what position was still free.
+
+        Cameras the list does not mention keep the position they had, so a
+        stale list cannot silently reshuffle the rest.
+        """
+        positions = {slug: index for index, slug in enumerate(ordered)}
+        cameras = tuple(
+            (
+                replace(
+                    camera,
+                    view_settings={
+                        **camera.view_settings,
+                        view_id: replace(
+                            camera.view_settings[view_id],
+                            position=positions[camera.slug],
+                        ),
+                    },
+                )
+                if camera.slug in positions and view_id in camera.view_settings
+                else camera
+            )
+            for camera in self.cameras
+        )
+        return replace(self, cameras=cameras)
+
+    def cameras_in_view(self, view_id: str) -> tuple[CameraConfig, ...]:
+        """The cameras a view shows, in the order it shows them.
+
+        Position first, then name, so a layout is stable without the user
+        having to number every camera.
+        """
+        members = [
+            camera
+            for camera in self.cameras
+            if camera.enabled and camera.settings_for(view_id) is not None
+        ]
+        return tuple(
+            sorted(
+                members,
+                key=lambda c: (c.view_settings[view_id].position, c.name.casefold()),
+            )
+        )
 
     def with_views(self, views: tuple[ViewConfig, ...]) -> Self:
-        """Replace every view at once, which is how reordering is saved."""
+        """Replace every view at once, which is how reordering the tabs works.
+
+        Settings for views that disappear are dropped from the cameras too.
+        Leaving them behind would silently resurrect the old layout if a view
+        with the same id were created again later.
+        """
         ids = [v.id for v in views]
         if len(ids) != len(set(ids)):
             raise ConfigError("duplicate view ids")
-        return replace(self, views=views)
+        surviving = set(ids)
+        cameras = tuple(
+            replace(
+                camera,
+                view_settings={
+                    key: value
+                    for key, value in camera.view_settings.items()
+                    if key in surviving
+                },
+            )
+            if any(key not in surviving for key in camera.view_settings)
+            else camera
+            for camera in self.cameras
+        )
+        return replace(self, views=views, cameras=cameras)
 
     def with_storage(self, storage: StorageConfig) -> Self:
         return replace(self, storage=storage)
@@ -578,6 +748,7 @@ class CamwatchConfig:
                 f"configuration version {version} is newer than this integration "
                 f"understands (expected at most {CONFIG_VERSION})"
             )
+        data = _migrate(data, version)
         cameras = tuple(CameraConfig.from_dict(c) for c in data.get("cameras", []))
         slugs = [c.slug for c in cameras]
         if len(slugs) != len(set(slugs)):
@@ -596,3 +767,32 @@ class CamwatchConfig:
             views=views,
             vision=vision,
         )
+
+
+def _migrate(data: dict[str, Any], version: int) -> dict[str, Any]:
+    """Bring a stored configuration up to the current shape.
+
+    Returns a new dictionary; the caller's is left alone, so a migration that
+    goes wrong cannot corrupt what is still on disk.
+    """
+    if version >= CONFIG_VERSION:
+        return data
+
+    migrated = deepcopy(data)
+
+    # Version 2 moved view membership from the view onto the cameras, so that
+    # which stream and which controls a camera shows can differ per view.
+    if version < 2:
+        by_slug = {camera["slug"]: camera for camera in migrated.get("cameras", [])}
+        for view in migrated.get("views", []):
+            for position, slug in enumerate(view.pop("cameras", [])):
+                camera = by_slug.get(slug)
+                if camera is None:
+                    continue
+                camera.setdefault("view_settings", {})[view["id"]] = {
+                    "visible": True,
+                    "position": position,
+                }
+
+    migrated["version"] = CONFIG_VERSION
+    return migrated

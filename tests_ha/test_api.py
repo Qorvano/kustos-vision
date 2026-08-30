@@ -47,6 +47,7 @@ def camera_dict(slug="vorgarten", **overrides) -> dict:
         "retention_days": None,
         "enabled": True,
         "area_id": None,
+        "view_settings": {},
     }
     base.update(overrides)
     return base
@@ -231,8 +232,8 @@ async def test_deleting_a_camera_clears_it_from_views(
 ) -> None:
     """A stale slug would make the panel render a tile for nothing."""
     await setup_kustos_vision(
-        [camera_dict()],
-        [{"id": "aussen", "name": "Außen", "cameras": ["vorgarten"]}],
+        [camera_dict(view_settings={"aussen": {"visible": True}})],
+        [{"id": "aussen", "name": "Außen"}],
     )
     client = await hass_ws_client(hass)
 
@@ -315,10 +316,7 @@ async def test_views_can_be_set_and_reordered(
     result = await send(
         client,
         type=f"{DOMAIN}/views/set",
-        views=[
-            {"id": "a", "name": "A", "cameras": ["vorgarten"]},
-            {"id": "b", "name": "B"},
-        ],
+        views=[{"id": "a", "name": "A"}, {"id": "b", "name": "B"}],
     )
     assert result["success"]
     assert [v["id"] for v in result["result"]["views"]] == ["a", "b"]
@@ -331,19 +329,104 @@ async def test_views_can_be_set_and_reordered(
     assert [v["id"] for v in result["result"]["views"]] == ["b", "a"]
 
 
-async def test_a_view_cannot_reference_an_unknown_camera(
+async def test_which_cameras_a_view_shows_is_set_on_the_cameras(
+    hass: HomeAssistant, hass_ws_client, setup_kustos_vision
+) -> None:
+    """Membership moved onto the camera so that the stream and the controls a
+    camera offers can differ per view."""
+    await setup_kustos_vision([camera_dict()])
+    client = await hass_ws_client(hass)
+    await send(client, type=f"{DOMAIN}/views/set", views=[{"id": "a", "name": "A"}])
+
+    result = await send(
+        client,
+        type=f"{DOMAIN}/camera/set",
+        replace_existing=True,
+        **camera_dict(view_settings={"a": {"visible": True, "stream_key": "hd"}}),
+    )
+    assert result["success"]
+    assert result["result"]["views"][0]["cameras"] == ["vorgarten"]
+
+
+async def test_a_camera_can_be_hidden_from_a_view(
+    hass: HomeAssistant, hass_ws_client, setup_kustos_vision
+) -> None:
+    await setup_kustos_vision([camera_dict()])
+    client = await hass_ws_client(hass)
+    await send(client, type=f"{DOMAIN}/views/set", views=[{"id": "a", "name": "A"}])
+
+    result = await send(
+        client,
+        type=f"{DOMAIN}/camera/set",
+        replace_existing=True,
+        **camera_dict(view_settings={"a": {"visible": False}}),
+    )
+    assert result["result"]["views"][0]["cameras"] == []
+
+
+async def test_the_order_of_a_view_is_set_in_one_call(
+    hass: HomeAssistant, hass_ws_client, setup_kustos_vision
+) -> None:
+    """All cameras of a view at once, because the order belongs to the view."""
+    await setup_kustos_vision()
+    client = await hass_ws_client(hass)
+    await send(client, type=f"{DOMAIN}/views/set", views=[{"id": "a", "name": "A"}])
+    for slug in ("eins", "zwei", "drei"):
+        await send(
+            client,
+            type=f"{DOMAIN}/camera/set",
+            **camera_dict(slug=slug, view_settings={"a": {"visible": True}}),
+        )
+
+    result = await send(
+        client, type=f"{DOMAIN}/view/order", view_id="a", cameras=["drei", "eins", "zwei"]
+    )
+    assert result["success"]
+    assert result["result"]["views"][0]["cameras"] == ["drei", "eins", "zwei"]
+
+
+async def test_ordering_an_unknown_view_says_so(
     hass: HomeAssistant, hass_ws_client, setup_kustos_vision
 ) -> None:
     await setup_kustos_vision()
     client = await hass_ws_client(hass)
+    result = await send(client, type=f"{DOMAIN}/view/order", view_id="weg", cameras=[])
+    assert not result["success"]
+    assert result["error"]["code"] == "not_found"
+
+
+async def test_ordering_refuses_an_unknown_camera(
+    hass: HomeAssistant, hass_ws_client, setup_kustos_vision
+) -> None:
+    await setup_kustos_vision()
+    client = await hass_ws_client(hass)
+    await send(client, type=f"{DOMAIN}/views/set", views=[{"id": "a", "name": "A"}])
 
     result = await send(
-        client,
-        type=f"{DOMAIN}/views/set",
-        views=[{"id": "a", "name": "A", "cameras": ["ghost"]}],
+        client, type=f"{DOMAIN}/view/order", view_id="a", cameras=["gibtsnicht"]
     )
     assert not result["success"]
     assert result["error"]["code"] == "not_found"
+
+
+async def test_deleting_a_view_clears_it_from_the_cameras(
+    hass: HomeAssistant, hass_ws_client, setup_kustos_vision
+) -> None:
+    """A leftover setting would resurrect the old layout if a view with the
+    same id were created again."""
+    await setup_kustos_vision([camera_dict()])
+    client = await hass_ws_client(hass)
+    await send(client, type=f"{DOMAIN}/views/set", views=[{"id": "a", "name": "A"}])
+    await send(
+        client,
+        type=f"{DOMAIN}/camera/set",
+        replace_existing=True,
+        **camera_dict(view_settings={"a": {"visible": True}}),
+    )
+
+    result = await send(client, type=f"{DOMAIN}/views/set", views=[])
+    assert result["result"]["views"] == []
+    assert result["result"]["cameras"][0]["view_settings"] == {}
 
 
 # ----------------------------------------------------------------------

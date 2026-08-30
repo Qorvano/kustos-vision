@@ -3,18 +3,18 @@
  * Copyright 2019 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
  */
-const ne = globalThis, ue = ne.ShadowRoot && (ne.ShadyCSS === void 0 || ne.ShadyCSS.nativeShadow) && "adoptedStyleSheets" in Document.prototype && "replace" in CSSStyleSheet.prototype, me = Symbol(), ye = /* @__PURE__ */ new WeakMap();
-let ze = class {
+const oe = globalThis, me = oe.ShadowRoot && (oe.ShadyCSS === void 0 || oe.ShadyCSS.nativeShadow) && "adoptedStyleSheets" in Document.prototype && "replace" in CSSStyleSheet.prototype, ge = Symbol(), $e = /* @__PURE__ */ new WeakMap();
+let De = class {
   constructor(e, s, i) {
-    if (this._$cssResult$ = !0, i !== me) throw Error("CSSResult is not constructable. Use `unsafeCSS` or `css` instead.");
+    if (this._$cssResult$ = !0, i !== ge) throw Error("CSSResult is not constructable. Use `unsafeCSS` or `css` instead.");
     this.cssText = e, this.t = s;
   }
   get styleSheet() {
     let e = this.o;
     const s = this.t;
-    if (ue && e === void 0) {
+    if (me && e === void 0) {
       const i = s !== void 0 && s.length === 1;
-      i && (e = ye.get(s)), e === void 0 && ((this.o = e = new CSSStyleSheet()).replaceSync(this.cssText), i && ye.set(s, e));
+      i && (e = $e.get(s)), e === void 0 && ((this.o = e = new CSSStyleSheet()).replaceSync(this.cssText), i && $e.set(s, e));
     }
     return e;
   }
@@ -22,20 +22,20 @@ let ze = class {
     return this.cssText;
   }
 };
-const Re = (t) => new ze(typeof t == "string" ? t : t + "", void 0, me), I = (t, ...e) => {
+const Re = (t) => new De(typeof t == "string" ? t : t + "", void 0, ge), I = (t, ...e) => {
   const s = t.length === 1 ? t[0] : e.reduce((i, r, a) => i + ((n) => {
     if (n._$cssResult$ === !0) return n.cssText;
     if (typeof n == "number") return n;
     throw Error("Value passed to 'css' function must be a 'css' function result: " + n + ". Use 'unsafeCSS' to pass non-literal values, but take care to ensure page security.");
   })(r) + t[a + 1], t[0]);
-  return new ze(s, t, me);
+  return new De(s, t, ge);
 }, Ue = (t, e) => {
-  if (ue) t.adoptedStyleSheets = e.map((s) => s instanceof CSSStyleSheet ? s : s.styleSheet);
+  if (me) t.adoptedStyleSheets = e.map((s) => s instanceof CSSStyleSheet ? s : s.styleSheet);
   else for (const s of e) {
-    const i = document.createElement("style"), r = ne.litNonce;
+    const i = document.createElement("style"), r = oe.litNonce;
     r !== void 0 && i.setAttribute("nonce", r), i.textContent = s.cssText, t.appendChild(i);
   }
-}, $e = ue ? (t) => t : (t) => t instanceof CSSStyleSheet ? ((e) => {
+}, we = me ? (t) => t : (t) => t instanceof CSSStyleSheet ? ((e) => {
   let s = "";
   for (const i of e.cssRules) s += i.cssText;
   return Re(s);
@@ -45,10 +45,10 @@ const Re = (t) => new ze(typeof t == "string" ? t : t + "", void 0, me), I = (t,
  * Copyright 2017 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
  */
-const { is: Be, defineProperty: He, getOwnPropertyDescriptor: Ie, getOwnPropertyNames: Ve, getOwnPropertySymbols: Ke, getPrototypeOf: We } = Object, he = globalThis, we = he.trustedTypes, Le = we ? we.emptyScript : "", qe = he.reactiveElementPolyfillSupport, Z = (t, e) => t, oe = { toAttribute(t, e) {
+const { is: He, defineProperty: Ie, getOwnPropertyDescriptor: Ve, getOwnPropertyNames: Ke, getOwnPropertySymbols: We, getPrototypeOf: Le } = Object, ce = globalThis, _e = ce.trustedTypes, qe = _e ? _e.emptyScript : "", Fe = ce.reactiveElementPolyfillSupport, J = (t, e) => t, le = { toAttribute(t, e) {
   switch (e) {
     case Boolean:
-      t = t ? Le : null;
+      t = t ? qe : null;
       break;
     case Object:
     case Array:
@@ -73,44 +73,44 @@ const { is: Be, defineProperty: He, getOwnPropertyDescriptor: Ie, getOwnProperty
       }
   }
   return s;
-} }, be = (t, e) => !Be(t, e), _e = { attribute: !0, type: String, converter: oe, reflect: !1, useDefault: !1, hasChanged: be };
-Symbol.metadata ??= Symbol("metadata"), he.litPropertyMetadata ??= /* @__PURE__ */ new WeakMap();
-let V = class extends HTMLElement {
+} }, be = (t, e) => !He(t, e), ke = { attribute: !0, type: String, converter: le, reflect: !1, useDefault: !1, hasChanged: be };
+Symbol.metadata ??= Symbol("metadata"), ce.litPropertyMetadata ??= /* @__PURE__ */ new WeakMap();
+let K = class extends HTMLElement {
   static addInitializer(e) {
     this._$Ei(), (this.l ??= []).push(e);
   }
   static get observedAttributes() {
     return this.finalize(), this._$Eh && [...this._$Eh.keys()];
   }
-  static createProperty(e, s = _e) {
+  static createProperty(e, s = ke) {
     if (s.state && (s.attribute = !1), this._$Ei(), this.prototype.hasOwnProperty(e) && ((s = Object.create(s)).wrapped = !0), this.elementProperties.set(e, s), !s.noAccessor) {
       const i = Symbol(), r = this.getPropertyDescriptor(e, i, s);
-      r !== void 0 && He(this.prototype, e, r);
+      r !== void 0 && Ie(this.prototype, e, r);
     }
   }
   static getPropertyDescriptor(e, s, i) {
-    const { get: r, set: a } = Ie(this.prototype, e) ?? { get() {
+    const { get: r, set: a } = Ve(this.prototype, e) ?? { get() {
       return this[s];
     }, set(n) {
       this[s] = n;
     } };
     return { get: r, set(n) {
-      const p = r?.call(this);
-      a?.call(this, n), this.requestUpdate(e, p, i);
+      const d = r?.call(this);
+      a?.call(this, n), this.requestUpdate(e, d, i);
     }, configurable: !0, enumerable: !0 };
   }
   static getPropertyOptions(e) {
-    return this.elementProperties.get(e) ?? _e;
+    return this.elementProperties.get(e) ?? ke;
   }
   static _$Ei() {
-    if (this.hasOwnProperty(Z("elementProperties"))) return;
-    const e = We(this);
+    if (this.hasOwnProperty(J("elementProperties"))) return;
+    const e = Le(this);
     e.finalize(), e.l !== void 0 && (this.l = [...e.l]), this.elementProperties = new Map(e.elementProperties);
   }
   static finalize() {
-    if (this.hasOwnProperty(Z("finalized"))) return;
-    if (this.finalized = !0, this._$Ei(), this.hasOwnProperty(Z("properties"))) {
-      const s = this.properties, i = [...Ve(s), ...Ke(s)];
+    if (this.hasOwnProperty(J("finalized"))) return;
+    if (this.finalized = !0, this._$Ei(), this.hasOwnProperty(J("properties"))) {
+      const s = this.properties, i = [...Ke(s), ...We(s)];
       for (const r of i) this.createProperty(r, s[r]);
     }
     const e = this[Symbol.metadata];
@@ -129,8 +129,8 @@ let V = class extends HTMLElement {
     const s = [];
     if (Array.isArray(e)) {
       const i = new Set(e.flat(1 / 0).reverse());
-      for (const r of i) s.unshift($e(r));
-    } else e !== void 0 && s.push($e(e));
+      for (const r of i) s.unshift(we(r));
+    } else e !== void 0 && s.push(we(e));
     return s;
   }
   static _$Eu(e, s) {
@@ -172,17 +172,17 @@ let V = class extends HTMLElement {
   _$ET(e, s) {
     const i = this.constructor.elementProperties.get(e), r = this.constructor._$Eu(e, i);
     if (r !== void 0 && i.reflect === !0) {
-      const a = (i.converter?.toAttribute !== void 0 ? i.converter : oe).toAttribute(s, i.type);
+      const a = (i.converter?.toAttribute !== void 0 ? i.converter : le).toAttribute(s, i.type);
       this._$Em = e, a == null ? this.removeAttribute(r) : this.setAttribute(r, a), this._$Em = null;
     }
   }
   _$AK(e, s) {
     const i = this.constructor, r = i._$Eh.get(e);
     if (r !== void 0 && this._$Em !== r) {
-      const a = i.getPropertyOptions(r), n = typeof a.converter == "function" ? { fromAttribute: a.converter } : a.converter?.fromAttribute !== void 0 ? a.converter : oe;
+      const a = i.getPropertyOptions(r), n = typeof a.converter == "function" ? { fromAttribute: a.converter } : a.converter?.fromAttribute !== void 0 ? a.converter : le;
       this._$Em = r;
-      const p = n.fromAttribute(s, a.type);
-      this[r] = p ?? this._$Ej?.get(r) ?? p, this._$Em = null;
+      const d = n.fromAttribute(s, a.type);
+      this[r] = d ?? this._$Ej?.get(r) ?? d, this._$Em = null;
     }
   }
   requestUpdate(e, s, i, r = !1, a) {
@@ -218,8 +218,8 @@ let V = class extends HTMLElement {
       }
       const i = this.constructor.elementProperties;
       if (i.size > 0) for (const [r, a] of i) {
-        const { wrapped: n } = a, p = this[r];
-        n !== !0 || this._$AL.has(r) || p === void 0 || this.C(r, void 0, a, p);
+        const { wrapped: n } = a, d = this[r];
+        n !== !0 || this._$AL.has(r) || d === void 0 || this.C(r, void 0, a, d);
       }
     }
     let e = !1;
@@ -256,73 +256,73 @@ let V = class extends HTMLElement {
   firstUpdated(e) {
   }
 };
-V.elementStyles = [], V.shadowRootOptions = { mode: "open" }, V[Z("elementProperties")] = /* @__PURE__ */ new Map(), V[Z("finalized")] = /* @__PURE__ */ new Map(), qe?.({ ReactiveElement: V }), (he.reactiveElementVersions ??= []).push("2.1.2");
+K.elementStyles = [], K.shadowRootOptions = { mode: "open" }, K[J("elementProperties")] = /* @__PURE__ */ new Map(), K[J("finalized")] = /* @__PURE__ */ new Map(), Fe?.({ ReactiveElement: K }), (ce.reactiveElementVersions ??= []).push("2.1.2");
 /**
  * @license
  * Copyright 2017 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
  */
-const ge = globalThis, ke = (t) => t, le = ge.trustedTypes, Ae = le ? le.createPolicy("lit-html", { createHTML: (t) => t }) : void 0, De = "$lit$", T = `lit$${Math.random().toFixed(9).slice(2)}$`, je = "?" + T, Fe = `<${je}>`, U = document, J = () => U.createComment(""), X = (t) => t === null || typeof t != "object" && typeof t != "function", ve = Array.isArray, Ge = (t) => ve(t) || typeof t?.[Symbol.iterator] == "function", de = `[ 	
-\f\r]`, G = /<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g, xe = /-->/g, Se = />/g, N = RegExp(`>|${de}(?:([^\\s"'>=/]+)(${de}*=${de}*(?:[^ 	
-\f\r"'\`<>=]|("|')|))|$)`, "g"), Ee = /'/g, Ce = /"/g, Me = /^(?:script|style|textarea|title)$/i, Ze = (t) => (e, ...s) => ({ _$litType$: t, strings: e, values: s }), o = Ze(1), K = Symbol.for("lit-noChange"), l = Symbol.for("lit-nothing"), Oe = /* @__PURE__ */ new WeakMap(), R = U.createTreeWalker(U, 129);
+const ve = globalThis, Ae = (t) => t, he = ve.trustedTypes, Se = he ? he.createPolicy("lit-html", { createHTML: (t) => t }) : void 0, Be = "$lit$", T = `lit$${Math.random().toFixed(9).slice(2)}$`, je = "?" + T, Ge = `<${je}>`, R = document, Y = () => R.createComment(""), X = (t) => t === null || typeof t != "object" && typeof t != "function", fe = Array.isArray, Ze = (t) => fe(t) || typeof t?.[Symbol.iterator] == "function", pe = `[ 	
+\f\r]`, Z = /<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g, xe = /-->/g, Ee = />/g, M = RegExp(`>|${pe}(?:([^\\s"'>=/]+)(${pe}*=${pe}*(?:[^ 	
+\f\r"'\`<>=]|("|')|))|$)`, "g"), Ce = /'/g, Oe = /"/g, Me = /^(?:script|style|textarea|title)$/i, Je = (t) => (e, ...s) => ({ _$litType$: t, strings: e, values: s }), o = Je(1), L = Symbol.for("lit-noChange"), l = Symbol.for("lit-nothing"), Pe = /* @__PURE__ */ new WeakMap(), N = R.createTreeWalker(R, 129);
 function Ne(t, e) {
-  if (!ve(t) || !t.hasOwnProperty("raw")) throw Error("invalid template strings array");
-  return Ae !== void 0 ? Ae.createHTML(e) : e;
+  if (!fe(t) || !t.hasOwnProperty("raw")) throw Error("invalid template strings array");
+  return Se !== void 0 ? Se.createHTML(e) : e;
 }
-const Je = (t, e) => {
+const Ye = (t, e) => {
   const s = t.length - 1, i = [];
-  let r, a = e === 2 ? "<svg>" : e === 3 ? "<math>" : "", n = G;
-  for (let p = 0; p < s; p++) {
-    const c = t[p];
-    let m, b, d = -1, C = 0;
-    for (; C < c.length && (n.lastIndex = C, b = n.exec(c), b !== null); ) C = n.lastIndex, n === G ? b[1] === "!--" ? n = xe : b[1] !== void 0 ? n = Se : b[2] !== void 0 ? (Me.test(b[2]) && (r = RegExp("</" + b[2], "g")), n = N) : b[3] !== void 0 && (n = N) : n === N ? b[0] === ">" ? (n = r ?? G, d = -1) : b[1] === void 0 ? d = -2 : (d = n.lastIndex - b[2].length, m = b[1], n = b[3] === void 0 ? N : b[3] === '"' ? Ce : Ee) : n === Ce || n === Ee ? n = N : n === xe || n === Se ? n = G : (n = N, r = void 0);
-    const P = n === N && t[p + 1].startsWith("/>") ? " " : "";
-    a += n === G ? c + Fe : d >= 0 ? (i.push(m), c.slice(0, d) + De + c.slice(d) + T + P) : c + T + (d === -2 ? p : P);
+  let r, a = e === 2 ? "<svg>" : e === 3 ? "<math>" : "", n = Z;
+  for (let d = 0; d < s; d++) {
+    const c = t[d];
+    let m, g, p = -1, O = 0;
+    for (; O < c.length && (n.lastIndex = O, g = n.exec(c), g !== null); ) O = n.lastIndex, n === Z ? g[1] === "!--" ? n = xe : g[1] !== void 0 ? n = Ee : g[2] !== void 0 ? (Me.test(g[2]) && (r = RegExp("</" + g[2], "g")), n = M) : g[3] !== void 0 && (n = M) : n === M ? g[0] === ">" ? (n = r ?? Z, p = -1) : g[1] === void 0 ? p = -2 : (p = n.lastIndex - g[2].length, m = g[1], n = g[3] === void 0 ? M : g[3] === '"' ? Oe : Ce) : n === Oe || n === Ce ? n = M : n === xe || n === Ee ? n = Z : (n = M, r = void 0);
+    const z = n === M && t[d + 1].startsWith("/>") ? " " : "";
+    a += n === Z ? c + Ge : p >= 0 ? (i.push(m), c.slice(0, p) + Be + c.slice(p) + T + z) : c + T + (p === -2 ? d : z);
   }
   return [Ne(t, a + (t[s] || "<?>") + (e === 2 ? "</svg>" : e === 3 ? "</math>" : "")), i];
 };
-class Y {
+class Q {
   constructor({ strings: e, _$litType$: s }, i) {
     let r;
     this.parts = [];
     let a = 0, n = 0;
-    const p = e.length - 1, c = this.parts, [m, b] = Je(e, s);
-    if (this.el = Y.createElement(m, i), R.currentNode = this.el.content, s === 2 || s === 3) {
-      const d = this.el.content.firstChild;
-      d.replaceWith(...d.childNodes);
+    const d = e.length - 1, c = this.parts, [m, g] = Ye(e, s);
+    if (this.el = Q.createElement(m, i), N.currentNode = this.el.content, s === 2 || s === 3) {
+      const p = this.el.content.firstChild;
+      p.replaceWith(...p.childNodes);
     }
-    for (; (r = R.nextNode()) !== null && c.length < p; ) {
+    for (; (r = N.nextNode()) !== null && c.length < d; ) {
       if (r.nodeType === 1) {
-        if (r.hasAttributes()) for (const d of r.getAttributeNames()) if (d.endsWith(De)) {
-          const C = b[n++], P = r.getAttribute(d).split(T), ie = /([.?@])?(.*)/.exec(C);
-          c.push({ type: 1, index: a, name: ie[2], strings: P, ctor: ie[1] === "." ? Ye : ie[1] === "?" ? Qe : ie[1] === "@" ? et : ce }), r.removeAttribute(d);
-        } else d.startsWith(T) && (c.push({ type: 6, index: a }), r.removeAttribute(d));
+        if (r.hasAttributes()) for (const p of r.getAttributeNames()) if (p.endsWith(Be)) {
+          const O = g[n++], z = r.getAttribute(p).split(T), re = /([.?@])?(.*)/.exec(O);
+          c.push({ type: 1, index: a, name: re[2], strings: z, ctor: re[1] === "." ? Qe : re[1] === "?" ? et : re[1] === "@" ? tt : de }), r.removeAttribute(p);
+        } else p.startsWith(T) && (c.push({ type: 6, index: a }), r.removeAttribute(p));
         if (Me.test(r.tagName)) {
-          const d = r.textContent.split(T), C = d.length - 1;
-          if (C > 0) {
-            r.textContent = le ? le.emptyScript : "";
-            for (let P = 0; P < C; P++) r.append(d[P], J()), R.nextNode(), c.push({ type: 2, index: ++a });
-            r.append(d[C], J());
+          const p = r.textContent.split(T), O = p.length - 1;
+          if (O > 0) {
+            r.textContent = he ? he.emptyScript : "";
+            for (let z = 0; z < O; z++) r.append(p[z], Y()), N.nextNode(), c.push({ type: 2, index: ++a });
+            r.append(p[O], Y());
           }
         }
       } else if (r.nodeType === 8) if (r.data === je) c.push({ type: 2, index: a });
       else {
-        let d = -1;
-        for (; (d = r.data.indexOf(T, d + 1)) !== -1; ) c.push({ type: 7, index: a }), d += T.length - 1;
+        let p = -1;
+        for (; (p = r.data.indexOf(T, p + 1)) !== -1; ) c.push({ type: 7, index: a }), p += T.length - 1;
       }
       a++;
     }
   }
   static createElement(e, s) {
-    const i = U.createElement("template");
+    const i = R.createElement("template");
     return i.innerHTML = e, i;
   }
 }
-function W(t, e, s = t, i) {
-  if (e === K) return e;
+function q(t, e, s = t, i) {
+  if (e === L) return e;
   let r = i !== void 0 ? s._$Co?.[i] : s._$Cl;
   const a = X(e) ? void 0 : e._$litDirective$;
-  return r?.constructor !== a && (r?._$AO?.(!1), a === void 0 ? r = void 0 : (r = new a(t), r._$AT(t, s, i)), i !== void 0 ? (s._$Co ??= [])[i] = r : s._$Cl = r), r !== void 0 && (e = W(t, r._$AS(t, e.values), r, i)), e;
+  return r?.constructor !== a && (r?._$AO?.(!1), a === void 0 ? r = void 0 : (r = new a(t), r._$AT(t, s, i)), i !== void 0 ? (s._$Co ??= [])[i] = r : s._$Cl = r), r !== void 0 && (e = q(t, r._$AS(t, e.values), r, i)), e;
 }
 class Xe {
   constructor(e, s) {
@@ -335,24 +335,24 @@ class Xe {
     return this._$AM._$AU;
   }
   u(e) {
-    const { el: { content: s }, parts: i } = this._$AD, r = (e?.creationScope ?? U).importNode(s, !0);
-    R.currentNode = r;
-    let a = R.nextNode(), n = 0, p = 0, c = i[0];
+    const { el: { content: s }, parts: i } = this._$AD, r = (e?.creationScope ?? R).importNode(s, !0);
+    N.currentNode = r;
+    let a = N.nextNode(), n = 0, d = 0, c = i[0];
     for (; c !== void 0; ) {
       if (n === c.index) {
         let m;
-        c.type === 2 ? m = new Q(a, a.nextSibling, this, e) : c.type === 1 ? m = new c.ctor(a, c.name, c.strings, this, e) : c.type === 6 && (m = new tt(a, this, e)), this._$AV.push(m), c = i[++p];
+        c.type === 2 ? m = new ee(a, a.nextSibling, this, e) : c.type === 1 ? m = new c.ctor(a, c.name, c.strings, this, e) : c.type === 6 && (m = new st(a, this, e)), this._$AV.push(m), c = i[++d];
       }
-      n !== c?.index && (a = R.nextNode(), n++);
+      n !== c?.index && (a = N.nextNode(), n++);
     }
-    return R.currentNode = U, r;
+    return N.currentNode = R, r;
   }
   p(e) {
     let s = 0;
     for (const i of this._$AV) i !== void 0 && (i.strings !== void 0 ? (i._$AI(e, i, s), s += i.strings.length - 2) : i._$AI(e[s])), s++;
   }
 }
-class Q {
+class ee {
   get _$AU() {
     return this._$AM?._$AU ?? this._$Cv;
   }
@@ -371,7 +371,7 @@ class Q {
     return this._$AB;
   }
   _$AI(e, s = this) {
-    e = W(this, e, s), X(e) ? e === l || e == null || e === "" ? (this._$AH !== l && this._$AR(), this._$AH = l) : e !== this._$AH && e !== K && this._(e) : e._$litType$ !== void 0 ? this.$(e) : e.nodeType !== void 0 ? this.T(e) : Ge(e) ? this.k(e) : this._(e);
+    e = q(this, e, s), X(e) ? e === l || e == null || e === "" ? (this._$AH !== l && this._$AR(), this._$AH = l) : e !== this._$AH && e !== L && this._(e) : e._$litType$ !== void 0 ? this.$(e) : e.nodeType !== void 0 ? this.T(e) : Ze(e) ? this.k(e) : this._(e);
   }
   O(e) {
     return this._$AA.parentNode.insertBefore(e, this._$AB);
@@ -380,10 +380,10 @@ class Q {
     this._$AH !== e && (this._$AR(), this._$AH = this.O(e));
   }
   _(e) {
-    this._$AH !== l && X(this._$AH) ? this._$AA.nextSibling.data = e : this.T(U.createTextNode(e)), this._$AH = e;
+    this._$AH !== l && X(this._$AH) ? this._$AA.nextSibling.data = e : this.T(R.createTextNode(e)), this._$AH = e;
   }
   $(e) {
-    const { values: s, _$litType$: i } = e, r = typeof i == "number" ? this._$AC(e) : (i.el === void 0 && (i.el = Y.createElement(Ne(i.h, i.h[0]), this.options)), i);
+    const { values: s, _$litType$: i } = e, r = typeof i == "number" ? this._$AC(e) : (i.el === void 0 && (i.el = Q.createElement(Ne(i.h, i.h[0]), this.options)), i);
     if (this._$AH?._$AD === r) this._$AH.p(s);
     else {
       const a = new Xe(r, this), n = a.u(this.options);
@@ -391,27 +391,27 @@ class Q {
     }
   }
   _$AC(e) {
-    let s = Oe.get(e.strings);
-    return s === void 0 && Oe.set(e.strings, s = new Y(e)), s;
+    let s = Pe.get(e.strings);
+    return s === void 0 && Pe.set(e.strings, s = new Q(e)), s;
   }
   k(e) {
-    ve(this._$AH) || (this._$AH = [], this._$AR());
+    fe(this._$AH) || (this._$AH = [], this._$AR());
     const s = this._$AH;
     let i, r = 0;
-    for (const a of e) r === s.length ? s.push(i = new Q(this.O(J()), this.O(J()), this, this.options)) : i = s[r], i._$AI(a), r++;
+    for (const a of e) r === s.length ? s.push(i = new ee(this.O(Y()), this.O(Y()), this, this.options)) : i = s[r], i._$AI(a), r++;
     r < s.length && (this._$AR(i && i._$AB.nextSibling, r), s.length = r);
   }
   _$AR(e = this._$AA.nextSibling, s) {
     for (this._$AP?.(!1, !0, s); e !== this._$AB; ) {
-      const i = ke(e).nextSibling;
-      ke(e).remove(), e = i;
+      const i = Ae(e).nextSibling;
+      Ae(e).remove(), e = i;
     }
   }
   setConnected(e) {
     this._$AM === void 0 && (this._$Cv = e, this._$AP?.(e));
   }
 }
-class ce {
+class de {
   get tagName() {
     return this.element.tagName;
   }
@@ -424,11 +424,11 @@ class ce {
   _$AI(e, s = this, i, r) {
     const a = this.strings;
     let n = !1;
-    if (a === void 0) e = W(this, e, s, 0), n = !X(e) || e !== this._$AH && e !== K, n && (this._$AH = e);
+    if (a === void 0) e = q(this, e, s, 0), n = !X(e) || e !== this._$AH && e !== L, n && (this._$AH = e);
     else {
-      const p = e;
+      const d = e;
       let c, m;
-      for (e = a[0], c = 0; c < a.length - 1; c++) m = W(this, p[i + c], s, c), m === K && (m = this._$AH[c]), n ||= !X(m) || m !== this._$AH[c], m === l ? e = l : e !== l && (e += (m ?? "") + a[c + 1]), this._$AH[c] = m;
+      for (e = a[0], c = 0; c < a.length - 1; c++) m = q(this, d[i + c], s, c), m === L && (m = this._$AH[c]), n ||= !X(m) || m !== this._$AH[c], m === l ? e = l : e !== l && (e += (m ?? "") + a[c + 1]), this._$AH[c] = m;
     }
     n && !r && this.j(e);
   }
@@ -436,7 +436,7 @@ class ce {
     e === l ? this.element.removeAttribute(this.name) : this.element.setAttribute(this.name, e ?? "");
   }
 }
-class Ye extends ce {
+class Qe extends de {
   constructor() {
     super(...arguments), this.type = 3;
   }
@@ -444,7 +444,7 @@ class Ye extends ce {
     this.element[this.name] = e === l ? void 0 : e;
   }
 }
-class Qe extends ce {
+class et extends de {
   constructor() {
     super(...arguments), this.type = 4;
   }
@@ -452,12 +452,12 @@ class Qe extends ce {
     this.element.toggleAttribute(this.name, !!e && e !== l);
   }
 }
-class et extends ce {
+class tt extends de {
   constructor(e, s, i, r, a) {
     super(e, s, i, r, a), this.type = 5;
   }
   _$AI(e, s = this) {
-    if ((e = W(this, e, s, 0) ?? l) === K) return;
+    if ((e = q(this, e, s, 0) ?? l) === L) return;
     const i = this._$AH, r = e === l && i !== l || e.capture !== i.capture || e.once !== i.once || e.passive !== i.passive, a = e !== l && (i === l || r);
     r && this.element.removeEventListener(this.name, this, i), a && this.element.addEventListener(this.name, this, e), this._$AH = e;
   }
@@ -465,7 +465,7 @@ class et extends ce {
     typeof this._$AH == "function" ? this._$AH.call(this.options?.host ?? this.element, e) : this._$AH.handleEvent(e);
   }
 }
-class tt {
+class st {
   constructor(e, s, i) {
     this.element = e, this.type = 6, this._$AN = void 0, this._$AM = s, this.options = i;
   }
@@ -473,17 +473,17 @@ class tt {
     return this._$AM._$AU;
   }
   _$AI(e) {
-    W(this, e);
+    q(this, e);
   }
 }
-const st = ge.litHtmlPolyfillSupport;
-st?.(Y, Q), (ge.litHtmlVersions ??= []).push("3.3.3");
-const it = (t, e, s) => {
+const it = ve.litHtmlPolyfillSupport;
+it?.(Q, ee), (ve.litHtmlVersions ??= []).push("3.3.3");
+const rt = (t, e, s) => {
   const i = s?.renderBefore ?? e;
   let r = i._$litPart$;
   if (r === void 0) {
     const a = s?.renderBefore ?? null;
-    i._$litPart$ = r = new Q(e.insertBefore(J(), a), a, void 0, s ?? {});
+    i._$litPart$ = r = new ee(e.insertBefore(Y(), a), a, void 0, s ?? {});
   }
   return r._$AI(t), r;
 };
@@ -492,8 +492,8 @@ const it = (t, e, s) => {
  * Copyright 2017 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
  */
-const fe = globalThis;
-class w extends V {
+const ye = globalThis;
+class _ extends K {
   constructor() {
     super(...arguments), this.renderOptions = { host: this }, this._$Do = void 0;
   }
@@ -503,7 +503,7 @@ class w extends V {
   }
   update(e) {
     const s = this.render();
-    this.hasUpdated || (this.renderOptions.isConnected = this.isConnected), super.update(e), this._$Do = it(s, this.renderRoot, this.renderOptions);
+    this.hasUpdated || (this.renderOptions.isConnected = this.isConnected), super.update(e), this._$Do = rt(s, this.renderRoot, this.renderOptions);
   }
   connectedCallback() {
     super.connectedCallback(), this._$Do?.setConnected(!0);
@@ -512,19 +512,19 @@ class w extends V {
     super.disconnectedCallback(), this._$Do?.setConnected(!1);
   }
   render() {
-    return K;
+    return L;
   }
 }
-w._$litElement$ = !0, w.finalized = !0, fe.litElementHydrateSupport?.({ LitElement: w });
-const rt = fe.litElementPolyfillSupport;
-rt?.({ LitElement: w });
-(fe.litElementVersions ??= []).push("4.2.2");
+_._$litElement$ = !0, _.finalized = !0, ye.litElementHydrateSupport?.({ LitElement: _ });
+const at = ye.litElementPolyfillSupport;
+at?.({ LitElement: _ });
+(ye.litElementVersions ??= []).push("4.2.2");
 /**
  * @license
  * Copyright 2017 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
  */
-const S = (t) => (e, s) => {
+const E = (t) => (e, s) => {
   s !== void 0 ? s.addInitializer(() => {
     customElements.define(t, e);
   }) : customElements.define(t, e);
@@ -534,29 +534,29 @@ const S = (t) => (e, s) => {
  * Copyright 2017 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
  */
-const at = { attribute: !0, type: String, converter: oe, reflect: !1, hasChanged: be }, nt = (t = at, e, s) => {
+const nt = { attribute: !0, type: String, converter: le, reflect: !1, hasChanged: be }, ot = (t = nt, e, s) => {
   const { kind: i, metadata: r } = s;
   let a = globalThis.litPropertyMetadata.get(r);
   if (a === void 0 && globalThis.litPropertyMetadata.set(r, a = /* @__PURE__ */ new Map()), i === "setter" && ((t = Object.create(t)).wrapped = !0), a.set(s.name, t), i === "accessor") {
     const { name: n } = s;
-    return { set(p) {
+    return { set(d) {
       const c = e.get.call(this);
-      e.set.call(this, p), this.requestUpdate(n, c, t, !0, p);
-    }, init(p) {
-      return p !== void 0 && this.C(n, void 0, t, p), p;
+      e.set.call(this, d), this.requestUpdate(n, c, t, !0, d);
+    }, init(d) {
+      return d !== void 0 && this.C(n, void 0, t, d), d;
     } };
   }
   if (i === "setter") {
     const { name: n } = s;
-    return function(p) {
+    return function(d) {
       const c = this[n];
-      e.call(this, p), this.requestUpdate(n, c, t, !0, p);
+      e.call(this, d), this.requestUpdate(n, c, t, !0, d);
     };
   }
   throw Error("Unsupported decorator location: " + i);
 };
 function u(t) {
-  return (e, s) => typeof s == "object" ? nt(t, e, s) : ((i, r, a) => {
+  return (e, s) => typeof s == "object" ? ot(t, e, s) : ((i, r, a) => {
     const n = r.hasOwnProperty(a);
     return r.constructor.createProperty(a, i), n ? Object.getOwnPropertyDescriptor(r, a) : void 0;
   })(t, e, s);
@@ -570,7 +570,7 @@ function h(t) {
   return u({ ...t, state: !0, attribute: !1 });
 }
 const f = "kustos_vision";
-class Pe {
+class ze {
   constructor(e) {
     this.hass = e;
   }
@@ -604,6 +604,14 @@ class Pe {
   }
   setViews(e) {
     return this.hass.callWS({ type: `${f}/views/set`, views: e });
+  }
+  /** Set the order of every camera in one view at once. */
+  setViewOrder(e, s) {
+    return this.hass.callWS({
+      type: `${f}/view/order`,
+      view_id: e,
+      cameras: s
+    });
   }
   setStorage(e) {
     return this.hass.callWS({ type: `${f}/storage/set`, ...e });
@@ -656,7 +664,7 @@ class Pe {
     return this.hass.callWS({ type: `${f}/index/rebuild` });
   }
 }
-function O(t) {
+function S(t) {
   if (t instanceof Error) return t.message;
   if (typeof t == "string") return t;
   if (t && typeof t == "object") {
@@ -672,7 +680,7 @@ function O(t) {
   }
   return t == null ? "Unbekannter Fehler" : String(t);
 }
-function re(t) {
+function ae(t) {
   if (t === null) return "unbekannt";
   const e = ["B", "kB", "MB", "GB", "TB"];
   let s = t, i = 0;
@@ -680,7 +688,7 @@ function re(t) {
     s /= 1e3, i += 1;
   return `${s.toFixed(s < 10 && i > 0 ? 1 : 0)} ${e[i]}`;
 }
-const ee = I`
+const te = I`
   :host {
     display: block;
     color: var(--primary-text-color);
@@ -783,13 +791,40 @@ const ee = I`
     color: var(--secondary-text-color);
     font-size: 0.85em;
   }
-`;
-var ot = Object.defineProperty, lt = Object.getOwnPropertyDescriptor, L = (t, e, s, i) => {
-  for (var r = i > 1 ? void 0 : i ? lt(e, s) : e, a = t.length - 1, n; a >= 0; a--)
-    (n = t[a]) && (r = (i ? n(e, s, r) : n(r)) || r);
-  return i && r && ot(e, s, r), r;
+`, lt = {
+  ptz_up: "Schwenken hoch",
+  ptz_down: "Schwenken runter",
+  ptz_left: "Schwenken links",
+  ptz_right: "Schwenken rechts",
+  ptz_preset: "Position anfahren",
+  ptz_patrol: "Patrouille",
+  light: "Licht",
+  light_brightness: "Helligkeit",
+  siren: "Sirene",
+  siren_on: "Sirene ein",
+  siren_off: "Sirene aus",
+  night_vision: "Nachtsicht",
+  privacy_mode: "Privatsphäre",
+  motion_trigger: "Bewegungsmelder"
 };
-let z = class extends w {
+function W(t) {
+  const e = lt[t];
+  if (e) return e;
+  const s = t.replace(/_/g, " ");
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+const ht = {
+  ptz_up: "▲",
+  ptz_down: "▼",
+  ptz_left: "◀",
+  ptz_right: "▶"
+};
+var ct = Object.defineProperty, dt = Object.getOwnPropertyDescriptor, F = (t, e, s, i) => {
+  for (var r = i > 1 ? void 0 : i ? dt(e, s) : e, a = t.length - 1, n; a >= 0; a--)
+    (n = t[a]) && (r = (i ? n(e, s, r) : n(r)) || r);
+  return i && r && ct(e, s, r), r;
+};
+let D = class extends _ {
   constructor() {
     super(...arguments), this.entityId = "", this.muted = !0, this.mode = "idle", this.message = "", this.visible = !1, this.starting = !1;
   }
@@ -931,7 +966,7 @@ let z = class extends w {
     }
   }
 };
-z.styles = I`
+D.styles = I`
     :host {
       display: block;
       position: relative;
@@ -958,42 +993,47 @@ z.styles = I`
       font-size: 0.9em;
     }
   `;
-L([
+F([
   u({ attribute: !1 })
-], z.prototype, "hass", 2);
-L([
+], D.prototype, "hass", 2);
+F([
   u()
-], z.prototype, "entityId", 2);
-L([
+], D.prototype, "entityId", 2);
+F([
   u({ type: Boolean })
-], z.prototype, "muted", 2);
-L([
+], D.prototype, "muted", 2);
+F([
   h()
-], z.prototype, "mode", 2);
-L([
+], D.prototype, "mode", 2);
+F([
   h()
-], z.prototype, "message", 2);
-z = L([
-  S("kustos-vision-live-stream")
-], z);
-var ht = Object.defineProperty, ct = Object.getOwnPropertyDescriptor, q = (t, e, s, i) => {
-  for (var r = i > 1 ? void 0 : i ? ct(e, s) : e, a = t.length - 1, n; a >= 0; a--)
+], D.prototype, "message", 2);
+D = F([
+  E("kustos-vision-live-stream")
+], D);
+var pt = Object.defineProperty, ut = Object.getOwnPropertyDescriptor, V = (t, e, s, i) => {
+  for (var r = i > 1 ? void 0 : i ? ut(e, s) : e, a = t.length - 1, n; a >= 0; a--)
     (n = t[a]) && (r = (i ? n(e, s, r) : n(r)) || r);
-  return i && r && ht(e, s, r), r;
+  return i && r && pt(e, s, r), r;
 };
-const dt = [
-  ["ptz_up", "▲"],
-  ["ptz_left", "◀"],
-  ["ptz_right", "▶"],
-  ["ptz_down", "▼"]
-];
-let D = class extends w {
+const mt = ["ptz_up", "ptz_left", "ptz_right", "ptz_down", "siren_on", "siren_off"], gt = ["light", "siren", "privacy_mode"];
+let P = class extends _ {
   constructor() {
-    super(...arguments), this.busy = "", this.error = "";
+    super(...arguments), this.viewId = "", this.busy = "", this.error = "";
   }
   get liveEntity() {
     const t = this.camera.streams;
-    return (t.find((e) => !e.record) ?? t[0])?.entity_id;
+    if (!t.length) return;
+    const e = this.camera.view_settings?.[this.viewId]?.stream_key;
+    if (e) {
+      const s = t.find((i) => i.key === e);
+      if (s) return s.entity_id;
+    }
+    return (t.find((s) => !s.record) ?? t[0]).entity_id;
+  }
+  /** The controls this view wants, limited to those actually bound. */
+  get shownCapabilities() {
+    return (this.camera.view_settings?.[this.viewId]?.capabilities ?? Object.keys(this.camera.capabilities)).filter((s) => s in this.camera.capabilities);
   }
   async run(t, e) {
     this.busy = t, this.error = "";
@@ -1005,17 +1045,27 @@ let D = class extends w {
       this.busy = "";
     }
   }
-  bound(t) {
-    return t in this.camera.capabilities;
-  }
   renderButton(t, e, s) {
-    return this.bound(t) ? o`<button
-      title=${t}
+    return o`<button
+      title=${W(t)}
       ?disabled=${this.busy !== ""}
       @click=${() => this.run(t, s)}
     >
       ${e}
-    </button>` : l;
+    </button>`;
+  }
+  renderControls() {
+    const t = this.shownCapabilities;
+    if (!t.length) return l;
+    const e = [];
+    for (const s of mt)
+      t.includes(s) && e.push(this.renderButton(s, ht[s] ?? W(s)));
+    for (const s of gt)
+      t.includes(s) && e.push(
+        this.renderButton(s, `${W(s)} an`, !0),
+        this.renderButton(s, `${W(s)} aus`, !1)
+      );
+    return o`<div class="controls">${e}</div>`;
   }
   render() {
     const t = this.liveEntity, e = this.camera.state, s = e.streams.filter((i) => i.running).length;
@@ -1035,19 +1085,12 @@ let D = class extends w {
             .entityId=${t}
           ></kustos-vision-live-stream>` : o`<div class="meta" style="padding:12px">Kein Stream zugeordnet</div>`}
 
-      <div class="controls">
-        ${dt.map(([i, r]) => this.renderButton(i, r))}
-        ${this.renderButton("light", "Licht an", !0)}
-        ${this.renderButton("light", "Licht aus", !1)}
-        ${this.renderButton("siren", "Sirene", !0)}
-        ${this.renderButton("siren_on", "Sirene an")}
-        ${this.renderButton("siren_off", "Sirene aus")}
-      </div>
+      ${this.renderControls()}
       ${this.error ? o`<div class="error">${this.error}</div>` : l}
     `;
   }
 };
-D.styles = I`
+P.styles = I`
     :host {
       display: block;
       background: var(--card-background-color, #fff);
@@ -1106,30 +1149,33 @@ D.styles = I`
       font-size: 0.85em;
     }
   `;
-q([
+V([
   u({ attribute: !1 })
-], D.prototype, "hass", 2);
-q([
+], P.prototype, "hass", 2);
+V([
   u({ attribute: !1 })
-], D.prototype, "api", 2);
-q([
+], P.prototype, "api", 2);
+V([
   u({ attribute: !1 })
-], D.prototype, "camera", 2);
-q([
+], P.prototype, "camera", 2);
+V([
+  u()
+], P.prototype, "viewId", 2);
+V([
   h()
-], D.prototype, "busy", 2);
-q([
+], P.prototype, "busy", 2);
+V([
   h()
-], D.prototype, "error", 2);
-D = q([
-  S("kustos-vision-camera-tile")
-], D);
-var pt = Object.defineProperty, ut = Object.getOwnPropertyDescriptor, te = (t, e, s, i) => {
-  for (var r = i > 1 ? void 0 : i ? ut(e, s) : e, a = t.length - 1, n; a >= 0; a--)
+], P.prototype, "error", 2);
+P = V([
+  E("kustos-vision-camera-tile")
+], P);
+var bt = Object.defineProperty, vt = Object.getOwnPropertyDescriptor, se = (t, e, s, i) => {
+  for (var r = i > 1 ? void 0 : i ? vt(e, s) : e, a = t.length - 1, n; a >= 0; a--)
     (n = t[a]) && (r = (i ? n(e, s, r) : n(r)) || r);
-  return i && r && pt(e, s, r), r;
+  return i && r && bt(e, s, r), r;
 };
-let B = class extends w {
+let U = class extends _ {
   constructor() {
     super(...arguments), this.cameras = [];
   }
@@ -1160,7 +1206,7 @@ let B = class extends w {
     `;
   }
 };
-B.styles = I`
+U.styles = I`
     :host {
       display: block;
       padding: 16px;
@@ -1179,38 +1225,38 @@ B.styles = I`
       line-height: 1.5;
     }
   `;
-te([
+se([
   u({ attribute: !1 })
-], B.prototype, "hass", 2);
-te([
+], U.prototype, "hass", 2);
+se([
   u({ attribute: !1 })
-], B.prototype, "api", 2);
-te([
+], U.prototype, "api", 2);
+se([
   u({ attribute: !1 })
-], B.prototype, "view", 2);
-te([
+], U.prototype, "view", 2);
+se([
   u({ attribute: !1 })
-], B.prototype, "cameras", 2);
-B = te([
-  S("kustos-vision-live-view")
-], B);
-var mt = Object.defineProperty, bt = Object.getOwnPropertyDescriptor, se = (t, e, s, i) => {
-  for (var r = i > 1 ? void 0 : i ? bt(e, s) : e, a = t.length - 1, n; a >= 0; a--)
+], U.prototype, "cameras", 2);
+U = se([
+  E("kustos-vision-live-view")
+], U);
+var ft = Object.defineProperty, yt = Object.getOwnPropertyDescriptor, ie = (t, e, s, i) => {
+  for (var r = i > 1 ? void 0 : i ? yt(e, s) : e, a = t.length - 1, n; a >= 0; a--)
     (n = t[a]) && (r = (i ? n(e, s, r) : n(r)) || r);
-  return i && r && mt(e, s, r), r;
+  return i && r && ft(e, s, r), r;
 };
-const gt = 2, vt = "mp4a.40.2";
-function ft(t, e) {
+const $t = 2, wt = "mp4a.40.2";
+function _t(t, e) {
   const [s, i, r, a] = [0, 1, 2, 3].map((n) => e.charCodeAt(n));
   for (let n = 0; n + 8 < t.length; n += 1)
     if (t[n] === s && t[n + 1] === i && t[n + 2] === r && t[n + 3] === a)
       return n;
   return -1;
 }
-function yt(t) {
-  return ft(t, "mp4a") !== -1;
+function kt(t) {
+  return _t(t, "mp4a") !== -1;
 }
-function $t(t) {
+function At(t) {
   for (let e = 0; e + 8 < t.length; e += 1)
     if (t[e] === 97 && // a
     t[e + 1] === 118 && // v
@@ -1223,7 +1269,7 @@ function $t(t) {
     }
   return null;
 }
-let H = class extends w {
+let H = class extends _ {
   constructor() {
     super(...arguments), this.segments = [], this.seekTo = 0, this.segmentUrlBase = "/api/kustos_vision/segment", this.message = "", this.withAudio = !0, this.queue = [], this.appended = /* @__PURE__ */ new Set(), this.origin = 0, this.loading = !1, this.generation = 0;
   }
@@ -1266,14 +1312,14 @@ let H = class extends w {
     }
     const s = t ?? this.seekTo ?? this.segments[0].start, i = Math.max(
       0,
-      this.segments.findIndex((d) => d.start + d.duration > s)
+      this.segments.findIndex((p) => p.start + p.duration > s)
     );
     this.queue = this.segments.slice(i), this.origin = this.queue[0]?.start ?? s;
     let r;
     try {
       r = await this.inspect(this.queue[0]);
-    } catch (d) {
-      this.message = d instanceof Error ? d.message : String(d);
+    } catch (p) {
+      this.message = p instanceof Error ? p.message : String(p);
       return;
     }
     if (e !== this.generation) return;
@@ -1281,27 +1327,27 @@ let H = class extends w {
       this.message = "Diese Aufnahme ist nicht H.264. Die Wiedergabe im Panel unterstützt derzeit nur H.264; die Datei selbst ist unbeschädigt und lässt sich herunterladen.";
       return;
     }
-    const a = `video/mp4; codecs="${r}"`, n = `video/mp4; codecs="${r}, ${vt}"`, p = this.withAudio ? n : a, c = MediaSource.isTypeSupported(p) ? p : MediaSource.isTypeSupported(a) ? a : null;
+    const a = `video/mp4; codecs="${r}"`, n = `video/mp4; codecs="${r}, ${wt}"`, d = this.withAudio ? n : a, c = MediaSource.isTypeSupported(d) ? d : MediaSource.isTypeSupported(a) ? a : null;
     if (!c) {
       this.message = `Dieser Browser kann ${r} nicht abspielen.`;
       return;
     }
     const m = new MediaSource();
     this.media = m, this.objectUrl = URL.createObjectURL(m), await this.updateComplete;
-    const b = this.renderRoot.querySelector("video");
-    b && (b.src = this.objectUrl, m.addEventListener(
+    const g = this.renderRoot.querySelector("video");
+    g && (g.src = this.objectUrl, m.addEventListener(
       "sourceopen",
       () => {
         if (e === this.generation)
           try {
-            const d = m.addSourceBuffer(c);
-            d.mode = "segments", this.buffer = d, d.addEventListener("updateend", () => void this.pump()), this.pump();
-          } catch (d) {
-            this.message = d instanceof Error ? d.message : String(d);
+            const p = m.addSourceBuffer(c);
+            p.mode = "segments", this.buffer = p, p.addEventListener("updateend", () => void this.pump()), this.pump();
+          } catch (p) {
+            this.message = p instanceof Error ? p.message : String(p);
           }
       },
       { once: !0 }
-    ), b.addEventListener("timeupdate", () => void this.pump()));
+    ), g.addEventListener("timeupdate", () => void this.pump()));
   }
   async inspect(t) {
     const e = await fetch(this.urlFor(t), {
@@ -1310,7 +1356,7 @@ let H = class extends w {
     if (!e.ok && e.status !== 206)
       throw new Error("Die Aufnahme konnte nicht geladen werden.");
     const s = new Uint8Array(await e.arrayBuffer());
-    return this.withAudio = yt(s), $t(s);
+    return this.withAudio = kt(s), At(s);
   }
   urlFor(t) {
     return `${this.segmentUrlBase}/${t.path}`;
@@ -1328,16 +1374,16 @@ let H = class extends w {
         }
       return;
     }
-    if (s && (s.buffered.length > 0 ? s.buffered.end(s.buffered.length - 1) : 0) - s.currentTime > gt * (this.queue[0]?.duration ?? 0) && this.appended.size > 0)
+    if (s && (s.buffered.length > 0 ? s.buffered.end(s.buffered.length - 1) : 0) - s.currentTime > $t * (this.queue[0]?.duration ?? 0) && this.appended.size > 0)
       return;
     const r = i[0], a = this.generation;
     this.loading = !0;
     try {
       const n = await fetch(this.urlFor(r));
       if (!n.ok) throw new Error(`HTTP ${n.status}`);
-      const p = await n.arrayBuffer();
+      const d = await n.arrayBuffer();
       if (a !== this.generation || !this.buffer) return;
-      this.buffer.timestampOffset = r.start - this.origin, this.buffer.appendBuffer(p), this.appended.add(r.path);
+      this.buffer.timestampOffset = r.start - this.origin, this.buffer.appendBuffer(d), this.appended.add(r.path);
     } catch (n) {
       this.appended.add(r.path), console.warn("kustos_vision: segment could not be appended", r.path, n);
     } finally {
@@ -1377,27 +1423,27 @@ H.styles = I`
       pointer-events: none;
     }
   `;
-se([
+ie([
   u({ attribute: !1 })
 ], H.prototype, "segments", 2);
-se([
+ie([
   u({ type: Number })
 ], H.prototype, "seekTo", 2);
-se([
+ie([
   u()
 ], H.prototype, "segmentUrlBase", 2);
-se([
+ie([
   h()
 ], H.prototype, "message", 2);
-H = se([
-  S("kustos-vision-player")
+H = ie([
+  E("kustos-vision-player")
 ], H);
-var wt = Object.defineProperty, _t = Object.getOwnPropertyDescriptor, M = (t, e, s, i) => {
-  for (var r = i > 1 ? void 0 : i ? _t(e, s) : e, a = t.length - 1, n; a >= 0; a--)
+var St = Object.defineProperty, xt = Object.getOwnPropertyDescriptor, j = (t, e, s, i) => {
+  for (var r = i > 1 ? void 0 : i ? xt(e, s) : e, a = t.length - 1, n; a >= 0; a--)
     (n = t[a]) && (r = (i ? n(e, s, r) : n(r)) || r);
-  return i && r && wt(e, s, r), r;
+  return i && r && St(e, s, r), r;
 };
-let x = class extends w {
+let x = class extends _ {
   constructor() {
     super(...arguments), this.from = 0, this.to = 0, this.blocks = [], this.segments = [], this.position = 0, this.thumbnailUrlBase = "/api/kustos_vision/thumbnail";
   }
@@ -1563,36 +1609,36 @@ x.styles = I`
       font-size: 0.85em;
     }
   `;
-M([
+j([
   u({ type: Number })
 ], x.prototype, "from", 2);
-M([
+j([
   u({ type: Number })
 ], x.prototype, "to", 2);
-M([
+j([
   u({ attribute: !1 })
 ], x.prototype, "blocks", 2);
-M([
+j([
   u({ attribute: !1 })
 ], x.prototype, "segments", 2);
-M([
+j([
   u({ type: Number })
 ], x.prototype, "position", 2);
-M([
+j([
   u()
 ], x.prototype, "thumbnailUrlBase", 2);
-M([
+j([
   h()
 ], x.prototype, "hover", 2);
-x = M([
-  S("kustos-vision-timeline")
+x = j([
+  E("kustos-vision-timeline")
 ], x);
-var kt = Object.defineProperty, At = Object.getOwnPropertyDescriptor, k = (t, e, s, i) => {
-  for (var r = i > 1 ? void 0 : i ? At(e, s) : e, a = t.length - 1, n; a >= 0; a--)
+var Et = Object.defineProperty, Ct = Object.getOwnPropertyDescriptor, k = (t, e, s, i) => {
+  for (var r = i > 1 ? void 0 : i ? Ct(e, s) : e, a = t.length - 1, n; a >= 0; a--)
     (n = t[a]) && (r = (i ? n(e, s, r) : n(r)) || r);
-  return i && r && kt(e, s, r), r;
+  return i && r && Et(e, s, r), r;
 };
-let $ = class extends w {
+let w = class extends _ {
   constructor() {
     super(...arguments), this.cameras = [], this.camera = "", this.stream = "", this.day = "", this.days = [], this.blocks = [], this.segments = [], this.position = 0, this.seekTo = 0, this.busy = !1, this.error = "";
   }
@@ -1610,7 +1656,7 @@ let $ = class extends w {
       const { days: e } = await this.api.recordingDays(t);
       this.days = e, this.day = e[e.length - 1] ?? "", await this.loadDay();
     } catch (e) {
-      this.error = O(e);
+      this.error = S(e);
     } finally {
       this.busy = !1;
     }
@@ -1631,7 +1677,7 @@ let $ = class extends w {
       );
       this.blocks = s.blocks, this.segments = s.segments, this.position = s.segments[0]?.start ?? t, this.seekTo = this.position;
     } catch (s) {
-      this.error = O(s);
+      this.error = S(s);
     } finally {
       this.busy = !1;
     }
@@ -1735,68 +1781,68 @@ let $ = class extends w {
     `;
   }
 };
-$.styles = ee;
+w.styles = te;
 k([
   u({ attribute: !1 })
-], $.prototype, "api", 2);
+], w.prototype, "api", 2);
 k([
   u({ attribute: !1 })
-], $.prototype, "cameras", 2);
+], w.prototype, "cameras", 2);
 k([
   h()
-], $.prototype, "camera", 2);
+], w.prototype, "camera", 2);
 k([
   h()
-], $.prototype, "stream", 2);
+], w.prototype, "stream", 2);
 k([
   h()
-], $.prototype, "day", 2);
+], w.prototype, "day", 2);
 k([
   h()
-], $.prototype, "days", 2);
+], w.prototype, "days", 2);
 k([
   h()
-], $.prototype, "blocks", 2);
+], w.prototype, "blocks", 2);
 k([
   h()
-], $.prototype, "segments", 2);
+], w.prototype, "segments", 2);
 k([
   h()
-], $.prototype, "position", 2);
+], w.prototype, "position", 2);
 k([
   h()
-], $.prototype, "seekTo", 2);
+], w.prototype, "seekTo", 2);
 k([
   h()
-], $.prototype, "busy", 2);
+], w.prototype, "busy", 2);
 k([
   h()
-], $.prototype, "error", 2);
-$ = k([
-  S("kustos-vision-recordings")
-], $);
-var xt = Object.defineProperty, St = Object.getOwnPropertyDescriptor, _ = (t, e, s, i) => {
-  for (var r = i > 1 ? void 0 : i ? St(e, s) : e, a = t.length - 1, n; a >= 0; a--)
+], w.prototype, "error", 2);
+w = k([
+  E("kustos-vision-recordings")
+], w);
+var Ot = Object.defineProperty, Pt = Object.getOwnPropertyDescriptor, y = (t, e, s, i) => {
+  for (var r = i > 1 ? void 0 : i ? Pt(e, s) : e, a = t.length - 1, n; a >= 0; a--)
     (n = t[a]) && (r = (i ? n(e, s, r) : n(r)) || r);
-  return i && r && xt(e, s, r), r;
+  return i && r && Ot(e, s, r), r;
 };
-function Et(t) {
+function zt(t) {
   const e = t.toLowerCase().replace(/ä/g, "ae").replace(/ö/g, "oe").replace(/ü/g, "ue").replace(/ß/g, "ss").replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
   return /^[a-z0-9]/.test(e) ? e : `kamera_${e}`;
 }
-let y = class extends w {
+let b = class extends _ {
   constructor() {
-    super(...arguments), this.capabilityKeys = [], this.available = [], this.slug = "", this.name = "", this.streams = [], this.capabilities = {}, this.retentionDays = null, this.enabled = !0, this.candidates = [], this.busy = !1, this.error = "";
+    super(...arguments), this.capabilityKeys = [], this.available = [], this.views = [], this.allCameras = [], this.slug = "", this.name = "", this.streams = [], this.capabilities = {}, this.retentionDays = null, this.enabled = !0, this.viewSettings = {}, this.candidates = [], this.busy = !1, this.error = "";
   }
   connectedCallback() {
-    super.connectedCallback(), this.camera && (this.slug = this.camera.slug, this.name = this.camera.name, this.streams = this.camera.streams.map((t) => ({ ...t })), this.capabilities = structuredClone(this.camera.capabilities), this.retentionDays = this.camera.retention_days, this.enabled = this.camera.enabled);
+    super.connectedCallback(), this.camera && (this.slug = this.camera.slug, this.name = this.camera.name, this.streams = this.camera.streams.map((t) => ({ ...t })), this.capabilities = structuredClone(this.camera.capabilities), this.retentionDays = this.camera.retention_days, this.enabled = this.camera.enabled, this.viewSettings = structuredClone(this.camera.view_settings ?? {}));
   }
   async pick(t) {
     if (t) {
       this.busy = !0, this.error = "";
       try {
         const e = await this.api.suggest(t);
-        this.name = e.name, this.slug = Et(e.name), this.streams = e.streams.map((s) => ({
+        this.camera || (this.name = e.name, this.slug = zt(e.name)), this.streams = e.streams.map((s) => ({
           key: s.key,
           entity_id: s.entity_id,
           // Only one stream is recorded by default. Recording every stream of
@@ -1810,7 +1856,7 @@ let y = class extends w {
           ])
         ), this.candidates = e.candidates;
       } catch (e) {
-        this.error = O(e);
+        this.error = S(e);
       } finally {
         this.busy = !1;
       }
@@ -1836,16 +1882,152 @@ let y = class extends w {
           capabilities: this.capabilities,
           retention_days: this.retentionDays,
           enabled: this.enabled,
-          area_id: this.camera?.area_id ?? null
+          area_id: this.camera?.area_id ?? null,
+          view_settings: this.viewSettings
         },
         // Editing an existing camera is the only case allowed to replace one.
         this.camera !== void 0
       ), this.dispatchEvent(new CustomEvent("saved", { bubbles: !0, composed: !0 }));
     } catch (t) {
-      this.error = O(t);
+      this.error = S(t);
     } finally {
       this.busy = !1;
     }
+  }
+  patchView(t, e) {
+    const s = this.viewSettings[t] ?? { visible: !1, position: 0 };
+    this.viewSettings = { ...this.viewSettings, [t]: { ...s, ...e } };
+  }
+  /** Cameras currently in a view, in display order, including this one. */
+  membersOf(t) {
+    const e = t.cameras.filter((i) => i !== this.slug).map((i) => ({
+      slug: i,
+      name: this.allCameras.find((r) => r.slug === i)?.name ?? i
+    }));
+    return this.viewSettings[t.id]?.visible ? t.cameras.includes(this.slug) ? t.cameras.map((i) => ({
+      slug: i,
+      name: i === this.slug ? this.name || this.slug : this.allCameras.find((r) => r.slug === i)?.name ?? i
+    })) : [...e, { slug: this.slug, name: this.name || this.slug }] : e;
+  }
+  async moveInView(t, e, s) {
+    const i = this.membersOf(t).map((a) => a.slug), [r] = i.splice(e, 1);
+    i.splice(e + s, 0, r), this.busy = !0, this.error = "";
+    try {
+      await this.api.setViewOrder(t.id, i), this.dispatchEvent(
+        new CustomEvent("reordered", { bubbles: !0, composed: !0 })
+      );
+    } catch (a) {
+      this.error = S(a);
+    } finally {
+      this.busy = !1;
+    }
+  }
+  renderViewBlock(t) {
+    const e = this.viewSettings[t.id], s = e?.visible ?? !1, i = this.membersOf(t), r = e?.capabilities ?? null, a = Object.keys(this.capabilities);
+    return o`
+      <div style="border-bottom:1px solid var(--divider-color,#eee);padding:12px 0">
+        <label style="margin:0">
+          <input
+            type="checkbox"
+            .checked=${s}
+            @change=${(n) => this.patchView(t.id, {
+      visible: n.target.checked
+    })}
+          />
+          <strong>${t.name}</strong>
+        </label>
+
+        ${s ? o`
+              <div class="row">
+                <div class="grow">
+                  <label>Angezeigter Stream</label>
+                  <select
+                    @change=${(n) => this.patchView(t.id, {
+      stream_key: n.target.value || null
+    })}
+                  >
+                    <option value="" ?selected=${!e?.stream_key}>
+                      automatisch (der nicht aufgezeichnete)
+                    </option>
+                    ${this.streams.map(
+      (n) => o`<option
+                        value=${n.key}
+                        ?selected=${e?.stream_key === n.key}
+                      >
+                        ${n.key}
+                      </option>`
+    )}
+                  </select>
+                </div>
+              </div>
+
+              <label>Bedienelemente in dieser Ansicht</label>
+              ${a.length === 0 ? o`<p class="hint">Dieser Kamera ist nichts zugeordnet.</p>` : o`<div class="row">
+                    <label style="margin:0">
+                      <input
+                        type="checkbox"
+                        .checked=${r === null}
+                        @change=${(n) => this.patchView(t.id, {
+      capabilities: n.target.checked ? null : []
+    })}
+                      />
+                      alle
+                    </label>
+                    ${a.map(
+      (n) => o`<label style="margin:0">
+                        <input
+                          type="checkbox"
+                          ?disabled=${r === null}
+                          .checked=${r === null || r.includes(n)}
+                          @change=${(d) => {
+        const c = d.target.checked, m = new Set(r ?? []);
+        c ? m.add(n) : m.delete(n), this.patchView(t.id, { capabilities: [...m] });
+      }}
+                        />
+                        ${W(n)}
+                      </label>`
+    )}
+                  </div>`}
+
+              <label>Reihenfolge in dieser Ansicht</label>
+              <p class="hint">
+                Gilt für alle Kameras der Ansicht und wird sofort gespeichert,
+                weil sie die anderen Kameras mit betrifft.
+              </p>
+              <table>
+                ${i.map(
+      (n, d) => o`
+                    <tr>
+                      <td class=${n.slug === this.slug ? "" : "muted"}>
+                        ${d + 1}. ${n.name}
+                      </td>
+                      <td style="width:1%;white-space:nowrap">
+                        <button
+                          class="secondary"
+                          ?disabled=${d === 0 || this.busy || !this.camera}
+                          @click=${() => this.moveInView(t, d, -1)}
+                        >
+                          ↑
+                        </button>
+                        <button
+                          class="secondary"
+                          ?disabled=${d === i.length - 1 || this.busy || !this.camera}
+                          @click=${() => this.moveInView(t, d, 1)}
+                        >
+                          ↓
+                        </button>
+                      </td>
+                    </tr>
+                  `
+    )}
+              </table>
+              ${this.camera ? l : o`<p class="hint">
+                    Die Reihenfolge lässt sich einstellen, sobald die Kamera
+                    gespeichert ist.
+                  </p>`}
+            ` : l}
+      </div>
+    `;
   }
   renderPicker() {
     return this.camera ? l : o`
@@ -1972,14 +2154,14 @@ let y = class extends w {
 
         <h3>Bedienelemente</h3>
         <p class="hint">
-          Was hier zugeordnet ist, erscheint als Schaltfläche auf der Kachel.
-          Leer lassen heißt: keine Schaltfläche.
+          Was hier zugeordnet ist, kann auf der Kachel erscheinen. Pro Ansicht
+          lässt sich unten auswählen, welche davon dort gezeigt werden.
         </p>
         <table>
           ${this.capabilityKeys.map(
       (e) => o`
               <tr>
-                <th>${e}</th>
+                <th>${W(e)}</th>
                 <td>
                   <select @change=${(s) => this.setCapability(e, s.target.value)}>
                     <option value="">nicht zugeordnet</option>
@@ -1997,6 +2179,18 @@ let y = class extends w {
             `
     )}
         </table>
+
+        <h3>Ansichten</h3>
+        ${this.views.length === 0 ? o`<p class="hint">
+              Noch keine Ansicht angelegt. Unter Einstellungen, Ansichten lässt
+              sich eine erstellen.
+            </p>` : o`<p class="hint">
+                Pro Ansicht lässt sich getrennt festlegen, ob und wie diese
+                Kamera dort erscheint. So kann dieselbe Kamera in einer
+                Bedienansicht mit allen Schaltflächen stehen und in einer
+                Wandansicht nur als Bild.
+              </p>
+              ${this.views.map((e) => this.renderViewBlock(e))}`}
 
         ${this.error ? o`<p class="error">${this.error}</p>` : l}
 
@@ -2017,61 +2211,70 @@ let y = class extends w {
     `;
   }
 };
-y.styles = ee;
-_([
+b.styles = te;
+y([
   u({ attribute: !1 })
-], y.prototype, "api", 2);
-_([
+], b.prototype, "api", 2);
+y([
   u({ attribute: !1 })
-], y.prototype, "camera", 2);
-_([
+], b.prototype, "camera", 2);
+y([
   u({ attribute: !1 })
-], y.prototype, "capabilityKeys", 2);
-_([
+], b.prototype, "capabilityKeys", 2);
+y([
   u({ attribute: !1 })
-], y.prototype, "available", 2);
-_([
+], b.prototype, "available", 2);
+y([
+  u({ attribute: !1 })
+], b.prototype, "views", 2);
+y([
+  u({ attribute: !1 })
+], b.prototype, "allCameras", 2);
+y([
   h()
-], y.prototype, "slug", 2);
-_([
+], b.prototype, "slug", 2);
+y([
   h()
-], y.prototype, "name", 2);
-_([
+], b.prototype, "name", 2);
+y([
   h()
-], y.prototype, "streams", 2);
-_([
+], b.prototype, "streams", 2);
+y([
   h()
-], y.prototype, "capabilities", 2);
-_([
+], b.prototype, "capabilities", 2);
+y([
   h()
-], y.prototype, "retentionDays", 2);
-_([
+], b.prototype, "retentionDays", 2);
+y([
   h()
-], y.prototype, "enabled", 2);
-_([
+], b.prototype, "enabled", 2);
+y([
   h()
-], y.prototype, "candidates", 2);
-_([
+], b.prototype, "viewSettings", 2);
+y([
   h()
-], y.prototype, "busy", 2);
-_([
+], b.prototype, "candidates", 2);
+y([
   h()
-], y.prototype, "error", 2);
-y = _([
-  S("kustos-vision-camera-editor")
-], y);
-var Ct = Object.defineProperty, Ot = Object.getOwnPropertyDescriptor, v = (t, e, s, i) => {
-  for (var r = i > 1 ? void 0 : i ? Ot(e, s) : e, a = t.length - 1, n; a >= 0; a--)
+], b.prototype, "busy", 2);
+y([
+  h()
+], b.prototype, "error", 2);
+b = y([
+  E("kustos-vision-camera-editor")
+], b);
+var Tt = Object.defineProperty, Dt = Object.getOwnPropertyDescriptor, $ = (t, e, s, i) => {
+  for (var r = i > 1 ? void 0 : i ? Dt(e, s) : e, a = t.length - 1, n; a >= 0; a--)
     (n = t[a]) && (r = (i ? n(e, s, r) : n(r)) || r);
-  return i && r && Ct(e, s, r), r;
+  return i && r && Tt(e, s, r), r;
 };
-const Pt = [
+const Bt = [
   ["boolean", "Ja/Nein"],
   ["text", "Text"],
   ["number", "Anzahl"],
   ["select", "Auswahl"]
 ];
-let g = class extends w {
+let v = class extends _ {
   constructor() {
     super(...arguments), this.backend = { kind: "openai" }, this.observations = [], this.triggers = [], this.context = "", this.cooldown = 60, this.budget = 100, this.condition = "", this.enabled = !0, this.aiTasks = [], this.history = [], this.busy = !1, this.error = "";
   }
@@ -2124,7 +2327,7 @@ let g = class extends w {
         enabled: this.enabled
       }), this.dispatchEvent(new CustomEvent("saved", { bubbles: !0, composed: !0 }));
     } catch (t) {
-      this.error = O(t);
+      this.error = S(t);
     } finally {
       this.busy = !1;
     }
@@ -2135,7 +2338,7 @@ let g = class extends w {
       const t = await this.api.analyseNow(this.camera.slug);
       t.ran ? (this.lastRun = { values: t.values, raw: t.raw }, Object.keys(t.problems).length > 0 && (this.error = `Nicht verwertbar: ${Object.entries(t.problems).map(([e, s]) => `${e} (${s})`).join(", ")}`)) : this.error = "Das Tagesbudget ist aufgebraucht oder es läuft bereits eine Analyse.", await this.loadHistory();
     } catch (t) {
-      this.error = O(t);
+      this.error = S(t);
     } finally {
       this.busy = !1;
     }
@@ -2240,7 +2443,7 @@ let g = class extends w {
       type: s.target.value
     })}
             >
-              ${Pt.map(
+              ${Bt.map(
       ([s, i]) => o`<option
                   value=${s}
                   ?selected=${t.type === s}
@@ -2470,71 +2673,71 @@ ${JSON.stringify(this.lastRun.raw, null, 2)}</pre
     `;
   }
 };
-g.styles = ee;
-v([
+v.styles = te;
+$([
   u({ attribute: !1 })
-], g.prototype, "api", 2);
-v([
+], v.prototype, "api", 2);
+$([
   u({ attribute: !1 })
-], g.prototype, "camera", 2);
-v([
+], v.prototype, "camera", 2);
+$([
   u({ attribute: !1 })
-], g.prototype, "profile", 2);
-v([
+], v.prototype, "profile", 2);
+$([
   h()
-], g.prototype, "backend", 2);
-v([
+], v.prototype, "backend", 2);
+$([
   h()
-], g.prototype, "observations", 2);
-v([
+], v.prototype, "observations", 2);
+$([
   h()
-], g.prototype, "triggers", 2);
-v([
+], v.prototype, "triggers", 2);
+$([
   h()
-], g.prototype, "context", 2);
-v([
+], v.prototype, "context", 2);
+$([
   h()
-], g.prototype, "cooldown", 2);
-v([
+], v.prototype, "cooldown", 2);
+$([
   h()
-], g.prototype, "budget", 2);
-v([
+], v.prototype, "budget", 2);
+$([
   h()
-], g.prototype, "condition", 2);
-v([
+], v.prototype, "condition", 2);
+$([
   h()
-], g.prototype, "enabled", 2);
-v([
+], v.prototype, "enabled", 2);
+$([
   h()
-], g.prototype, "aiTasks", 2);
-v([
+], v.prototype, "aiTasks", 2);
+$([
   h()
-], g.prototype, "history", 2);
-v([
+], v.prototype, "history", 2);
+$([
   h()
-], g.prototype, "lastRun", 2);
-v([
+], v.prototype, "lastRun", 2);
+$([
   h()
-], g.prototype, "busy", 2);
-v([
+], v.prototype, "busy", 2);
+$([
   h()
-], g.prototype, "error", 2);
-g = v([
-  S("kustos-vision-vision-editor")
-], g);
-var Tt = Object.defineProperty, zt = Object.getOwnPropertyDescriptor, E = (t, e, s, i) => {
-  for (var r = i > 1 ? void 0 : i ? zt(e, s) : e, a = t.length - 1, n; a >= 0; a--)
+], v.prototype, "error", 2);
+v = $([
+  E("kustos-vision-vision-editor")
+], v);
+var jt = Object.defineProperty, Mt = Object.getOwnPropertyDescriptor, C = (t, e, s, i) => {
+  for (var r = i > 1 ? void 0 : i ? Mt(e, s) : e, a = t.length - 1, n; a >= 0; a--)
     (n = t[a]) && (r = (i ? n(e, s, r) : n(r)) || r);
-  return i && r && Tt(e, s, r), r;
+  return i && r && jt(e, s, r), r;
 };
-const Dt = [
+const Nt = [
   ["cameras", "Kameras"],
   ["vision", "Bilderkennung"],
   ["storage", "Speicher"],
   ["views", "Ansichten"],
   ["system", "System"]
 ], Te = 1e3 * 1e3 * 1e3;
-let A = class extends w {
+let A = class extends _ {
   constructor() {
     super(...arguments), this.section = "cameras", this.adding = !1, this.available = [], this.busy = !1, this.error = "";
   }
@@ -2546,7 +2749,7 @@ let A = class extends w {
     try {
       await t(), await this.refresh();
     } catch (e) {
-      this.error = O(e);
+      this.error = S(e);
     } finally {
       this.busy = !1;
     }
@@ -2556,7 +2759,7 @@ let A = class extends w {
     try {
       this.available = (await this.api.availableCameras()).cameras, this.adding = !0;
     } catch (t) {
-      this.error = O(t);
+      this.error = S(t);
     }
   }
   // ------------------------------------------------------------------
@@ -2568,6 +2771,9 @@ let A = class extends w {
         .camera=${this.editing}
         .capabilityKeys=${this.snapshot.capability_keys}
         .available=${this.available}
+        .views=${this.snapshot.views}
+        .allCameras=${this.snapshot.cameras}
+        @reordered=${() => this.refresh()}
         @saved=${() => {
       this.adding = !1, this.editing = void 0, this.refresh();
     }}
@@ -2608,7 +2814,7 @@ let A = class extends w {
         <td class="muted">
           ${t.retention_days === null ? "unbegrenzt" : `${t.retention_days} Tage`}
         </td>
-        <td class="muted">${re(t.state.used_bytes)}</td>
+        <td class="muted">${ae(t.state.used_bytes)}</td>
         <td>
           ${t.enabled ? t.state.recording ? o`<span>zeichnet auf</span>` : o`<span class="error"
                   >steht${s[0]?.last_error ? o` (${s[0].last_error})` : l}</span
@@ -2710,11 +2916,11 @@ let A = class extends w {
         <table>
           <tr>
             <th>Belegt</th>
-            <td>${re(e.used_bytes)}</td>
+            <td>${ae(e.used_bytes)}</td>
           </tr>
           <tr>
             <th>Frei am Ort</th>
-            <td>${re(e.free_bytes)}</td>
+            <td>${ae(e.free_bytes)}</td>
           </tr>
         </table>
 
@@ -2730,7 +2936,7 @@ let A = class extends w {
         </p>
 
         ${e.over_budget_bytes > 0 ? o`<p class="error">
-              ${re(e.over_budget_bytes)} über dem Budget, und mehr
+              ${ae(e.over_budget_bytes)} über dem Budget, und mehr
               lässt sich nicht löschen. Das Budget ist kleiner als das, was die
               Kameras zwischen zwei Aufräumläufen schreiben.
             </p>` : l}
@@ -2793,8 +2999,10 @@ Was bereits unter ${this.snapshot.storage.base_path} liegt, bleibt unverändert 
       <div class="card">
         <h2>Ansichten</h2>
         <p class="hint">
-          Jede Ansicht wird zu einem eigenen Reiter mit den Kameras, die ihr
-          zugeordnet sind.
+          Jede Ansicht wird zu einem eigenen Reiter. Welche Kameras darin
+          erscheinen, legen Sie bei der jeweiligen Kamera fest, zusammen mit
+          dem Stream und den Bedienelementen für genau diese Ansicht. Eine neue
+          Ansicht startet deshalb leer.
         </p>
         ${t.length === 0 ? o`<p class="hint">Noch keine Ansicht angelegt.</p>` : t.map((e, s) => this.renderViewRow(e, s))}
         <div class="row" style="margin-top:16px">
@@ -2828,25 +3036,14 @@ Was bereits unter ${this.snapshot.storage.base_path} liegt, bleibt unverändert 
             />
           </div>
         </div>
-        <label>Kameras</label>
-        <div class="row">
-          ${this.snapshot.cameras.map(
-      (s) => o`
-              <label style="margin:0">
-                <input
-                  type="checkbox"
-                  .checked=${t.cameras.includes(s.slug)}
-                  @change=${(i) => this.toggleCamera(
-        e,
-        s.slug,
-        i.target.checked
-      )}
-                />
-                ${s.name}
-              </label>
-            `
-    )}
-        </div>
+        <p class="hint">
+          ${t.cameras.length === 0 ? o`Dieser Ansicht ist noch keine Kamera zugeordnet.` : o`Zeigt:
+                ${t.cameras.map(
+      (s) => this.snapshot.cameras.find((i) => i.slug === s)?.name ?? s
+    ).join(", ")}`}
+          Welche Kamera hier erscheint, und mit welchem Stream und welchen
+          Bedienelementen, wird bei der jeweiligen Kamera festgelegt.
+        </p>
         <div class="row" style="margin-top:8px">
           <button
             class="secondary"
@@ -2870,16 +3067,16 @@ Was bereits unter ${this.snapshot.storage.base_path} liegt, bleibt unverändert 
     `;
   }
   saveViews(t) {
-    this.run(() => this.api.setViews(t));
+    this.run(
+      () => this.api.setViews(
+        t.map(({ cameras: e, ...s }) => s)
+      )
+    );
   }
   patchView(t, e) {
     this.saveViews(
       this.snapshot.views.map((s, i) => i === t ? { ...s, ...e } : s)
     );
-  }
-  toggleCamera(t, e, s) {
-    const i = this.snapshot.views[t], r = s ? [...i.cameras, e] : i.cameras.filter((a) => a !== e);
-    this.patchView(t, { cameras: r });
   }
   moveView(t, e) {
     const s = [...this.snapshot.views], [i] = s.splice(t, 1);
@@ -2968,7 +3165,7 @@ Was bereits unter ${this.snapshot.storage.base_path} liegt, bleibt unverändert 
     return o`
       <div style="padding:16px">
         <div class="row" style="margin-bottom:16px">
-          ${Dt.map(
+          ${Nt.map(
       ([t, e]) => o`
               <button
                 class=${this.section === t ? "" : "secondary"}
@@ -2987,44 +3184,44 @@ Was bereits unter ${this.snapshot.storage.base_path} liegt, bleibt unverändert 
     `;
   }
 };
-A.styles = ee;
-E([
+A.styles = te;
+C([
   u({ attribute: !1 })
 ], A.prototype, "api", 2);
-E([
+C([
   u({ attribute: !1 })
 ], A.prototype, "snapshot", 2);
-E([
+C([
   h()
 ], A.prototype, "section", 2);
-E([
+C([
   h()
 ], A.prototype, "editing", 2);
-E([
+C([
   h()
 ], A.prototype, "adding", 2);
-E([
+C([
   h()
 ], A.prototype, "available", 2);
-E([
+C([
   h()
 ], A.prototype, "visionFor", 2);
-E([
+C([
   h()
 ], A.prototype, "busy", 2);
-E([
+C([
   h()
 ], A.prototype, "error", 2);
-A = E([
-  S("kustos-vision-settings")
+A = C([
+  E("kustos-vision-settings")
 ], A);
-var jt = Object.defineProperty, Mt = Object.getOwnPropertyDescriptor, F = (t, e, s, i) => {
-  for (var r = i > 1 ? void 0 : i ? Mt(e, s) : e, a = t.length - 1, n; a >= 0; a--)
+var Rt = Object.defineProperty, Ut = Object.getOwnPropertyDescriptor, G = (t, e, s, i) => {
+  for (var r = i > 1 ? void 0 : i ? Ut(e, s) : e, a = t.length - 1, n; a >= 0; a--)
     (n = t[a]) && (r = (i ? n(e, s, r) : n(r)) || r);
-  return i && r && jt(e, s, r), r;
+  return i && r && Rt(e, s, r), r;
 };
-const pe = "__recordings", ae = "__settings";
-let j = class extends w {
+const ue = "__recordings", ne = "__settings";
+let B = class extends _ {
   constructor() {
     super(...arguments), this.narrow = !1, this.active = "", this.error = "";
   }
@@ -3032,15 +3229,15 @@ let j = class extends w {
     super.connectedCallback(), this.load();
   }
   updated(t) {
-    t.has("hass") && this.hass && !this.api && (this.api = new Pe(this.hass), this.load());
+    t.has("hass") && this.hass && !this.api && (this.api = new ze(this.hass), this.load());
   }
   async load() {
     if (this.hass) {
-      this.api ??= new Pe(this.hass);
+      this.api ??= new ze(this.hass);
       try {
-        this.snapshot = await this.api.getConfig(), this.error = "", this.active || (this.active = this.snapshot.views[0]?.id ?? ae);
+        this.snapshot = await this.api.getConfig(), this.error = "", this.active || (this.active = this.snapshot.views[0]?.id ?? ne);
       } catch (t) {
-        const e = O(t);
+        const e = S(t);
         this.error = e;
       }
     }
@@ -3067,24 +3264,24 @@ let j = class extends w {
           `
     )}
         <button
-          class=${this.active === pe ? "active" : ""}
-          @click=${() => this.active = pe}
+          class=${this.active === ue ? "active" : ""}
+          @click=${() => this.active = ue}
         >
           Aufnahmen
         </button>
         <button
-          class=${this.active === ae ? "active" : ""}
-          @click=${() => this.active = ae}
+          class=${this.active === ne ? "active" : ""}
+          @click=${() => this.active = ne}
         >
           Einstellungen
         </button>
       </div>
 
       <div class="body">
-        ${this.active === pe ? o`<kustos-vision-recordings
+        ${this.active === ue ? o`<kustos-vision-recordings
               .api=${this.api}
               .cameras=${t.cameras}
-            ></kustos-vision-recordings>` : this.active === ae ? o`<kustos-vision-settings
+            ></kustos-vision-recordings>` : this.active === ne ? o`<kustos-vision-settings
               .api=${this.api}
               .snapshot=${t}
               @changed=${() => this.load()}
@@ -3101,8 +3298,8 @@ let j = class extends w {
     `;
   }
 };
-j.styles = [
-  ee,
+B.styles = [
+  te,
   I`
       :host {
         display: flex;
@@ -3140,24 +3337,24 @@ j.styles = [
       }
     `
 ];
-F([
+G([
   u({ attribute: !1 })
-], j.prototype, "hass", 2);
-F([
+], B.prototype, "hass", 2);
+G([
   u({ type: Boolean, reflect: !0 })
-], j.prototype, "narrow", 2);
-F([
+], B.prototype, "narrow", 2);
+G([
   h()
-], j.prototype, "snapshot", 2);
-F([
+], B.prototype, "snapshot", 2);
+G([
   h()
-], j.prototype, "active", 2);
-F([
+], B.prototype, "active", 2);
+G([
   h()
-], j.prototype, "error", 2);
-j = F([
-  S("kustos-vision-panel")
-], j);
+], B.prototype, "error", 2);
+B = G([
+  E("kustos-vision-panel")
+], B);
 export {
-  j as CamwatchPanel
+  B as CamwatchPanel
 };

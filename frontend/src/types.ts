@@ -30,6 +30,13 @@ export interface CameraState {
   streams: StreamState[];
 }
 
+export interface CameraViewSettings {
+  visible: boolean;
+  stream_key?: string | null;
+  capabilities?: string[] | null;
+  position: number;
+}
+
 export interface Camera {
   slug: string;
   name: string;
@@ -38,12 +45,15 @@ export interface Camera {
   retention_days: number | null;
   enabled: boolean;
   area_id: string | null;
+  view_settings: Record<string, CameraViewSettings>;
   state: CameraState;
 }
 
 export interface View {
   id: string;
   name: string;
+  /** Resolved by the backend, in display order. Read-only: membership is set
+   *  on each camera, so that stream and controls can differ per view. */
   cameras: string[];
   icon: string;
   columns: number;

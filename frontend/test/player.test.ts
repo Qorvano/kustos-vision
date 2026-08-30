@@ -5,6 +5,7 @@
 import { describe, expect, it } from "vitest";
 import { hasAudioTrack, readVideoCodec } from "../src/components/player";
 import { errorText } from "../src/api";
+import { capabilityLabel } from "../src/capabilities";
 
 /** A byte run with an avcC box carrying the given profile, flags and level. */
 function withAvcC(profile: number, compat: number, level: number): Uint8Array {
@@ -108,5 +109,23 @@ describe("errorText", () => {
   it("survives null and undefined", () => {
     expect(typeof errorText(null)).toBe("string");
     expect(typeof errorText(undefined)).toBe("string");
+  });
+});
+
+describe("capabilityLabel", () => {
+  it("gives a readable name for a known slot", () => {
+    // The panel showed "ptz_up" where a name belongs.
+    expect(capabilityLabel("ptz_up")).toBe("Schwenken hoch");
+    expect(capabilityLabel("light_brightness")).toBe("Helligkeit");
+  });
+
+  it("tidies an unknown slot rather than hiding it", () => {
+    // The backend decides which capabilities exist, so a newer version can
+    // offer one this panel has never heard of.
+    expect(capabilityLabel("zoom_in")).toBe("Zoom in");
+  });
+
+  it("never returns an empty label", () => {
+    expect(capabilityLabel("x").length).toBeGreaterThan(0);
   });
 });

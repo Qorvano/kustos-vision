@@ -6,6 +6,7 @@ import pytest
 from kustos_vision.core.config import (
     CONFIG_VERSION,
     CameraConfig,
+    CameraViewSettings,
     CamwatchConfig,
     CapabilityBinding,
     ConfigError,
@@ -276,11 +277,6 @@ def test_view_needs_a_name() -> None:
         view(name="")
 
 
-def test_a_view_may_not_list_a_camera_twice() -> None:
-    with pytest.raises(ConfigError, match="twice"):
-        view(cameras=("vorgarten", "vorgarten"))
-
-
 def test_columns_may_be_zero_for_automatic_layout() -> None:
     assert view(columns=0).columns == 0
     with pytest.raises(ConfigError, match="columns"):
@@ -288,13 +284,15 @@ def test_columns_may_be_zero_for_automatic_layout() -> None:
 
 
 def test_view_round_trips() -> None:
-    original = view(cameras=("vorgarten", "garten"), icon="mdi:home", columns=3)
+    original = view(icon="mdi:home", columns=3)
     assert ViewConfig.from_dict(original.as_dict()) == original
 
 
 def test_views_survive_the_whole_config_round_trip() -> None:
     config = CamwatchConfig(
-        storage=storage(), cameras=(camera(),), views=(view(cameras=("vorgarten",)),)
+        storage=storage(),
+        cameras=(camera(view_settings={"aussen": CameraViewSettings(position=1)}),),
+        views=(view(id="aussen", name="Außen"),),
     )
     assert CamwatchConfig.from_dict(config.as_dict()) == config
 
@@ -342,17 +340,261 @@ def test_a_view_can_be_removed() -> None:
 
 
 def test_deleting_a_camera_removes_it_from_every_view() -> None:
-    """A stale slug in a view would make the panel render a tile for a camera
-    that no longer exists."""
+    """Membership lives on the camera now, so deleting the camera takes its
+    view settings with it and no view can render a tile for nothing."""
+    shown = {"aussen": CameraViewSettings(), "alle": CameraViewSettings()}
     config = CamwatchConfig(
         storage=storage(),
-        cameras=(camera(slug="vorgarten"), camera(slug="garten", name="Garten")),
-        views=(
-            view(id="aussen", cameras=("vorgarten", "garten")),
-            view(id="alle", name="Alle", cameras=("vorgarten",)),
+        cameras=(
+            camera(slug="vorgarten", view_settings=dict(shown)),
+            camera(slug="garten", name="Garten", view_settings=dict(shown)),
         ),
+        views=(view(id="aussen"), view(id="alle", name="Alle")),
     )
     updated = config.without_camera("vorgarten")
     assert [c.slug for c in updated.cameras] == ["garten"]
-    assert updated.view("aussen").cameras == ("garten",)
-    assert updated.view("alle").cameras == ()
+    assert [c.slug for c in updated.cameras_in_view("aussen")] == ["garten"]
+
+
+# ----------------------------------------------------------------------
+# Per-view camera settings
+# ----------------------------------------------------------------------
+
+
+def shown(**overrides) -> CameraViewSettings:
+    return CameraViewSettings(**overrides)
+
+
+def test_a_camera_is_only_in_the_views_it_names() -> None:
+    cam = camera(view_settings={"aussen": shown()})
+    assert cam.settings_for("aussen") is not None
+    assert cam.settings_for("innen") is None
+
+
+def test_a_camera_can_be_hidden_from_a_view_without_removing_it() -> None:
+    """Keeps the stream and control choices for when it is shown again."""
+    cam = camera(view_settings={"aussen": shown(visible=False, stream_key="hd")})
+    assert cam.settings_for("aussen") is None
+    assert cam.view_settings["aussen"].stream_key == "hd"
+
+
+def test_a_view_gets_the_stream_it_asked_for() -> None:
+    cam = camera(
+        streams=(
+            StreamConfig("hd", "camera.a", record=True),
+            StreamConfig("sd", "camera.b", record=False),
+        ),
+        view_settings={"wand": shown(stream_key="hd"), "bedien": shown(stream_key="sd")},
+    )
+    assert cam.stream_for("wand").key == "hd"
+    assert cam.stream_for("bedien").key == "sd"
+
+
+def test_without_a_choice_the_view_gets_the_stream_nobody_is_recording() -> None:
+    """Watching the recorded stream live would pull it from the camera a
+    second time; the substream is free."""
+    cam = camera(
+        streams=(
+            StreamConfig("hd", "camera.a", record=True),
+            StreamConfig("sd", "camera.b", record=False),
+        ),
+        view_settings={"irgendeine": shown()},
+    )
+    assert cam.stream_for("irgendeine").key == "sd"
+
+
+def test_a_stream_key_that_no_longer_exists_falls_back() -> None:
+    """Renaming a stream must not leave a view showing nothing."""
+    cam = camera(view_settings={"aussen": shown(stream_key="gibtsnicht")})
+    assert cam.stream_for("aussen").key == "hd"
+
+
+def test_a_view_can_show_a_subset_of_the_controls() -> None:
+    cam = camera(
+        capabilities={
+            "ptz_up": CapabilityBinding(entity_id="button.a"),
+            "light": CapabilityBinding(entity_id="light.b"),
+        },
+        view_settings={"nur_licht": shown(capabilities=("light",))},
+    )
+    assert cam.capabilities_for("nur_licht") == ("light",)
+
+
+def test_a_view_can_show_no_controls_at_all() -> None:
+    """What a wall display wants; distinct from "not configured"."""
+    cam = camera(
+        capabilities={"light": CapabilityBinding(entity_id="light.b")},
+        view_settings={"wand": shown(capabilities=())},
+    )
+    assert cam.capabilities_for("wand") == ()
+
+
+def test_without_a_choice_every_bound_control_is_offered() -> None:
+    cam = camera(
+        capabilities={
+            "ptz_up": CapabilityBinding(entity_id="button.a"),
+            "light": CapabilityBinding(entity_id="light.b"),
+        },
+        view_settings={"aussen": shown()},
+    )
+    assert set(cam.capabilities_for("aussen")) == {"ptz_up", "light"}
+
+
+def test_a_control_that_is_not_bound_is_never_offered() -> None:
+    """Offering a button that cannot work is worse than offering none."""
+    cam = camera(
+        capabilities={"light": CapabilityBinding(entity_id="light.b")},
+        view_settings={"aussen": shown(capabilities=("light", "siren"))},
+    )
+    assert cam.capabilities_for("aussen") == ("light",)
+
+
+def test_cameras_in_a_view_are_ordered_by_position_then_name() -> None:
+    config = CamwatchConfig(
+        storage=storage(),
+        cameras=(
+            camera(slug="c", name="Zebra", view_settings={"v": shown(position=0)}),
+            camera(slug="a", name="Anton", view_settings={"v": shown(position=1)}),
+            camera(slug="b", name="Berta", view_settings={"v": shown(position=0)}),
+        ),
+        views=(view(id="v", name="V"),),
+    )
+    assert [c.name for c in config.cameras_in_view("v")] == ["Berta", "Zebra", "Anton"]
+
+
+def test_a_disabled_camera_is_in_no_view() -> None:
+    config = CamwatchConfig(
+        storage=storage(),
+        cameras=(camera(enabled=False, view_settings={"v": shown()}),),
+        views=(view(id="v", name="V"),),
+    )
+    assert config.cameras_in_view("v") == ()
+
+
+def test_removing_a_view_clears_it_from_the_cameras() -> None:
+    """A leftover setting would silently resurrect the old layout if a view
+    with the same id were created again."""
+    config = CamwatchConfig(
+        storage=storage(),
+        cameras=(camera(view_settings={"v": shown(stream_key="hd")}),),
+        views=(view(id="v", name="V"),),
+    )
+    updated = config.without_view("v")
+    assert updated.views == ()
+    assert updated.cameras[0].view_settings == {}
+
+
+# ----------------------------------------------------------------------
+# Migration
+# ----------------------------------------------------------------------
+
+
+def test_view_membership_migrates_onto_the_cameras() -> None:
+    """Version 2 moved membership from the view to the camera. An existing
+    installation must come across without anyone re-creating their layout."""
+    old = {
+        "version": 1,
+        "storage": {"base_path": "/media/x"},
+        "cameras": [
+            {"slug": "eins", "name": "Eins", "streams": []},
+            {"slug": "zwei", "name": "Zwei", "streams": []},
+        ],
+        "views": [
+            {"id": "v", "name": "V", "cameras": ["zwei", "eins"], "columns": 2}
+        ],
+    }
+    config = CamwatchConfig.from_dict(old)
+
+    assert [v.name for v in config.views] == ["V"]
+    assert config.view("v").columns == 2
+    # The order the view listed them in is preserved as positions.
+    assert [c.slug for c in config.cameras_in_view("v")] == ["zwei", "eins"]
+
+
+def test_migration_leaves_the_stored_dictionary_alone() -> None:
+    """A migration that goes wrong must not corrupt what is still on disk."""
+    old = {
+        "version": 1,
+        "storage": {"base_path": "/media/x"},
+        "cameras": [{"slug": "eins", "name": "Eins", "streams": []}],
+        "views": [{"id": "v", "name": "V", "cameras": ["eins"]}],
+    }
+    CamwatchConfig.from_dict(old)
+    assert old["views"][0]["cameras"] == ["eins"]
+
+
+def test_migration_ignores_a_camera_a_view_named_but_does_not_exist() -> None:
+    old = {
+        "version": 1,
+        "storage": {"base_path": "/media/x"},
+        "cameras": [],
+        "views": [{"id": "v", "name": "V", "cameras": ["weg"]}],
+    }
+    config = CamwatchConfig.from_dict(old)
+    assert config.cameras_in_view("v") == ()
+
+
+def test_a_current_configuration_is_not_migrated_again() -> None:
+    config = CamwatchConfig(
+        storage=storage(),
+        cameras=(camera(view_settings={"v": shown(position=3)}),),
+        views=(view(id="v", name="V"),),
+    )
+    assert CamwatchConfig.from_dict(config.as_dict()) == config
+
+
+def test_the_order_of_a_whole_view_can_be_set_at_once() -> None:
+    """The order belongs to the view, not to any one camera, so it is edited as
+    a list. Numbering each camera separately would mean opening every one of
+    them to find out which position is still free."""
+    config = CamwatchConfig(
+        storage=storage(),
+        cameras=(
+            camera(slug="a", name="A", view_settings={"v": shown(position=0)}),
+            camera(slug="b", name="B", view_settings={"v": shown(position=1)}),
+            camera(slug="c", name="C", view_settings={"v": shown(position=2)}),
+        ),
+        views=(view(id="v", name="V"),),
+    )
+    reordered = config.with_view_order("v", ["c", "a", "b"])
+    assert [c.slug for c in reordered.cameras_in_view("v")] == ["c", "a", "b"]
+
+
+def test_reordering_one_view_leaves_the_others_alone() -> None:
+    config = CamwatchConfig(
+        storage=storage(),
+        cameras=(
+            camera(slug="a", name="A",
+                   view_settings={"v": shown(position=0), "w": shown(position=0)}),
+            camera(slug="b", name="B",
+                   view_settings={"v": shown(position=1), "w": shown(position=1)}),
+        ),
+        views=(view(id="v", name="V"), view(id="w", name="W")),
+    )
+    reordered = config.with_view_order("v", ["b", "a"])
+    assert [c.slug for c in reordered.cameras_in_view("v")] == ["b", "a"]
+    assert [c.slug for c in reordered.cameras_in_view("w")] == ["a", "b"]
+
+
+def test_a_camera_the_order_does_not_mention_keeps_its_place() -> None:
+    """A stale list must not silently reshuffle what it does not know about."""
+    config = CamwatchConfig(
+        storage=storage(),
+        cameras=(
+            camera(slug="a", name="A", view_settings={"v": shown(position=5)}),
+            camera(slug="b", name="B", view_settings={"v": shown(position=9)}),
+        ),
+        views=(view(id="v", name="V"),),
+    )
+    reordered = config.with_view_order("v", ["b"])
+    assert reordered.camera("b").view_settings["v"].position == 0
+    assert reordered.camera("a").view_settings["v"].position == 5
+
+
+def test_ordering_ignores_a_camera_that_is_not_in_the_view() -> None:
+    config = CamwatchConfig(
+        storage=storage(),
+        cameras=(camera(slug="a", name="A"),),
+        views=(view(id="v", name="V"),),
+    )
+    assert config.with_view_order("v", ["a"]) == config

@@ -136,7 +136,21 @@ async def test_everything_works_without_the_front_end(
         await client.send_json_auto_id(
             {
                 "type": f"{DOMAIN}/views/set",
-                "views": [{"id": "aussen", "name": "Außen", "cameras": ["hof"]}],
+                "views": [{"id": "aussen", "name": "Außen"}],
+            }
+        )
+        assert (await client.receive_json())["success"]
+
+        # Membership lives on the camera now, so putting one into a view is a
+        # camera edit.
+        await client.send_json_auto_id(
+            {
+                "type": f"{DOMAIN}/camera/set",
+                "replace_existing": True,
+                "slug": "hof",
+                "name": "Hof",
+                "streams": [{"key": "hd", "entity_id": "camera.hof"}],
+                "view_settings": {"aussen": {"visible": True}},
             }
         )
         result = await client.receive_json()

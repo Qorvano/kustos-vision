@@ -35,6 +35,7 @@ from .core.capabilities import (
 )
 from .core.config import (
     CameraConfig,
+    CameraViewSettings,
     CapabilityBinding,
     ConfigError,
     StorageConfig,
@@ -60,6 +61,7 @@ def async_register(hass: HomeAssistant) -> None:
         ws_suggest_camera,
         ws_available_cameras,
         ws_set_views,
+        ws_set_view_order,
         ws_trigger_capability,
         ws_rebuild_index,
         ws_recording_days,
@@ -145,7 +147,18 @@ def _snapshot(coordinator: CamwatchCoordinator) -> dict[str, Any]:
         "storage": coordinator.config.storage.as_dict(),
         "cameras": cameras,
         "vision": vision,
-        "views": [v.as_dict() for v in coordinator.config.views],
+        "views": [
+            {
+                **view.as_dict(),
+                # Resolved here so the panel renders what it is given instead
+                # of re-deriving the ordering rules.
+                "cameras": [
+                    camera.slug
+                    for camera in coordinator.config.cameras_in_view(view.id)
+                ],
+            }
+            for view in coordinator.config.views
+        ],
         "capability_keys": list(CAPABILITY_KEYS),
         "totals": {
             "used_bytes": data.total_bytes if data else 0,
@@ -266,6 +279,14 @@ CAMERA_SCHEMA = {
     ),
     vol.Optional("enabled", default=True): bool,
     vol.Optional("area_id", default=None): vol.Any(None, str),
+    vol.Optional("view_settings", default={}): {
+        str: {
+            vol.Optional("visible", default=True): bool,
+            vol.Optional("stream_key", default=None): vol.Any(None, str),
+            vol.Optional("capabilities", default=None): vol.Any(None, [str]),
+            vol.Optional("position", default=0): int,
+        }
+    },
 }
 
 
@@ -301,6 +322,10 @@ async def ws_set_camera(
             retention_days=msg["retention_days"],
             enabled=msg["enabled"],
             area_id=msg["area_id"],
+            view_settings={
+                view_id: CameraViewSettings.from_dict(value)
+                for view_id, value in msg["view_settings"].items()
+            },
         )
     except ConfigError as err:
         connection.send_error(msg["id"], "invalid_config", str(err))
@@ -473,7 +498,6 @@ async def ws_available_cameras(
             {
                 vol.Required("id"): str,
                 vol.Required("name"): str,
-                vol.Optional("cameras", default=[]): [str],
                 vol.Optional("icon", default="mdi:cctv"): str,
                 vol.Optional("columns", default=0): vol.All(int, vol.Range(min=0)),
             }
@@ -484,23 +508,17 @@ async def ws_available_cameras(
 async def ws_set_views(
     hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict
 ) -> None:
-    """Replace every view at once, which is also how reordering is saved."""
+    """Replace every view at once, which is also how reordering the tabs works.
+
+    Which cameras a view shows is not set here: that lives on the cameras, so
+    that the stream and the controls a camera offers can differ per view.
+    """
     if (coordinator := _require(hass, connection, msg)) is None:
         return
-    known = {c.slug for c in coordinator.config.cameras}
     try:
         views = tuple(ViewConfig.from_dict(v) for v in msg["views"])
     except ConfigError as err:
         connection.send_error(msg["id"], "invalid_config", str(err))
-        return
-
-    unknown = {slug for view in views for slug in view.cameras} - known
-    if unknown:
-        connection.send_error(
-            msg["id"],
-            "not_found",
-            f"views reference unknown cameras: {', '.join(sorted(unknown))}",
-        )
         return
 
     try:
@@ -509,6 +527,43 @@ async def ws_set_views(
         connection.send_error(msg["id"], "invalid_config", str(err))
         return
     await coordinator.async_set_config(updated)
+    connection.send_result(msg["id"], _snapshot(coordinator))
+
+
+@websocket_api.require_admin
+@websocket_api.websocket_command(
+    {
+        vol.Required("type"): f"{DOMAIN}/view/order",
+        vol.Required("view_id"): str,
+        vol.Required("cameras"): [str],
+    }
+)
+@websocket_api.async_response
+async def ws_set_view_order(
+    hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict
+) -> None:
+    """Set the order of every camera in one view.
+
+    Edited as a whole list because the order is a property of the view. Setting
+    it as a number on each camera would mean opening every camera in turn just
+    to find out which position is still free.
+    """
+    if (coordinator := _require(hass, connection, msg)) is None:
+        return
+    if coordinator.config.view(msg["view_id"]) is None:
+        connection.send_error(msg["id"], "not_found", f"no view '{msg['view_id']}'")
+        return
+
+    known = {c.slug for c in coordinator.config.cameras}
+    if unknown := [slug for slug in msg["cameras"] if slug not in known]:
+        connection.send_error(
+            msg["id"], "not_found", f"unknown cameras: {', '.join(unknown)}"
+        )
+        return
+
+    await coordinator.async_set_config(
+        coordinator.config.with_view_order(msg["view_id"], msg["cameras"])
+    )
     connection.send_result(msg["id"], _snapshot(coordinator))
 
 

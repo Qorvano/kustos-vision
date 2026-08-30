@@ -77,6 +77,9 @@ export class CamwatchSettings extends LitElement {
         .camera=${this.editing}
         .capabilityKeys=${this.snapshot.capability_keys}
         .available=${this.available}
+        .views=${this.snapshot.views}
+        .allCameras=${this.snapshot.cameras}
+        @reordered=${() => this.refresh()}
         @saved=${() => {
           this.adding = false;
           this.editing = undefined;
@@ -364,8 +367,10 @@ export class CamwatchSettings extends LitElement {
       <div class="card">
         <h2>Ansichten</h2>
         <p class="hint">
-          Jede Ansicht wird zu einem eigenen Reiter mit den Kameras, die ihr
-          zugeordnet sind.
+          Jede Ansicht wird zu einem eigenen Reiter. Welche Kameras darin
+          erscheinen, legen Sie bei der jeweiligen Kamera fest, zusammen mit
+          dem Stream und den Bedienelementen für genau diese Ansicht. Eine neue
+          Ansicht startet deshalb leer.
         </p>
         ${views.length === 0
           ? html`<p class="hint">Noch keine Ansicht angelegt.</p>`
@@ -404,26 +409,20 @@ export class CamwatchSettings extends LitElement {
             />
           </div>
         </div>
-        <label>Kameras</label>
-        <div class="row">
-          ${this.snapshot.cameras.map(
-            (camera) => html`
-              <label style="margin:0">
-                <input
-                  type="checkbox"
-                  .checked=${view.cameras.includes(camera.slug)}
-                  @change=${(e: Event) =>
-                    this.toggleCamera(
-                      index,
-                      camera.slug,
-                      (e.target as HTMLInputElement).checked,
-                    )}
-                />
-                ${camera.name}
-              </label>
-            `,
-          )}
-        </div>
+        <p class="hint">
+          ${view.cameras.length === 0
+            ? html`Dieser Ansicht ist noch keine Kamera zugeordnet.`
+            : html`Zeigt:
+                ${view.cameras
+                  .map(
+                    (slug) =>
+                      this.snapshot.cameras.find((c) => c.slug === slug)?.name ??
+                      slug,
+                  )
+                  .join(", ")}`}
+          Welche Kamera hier erscheint, und mit welchem Stream und welchen
+          Bedienelementen, wird bei der jeweiligen Kamera festgelegt.
+        </p>
         <div class="row" style="margin-top:8px">
           <button
             class="secondary"
@@ -448,21 +447,18 @@ export class CamwatchSettings extends LitElement {
   }
 
   private saveViews(views: View[]): void {
-    void this.run(() => this.api.setViews(views));
+    // Membership is resolved by the backend and read-only here.
+    void this.run(() =>
+      this.api.setViews(
+        views.map(({ cameras: _cameras, ...rest }) => rest),
+      ),
+    );
   }
 
   private patchView(index: number, patch: Partial<View>): void {
     this.saveViews(
       this.snapshot.views.map((v, i) => (i === index ? { ...v, ...patch } : v)),
     );
-  }
-
-  private toggleCamera(index: number, slug: string, on: boolean): void {
-    const view = this.snapshot.views[index];
-    const cameras = on
-      ? [...view.cameras, slug]
-      : view.cameras.filter((c) => c !== slug);
-    this.patchView(index, { cameras });
   }
 
   private moveView(index: number, delta: number): void {

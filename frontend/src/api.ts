@@ -58,8 +58,17 @@ export class CamwatchApi {
     return this.hass.callWS({ type: `${DOMAIN}/camera/delete`, slug });
   }
 
-  setViews(views: View[]): Promise<Snapshot> {
+  setViews(views: Omit<View, "cameras">[]): Promise<Snapshot> {
     return this.hass.callWS({ type: `${DOMAIN}/views/set`, views });
+  }
+
+  /** Set the order of every camera in one view at once. */
+  setViewOrder(viewId: string, cameras: string[]): Promise<Snapshot> {
+    return this.hass.callWS({
+      type: `${DOMAIN}/view/order`,
+      view_id: viewId,
+      cameras,
+    });
   }
 
   setStorage(patch: {

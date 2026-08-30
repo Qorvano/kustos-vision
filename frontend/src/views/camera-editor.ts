@@ -10,11 +10,14 @@ import { customElement, property, state } from "lit/decorators.js";
 import { errorText, type CamwatchApi } from "../api";
 import type {
   AvailableCamera,
+  CameraViewSettings,
   CapabilityBinding,
   Camera,
   StreamConfig,
   Suggestion,
+  View,
 } from "../types";
+import { capabilityLabel } from "../capabilities";
 import { shared } from "../styles";
 
 function slugify(value: string): string {
@@ -37,6 +40,8 @@ export class CamwatchCameraEditor extends LitElement {
   @property({ attribute: false }) camera?: Camera;
   @property({ attribute: false }) capabilityKeys: string[] = [];
   @property({ attribute: false }) available: AvailableCamera[] = [];
+  @property({ attribute: false }) views: View[] = [];
+  @property({ attribute: false }) allCameras: Camera[] = [];
 
   @state() private slug = "";
   @state() private name = "";
@@ -44,6 +49,7 @@ export class CamwatchCameraEditor extends LitElement {
   @state() private capabilities: Record<string, CapabilityBinding> = {};
   @state() private retentionDays: number | null = null;
   @state() private enabled = true;
+  @state() private viewSettings: Record<string, CameraViewSettings> = {};
   @state() private candidates: { entity_id: string; name: string }[] = [];
   @state() private busy = false;
   @state() private error = "";
@@ -59,6 +65,7 @@ export class CamwatchCameraEditor extends LitElement {
       this.capabilities = structuredClone(this.camera.capabilities);
       this.retentionDays = this.camera.retention_days;
       this.enabled = this.camera.enabled;
+      this.viewSettings = structuredClone(this.camera.view_settings ?? {});
     }
   }
 
@@ -68,8 +75,14 @@ export class CamwatchCameraEditor extends LitElement {
     this.error = "";
     try {
       const suggestion: Suggestion = await this.api.suggest(entityId);
-      this.name = suggestion.name;
-      this.slug = slugify(suggestion.name);
+      // Editing keeps the identifier and the name: the identifier is the
+      // recording folder and changing it would strand everything recorded so
+      // far, and the name is the user's, not the device's. Only what the
+      // camera actually is gets replaced.
+      if (!this.camera) {
+        this.name = suggestion.name;
+        this.slug = slugify(suggestion.name);
+      }
       this.streams = suggestion.streams.map((s) => ({
         key: s.key,
         entity_id: s.entity_id,
@@ -118,6 +131,7 @@ export class CamwatchCameraEditor extends LitElement {
           retention_days: this.retentionDays,
           enabled: this.enabled,
           area_id: this.camera?.area_id ?? null,
+          view_settings: this.viewSettings,
         },
         // Editing an existing camera is the only case allowed to replace one.
         this.camera !== undefined,
@@ -128,6 +142,181 @@ export class CamwatchCameraEditor extends LitElement {
     } finally {
       this.busy = false;
     }
+  }
+
+  private patchView(viewId: string, patch: Partial<CameraViewSettings>): void {
+    const current = this.viewSettings[viewId] ?? { visible: false, position: 0 };
+    this.viewSettings = { ...this.viewSettings, [viewId]: { ...current, ...patch } };
+  }
+
+  /** Cameras currently in a view, in display order, including this one. */
+  private membersOf(view: View): { slug: string; name: string }[] {
+    const others = view.cameras
+      .filter((slug) => slug !== this.slug)
+      .map((slug) => ({
+        slug,
+        name: this.allCameras.find((c) => c.slug === slug)?.name ?? slug,
+      }));
+    const mine = this.viewSettings[view.id]?.visible;
+    if (!mine) return others;
+    if (view.cameras.includes(this.slug)) {
+      return view.cameras.map((slug) => ({
+        slug,
+        name:
+          slug === this.slug
+            ? this.name || this.slug
+            : (this.allCameras.find((c) => c.slug === slug)?.name ?? slug),
+      }));
+    }
+    // Newly ticked and not saved yet, so the backend has not placed it.
+    return [...others, { slug: this.slug, name: this.name || this.slug }];
+  }
+
+  private async moveInView(view: View, index: number, delta: number): Promise<void> {
+    const order = this.membersOf(view).map((m) => m.slug);
+    const [moved] = order.splice(index, 1);
+    order.splice(index + delta, 0, moved);
+    this.busy = true;
+    this.error = "";
+    try {
+      await this.api.setViewOrder(view.id, order);
+      this.dispatchEvent(
+        new CustomEvent("reordered", { bubbles: true, composed: true }),
+      );
+    } catch (err) {
+      this.error = errorText(err);
+    } finally {
+      this.busy = false;
+    }
+  }
+
+  private renderViewBlock(view: View) {
+    const settings = this.viewSettings[view.id];
+    const shown = settings?.visible ?? false;
+    const members = this.membersOf(view);
+    const chosen = settings?.capabilities ?? null;
+    const bound = Object.keys(this.capabilities);
+
+    return html`
+      <div style="border-bottom:1px solid var(--divider-color,#eee);padding:12px 0">
+        <label style="margin:0">
+          <input
+            type="checkbox"
+            .checked=${shown}
+            @change=${(e: Event) =>
+              this.patchView(view.id, {
+                visible: (e.target as HTMLInputElement).checked,
+              })}
+          />
+          <strong>${view.name}</strong>
+        </label>
+
+        ${!shown
+          ? nothing
+          : html`
+              <div class="row">
+                <div class="grow">
+                  <label>Angezeigter Stream</label>
+                  <select
+                    @change=${(e: Event) =>
+                      this.patchView(view.id, {
+                        stream_key: (e.target as HTMLSelectElement).value || null,
+                      })}
+                  >
+                    <option value="" ?selected=${!settings?.stream_key}>
+                      automatisch (der nicht aufgezeichnete)
+                    </option>
+                    ${this.streams.map(
+                      (stream) => html`<option
+                        value=${stream.key}
+                        ?selected=${settings?.stream_key === stream.key}
+                      >
+                        ${stream.key}
+                      </option>`,
+                    )}
+                  </select>
+                </div>
+              </div>
+
+              <label>Bedienelemente in dieser Ansicht</label>
+              ${bound.length === 0
+                ? html`<p class="hint">Dieser Kamera ist nichts zugeordnet.</p>`
+                : html`<div class="row">
+                    <label style="margin:0">
+                      <input
+                        type="checkbox"
+                        .checked=${chosen === null}
+                        @change=${(e: Event) =>
+                          this.patchView(view.id, {
+                            capabilities: (e.target as HTMLInputElement).checked
+                              ? null
+                              : [],
+                          })}
+                      />
+                      alle
+                    </label>
+                    ${bound.map(
+                      (key) => html`<label style="margin:0">
+                        <input
+                          type="checkbox"
+                          ?disabled=${chosen === null}
+                          .checked=${chosen === null || chosen.includes(key)}
+                          @change=${(e: Event) => {
+                            const on = (e.target as HTMLInputElement).checked;
+                            const next = new Set(chosen ?? []);
+                            if (on) next.add(key);
+                            else next.delete(key);
+                            this.patchView(view.id, { capabilities: [...next] });
+                          }}
+                        />
+                        ${capabilityLabel(key)}
+                      </label>`,
+                    )}
+                  </div>`}
+
+              <label>Reihenfolge in dieser Ansicht</label>
+              <p class="hint">
+                Gilt für alle Kameras der Ansicht und wird sofort gespeichert,
+                weil sie die anderen Kameras mit betrifft.
+              </p>
+              <table>
+                ${members.map(
+                  (member, index) => html`
+                    <tr>
+                      <td class=${member.slug === this.slug ? "" : "muted"}>
+                        ${index + 1}. ${member.name}
+                      </td>
+                      <td style="width:1%;white-space:nowrap">
+                        <button
+                          class="secondary"
+                          ?disabled=${index === 0 || this.busy || !this.camera}
+                          @click=${() => this.moveInView(view, index, -1)}
+                        >
+                          ↑
+                        </button>
+                        <button
+                          class="secondary"
+                          ?disabled=${index === members.length - 1 ||
+                          this.busy ||
+                          !this.camera}
+                          @click=${() => this.moveInView(view, index, 1)}
+                        >
+                          ↓
+                        </button>
+                      </td>
+                    </tr>
+                  `,
+                )}
+              </table>
+              ${!this.camera
+                ? html`<p class="hint">
+                    Die Reihenfolge lässt sich einstellen, sobald die Kamera
+                    gespeichert ist.
+                  </p>`
+                : nothing}
+            `}
+      </div>
+    `;
   }
 
   private renderPicker() {
@@ -269,14 +458,14 @@ export class CamwatchCameraEditor extends LitElement {
 
         <h3>Bedienelemente</h3>
         <p class="hint">
-          Was hier zugeordnet ist, erscheint als Schaltfläche auf der Kachel.
-          Leer lassen heißt: keine Schaltfläche.
+          Was hier zugeordnet ist, kann auf der Kachel erscheinen. Pro Ansicht
+          lässt sich unten auswählen, welche davon dort gezeigt werden.
         </p>
         <table>
           ${this.capabilityKeys.map(
             (key) => html`
               <tr>
-                <th>${key}</th>
+                <th>${capabilityLabel(key)}</th>
                 <td>
                   <select @change=${(e: Event) =>
                     this.setCapability(key, (e.target as HTMLSelectElement).value)}>
@@ -295,6 +484,20 @@ export class CamwatchCameraEditor extends LitElement {
             `,
           )}
         </table>
+
+        <h3>Ansichten</h3>
+        ${this.views.length === 0
+          ? html`<p class="hint">
+              Noch keine Ansicht angelegt. Unter Einstellungen, Ansichten lässt
+              sich eine erstellen.
+            </p>`
+          : html`<p class="hint">
+                Pro Ansicht lässt sich getrennt festlegen, ob und wie diese
+                Kamera dort erscheint. So kann dieselbe Kamera in einer
+                Bedienansicht mit allen Schaltflächen stehen und in einer
+                Wandansicht nur als Bild.
+              </p>
+              ${this.views.map((view) => this.renderViewBlock(view))}`}
 
         ${this.error ? html`<p class="error">${this.error}</p>` : nothing}
 
