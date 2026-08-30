@@ -843,7 +843,7 @@ const se = U`
     color: var(--secondary-text-color);
     font-size: 0.85em;
   }
-`, ue = "0.4.5", gt = {
+`, ue = "0.4.6", gt = {
   ptz_up: "Schwenken hoch",
   ptz_down: "Schwenken runter",
   ptz_left: "Schwenken links",

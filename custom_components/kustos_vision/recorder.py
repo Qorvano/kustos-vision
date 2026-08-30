@@ -25,7 +25,9 @@ from pathlib import Path
 
 from homeassistant.components.camera import async_get_stream_source
 from homeassistant.components.ffmpeg import get_ffmpeg_manager
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.const import EVENT_HOMEASSISTANT_STARTED
+from homeassistant.core import CALLBACK_TYPE, Event, HomeAssistant, callback
+from homeassistant.helpers.event import async_track_state_change_event
 from homeassistant.util import dt as dt_util
 
 from .core.config import CameraConfig, StorageConfig, StreamConfig
@@ -262,10 +264,35 @@ class RecorderManager:
         self._streams: dict[str, StreamProcess] = {}
         self._base: Path | None = None
         self._paused: set[str] = set()
+        # Streams whose camera entity could not be resolved, and what it takes
+        # to try them again. At Home Assistant startup this is the NORMAL
+        # case: integrations load in no particular order, so the camera that
+        # owns the entity is regularly not there yet when recording begins.
+        # These used to be dropped without any retry, and a restart left the
+        # house unrecorded until something else happened to reapply the
+        # configuration; measured live as a twenty-minute hole.
+        self._unresolved: dict[str, tuple[CameraConfig, StreamConfig]] = {}
+        self._latest: tuple[StorageConfig, tuple[CameraConfig, ...]] | None = None
+        self._apply_lock = asyncio.Lock()
+        self._unsub_sources: CALLBACK_TYPE | None = None
+        self._unsub_started: CALLBACK_TYPE | None = None
 
     @property
     def statuses(self) -> dict[str, StreamStatus]:
-        return {key: proc.status for key, proc in self._streams.items()}
+        merged = {key: proc.status for key, proc in self._streams.items()}
+        for stream_id, (camera, stream) in self._unresolved.items():
+            if stream_id in merged:
+                continue
+            # Visible instead of vanished: a stream that is wanted but cannot
+            # start yet has to read as exactly that in the panel, not as if it
+            # had never been configured.
+            status = StreamStatus(camera.slug, stream.key)
+            status.last_error = (
+                f"Die Kamera-Entity {stream.entity_id} ist noch nicht verfügbar; "
+                "es wird automatisch erneut versucht."
+            )
+            merged[stream_id] = status
+        return merged
 
     def is_paused(self, camera_slug: str) -> bool:
         return camera_slug in self._paused
@@ -283,39 +310,100 @@ class RecorderManager:
         """Make the running processes match the configuration.
 
         Streams whose arguments are unchanged keep running: reconfiguring one
-        camera must not interrupt the recording of another.
+        camera must not interrupt the recording of another. A stream whose
+        entity cannot be resolved right now is remembered and retried, not
+        dropped: see _watch_unresolved.
         """
-        self._base = Path(storage.base_path)
-        wanted: dict[str, StreamSpec] = {}
-        for camera in cameras:
-            if self.is_paused(camera.slug):
-                continue
-            for stream in camera.recorded_streams:
-                spec = await self._async_build_spec(camera, stream, storage)
-                if spec is not None:
-                    wanted[spec.stream_id] = spec
+        async with self._apply_lock:
+            self._latest = (storage, cameras)
+            self._base = Path(storage.base_path)
+            self._unresolved = {}
+            wanted: dict[str, StreamSpec] = {}
+            for camera in cameras:
+                if self.is_paused(camera.slug):
+                    continue
+                for stream in camera.recorded_streams:
+                    spec = await self._async_build_spec(camera, stream, storage)
+                    if spec is not None:
+                        wanted[spec.stream_id] = spec
+                    else:
+                        self._unresolved[f"{camera.slug}/{stream.key}"] = (
+                            camera,
+                            stream,
+                        )
 
-        for stream_id in set(self._streams) - set(wanted):
-            await self._streams.pop(stream_id).async_stop()
+            for stream_id in set(self._streams) - set(wanted):
+                await self._streams.pop(stream_id).async_stop()
 
-        for stream_id, spec in wanted.items():
-            existing = self._streams.get(stream_id)
-            # Both have to match. Comparing only the spec would leave a running
-            # ffmpeg writing into the previous location after the storage path
-            # is changed, because the path is not part of the spec.
-            if (
-                existing is not None
-                and existing.spec == spec
-                and existing.base == self._base
-            ):
-                continue
-            if existing is not None:
-                await existing.async_stop()
-            process = StreamProcess(self._hass, spec, self._base, self._on_change)
-            self._streams[stream_id] = process
-            await process.async_start()
+            for stream_id, spec in wanted.items():
+                existing = self._streams.get(stream_id)
+                # Both have to match. Comparing only the spec would leave a
+                # running ffmpeg writing into the previous location after the
+                # storage path is changed, because the path is not part of the
+                # spec.
+                if (
+                    existing is not None
+                    and existing.spec == spec
+                    and existing.base == self._base
+                ):
+                    continue
+                if existing is not None:
+                    await existing.async_stop()
+                process = StreamProcess(self._hass, spec, self._base, self._on_change)
+                self._streams[stream_id] = process
+                await process.async_start()
 
+            self._watch_unresolved()
         self._on_change()
+
+    @callback
+    def _watch_unresolved(self) -> None:
+        """Arrange for another attempt the moment it could succeed.
+
+        The trigger is the entity itself: when the integration that owns the
+        camera finishes loading, its entities get their first state, and that
+        event arrives here. Waiting on a timer instead would reopen the gap
+        this exists to close. Home Assistant's own started signal is watched
+        too, for integrations that only resolve a stream source once startup
+        has fully settled.
+        """
+        if self._unsub_sources is not None:
+            self._unsub_sources()
+            self._unsub_sources = None
+        if self._unsub_started is not None:
+            self._unsub_started()
+            self._unsub_started = None
+        if not self._unresolved:
+            return
+        entity_ids = sorted(
+            {stream.entity_id for _, stream in self._unresolved.values()}
+        )
+        self._unsub_sources = async_track_state_change_event(
+            self._hass, entity_ids, self._on_source_event
+        )
+        if not self._hass.is_running:
+            self._unsub_started = self._hass.bus.async_listen_once(
+                EVENT_HOMEASSISTANT_STARTED, self._on_source_event
+            )
+
+    @callback
+    def _on_source_event(self, _event: Event) -> None:
+        self._hass.async_create_task(self.async_retry_unresolved())
+
+    async def async_retry_unresolved(self) -> None:
+        """Try again for every stream that could not be resolved.
+
+        Cheap when there is nothing to do, so the housekeeping pass calls it
+        as a safety net for sources that never announce themselves through a
+        state change.
+        """
+        if not self._unresolved or self._latest is None:
+            return
+        _LOGGER.info(
+            "kustos_vision: retrying %d stream(s) whose camera was not available",
+            len(self._unresolved),
+        )
+        await self.async_apply(*self._latest)
 
     async def _async_build_spec(
         self, camera: CameraConfig, stream: StreamConfig, storage: StorageConfig
@@ -351,6 +439,9 @@ class RecorderManager:
 
     async def async_stop_all(self) -> None:
         """Shut every process down, for unload or a Home Assistant stop."""
+        self._unresolved = {}
+        self._latest = None
+        self._watch_unresolved()
         streams, self._streams = self._streams, {}
         await asyncio.gather(*(s.async_stop() for s in streams.values()))
 

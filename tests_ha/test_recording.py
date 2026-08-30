@@ -290,3 +290,121 @@ async def test_moving_the_storage_location_restarts_the_recording(
 
     assert len(spawned) == 2, "ffmpeg was not restarted for the new location"
     assert spawned[1][-1].startswith(str(target))
+
+
+# ----------------------------------------------------------------------
+# A camera whose integration has not loaded yet
+# ----------------------------------------------------------------------
+#
+# At Home Assistant startup this is the normal case, not a corner: custom
+# integrations load in no particular order, so the camera entity regularly
+# does not exist yet when recording begins. These streams used to be dropped
+# with no retry at all, and a restart left the house unrecorded until
+# something else happened to reapply the configuration. Measured live as a
+# twenty-minute hole after an update.
+
+
+@pytest.fixture
+def flaky_camera_env(spawned: list[list[str]]):
+    """A stream source that is absent first and appears later."""
+    resolver = AsyncMock(side_effect=Exception("Camera not found"))
+
+    async def _spawn(program, *args, **kwargs):
+        spawned.append([program, *args])
+        return FakeProcess()
+
+    with (
+        patch(
+            "custom_components.kustos_vision.recorder.async_get_stream_source",
+            resolver,
+        ),
+        patch(
+            "custom_components.kustos_vision.recorder.get_ffmpeg_manager",
+            MagicMock(return_value=MagicMock(binary="/usr/bin/ffmpeg")),
+        ),
+        patch(
+            "custom_components.kustos_vision.maintenance.get_ffmpeg_manager",
+            MagicMock(return_value=MagicMock(binary="/usr/bin/ffmpeg")),
+        ),
+        patch(
+            "custom_components.kustos_vision.recorder.create_subprocess_exec", _spawn
+        ),
+    ):
+        yield resolver
+
+
+async def test_an_unavailable_camera_is_not_dropped(
+    hass: HomeAssistant,
+    hass_storage: dict,
+    tmp_path: Path,
+    flaky_camera_env,
+    spawned: list[list[str]],
+) -> None:
+    """The stream stays visible as waiting instead of vanishing."""
+    hass_storage[STORAGE_KEY_CONFIG] = stored_config(tmp_path / "recordings")
+    entry = MockConfigEntry(
+        domain=DOMAIN, data={CONF_BASE_PATH: str(tmp_path / "recordings")}
+    )
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    assert spawned == []
+    statuses = entry.runtime_data.recorder.statuses
+    assert "beispiel/hd" in statuses
+    assert statuses["beispiel/hd"].running is False
+    assert "noch nicht verfügbar" in statuses["beispiel/hd"].last_error
+
+
+async def test_recording_starts_the_moment_the_camera_appears(
+    hass: HomeAssistant,
+    hass_storage: dict,
+    tmp_path: Path,
+    flaky_camera_env,
+    spawned: list[list[str]],
+) -> None:
+    """The camera integration finishing its setup is the trigger, not luck."""
+    hass_storage[STORAGE_KEY_CONFIG] = stored_config(tmp_path / "recordings")
+    entry = MockConfigEntry(
+        domain=DOMAIN, data={CONF_BASE_PATH: str(tmp_path / "recordings")}
+    )
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    assert spawned == []
+
+    # The camera integration comes up: the entity gets its first state.
+    flaky_camera_env.side_effect = None
+    flaky_camera_env.return_value = STREAM_URL
+    hass.states.async_set("camera.beispiel_hd", "idle")
+    await hass.async_block_till_done()
+
+    assert len(spawned) == 1
+    assert STREAM_URL in spawned[0]
+    statuses = entry.runtime_data.recorder.statuses
+    assert statuses["beispiel/hd"].last_error is None
+
+
+async def test_the_update_cycle_is_the_safety_net(
+    hass: HomeAssistant,
+    hass_storage: dict,
+    tmp_path: Path,
+    flaky_camera_env,
+    spawned: list[list[str]],
+) -> None:
+    """A source that never announces itself still gets retried every cycle."""
+    hass_storage[STORAGE_KEY_CONFIG] = stored_config(tmp_path / "recordings")
+    entry = MockConfigEntry(
+        domain=DOMAIN, data={CONF_BASE_PATH: str(tmp_path / "recordings")}
+    )
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    assert spawned == []
+
+    flaky_camera_env.side_effect = None
+    flaky_camera_env.return_value = STREAM_URL
+    await entry.runtime_data.recorder.async_retry_unresolved()
+    await hass.async_block_till_done()
+
+    assert len(spawned) == 1

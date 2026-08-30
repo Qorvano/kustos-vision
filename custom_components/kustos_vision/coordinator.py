@@ -151,6 +151,10 @@ class CamwatchCoordinator(DataUpdateCoordinator[CamwatchData]):
     # ------------------------------------------------------------------
 
     async def _async_update_data(self) -> CamwatchData:
+        # The safety net behind the state listener: a camera whose integration
+        # never fires a state change still gets another chance every cycle.
+        # Free when nothing is unresolved.
+        await self.recorder.async_retry_unresolved()
         created = await self.recorder.async_ensure_directories(self.config.cameras)
         result = await self.maintenance.async_run(self.config, created)
         return await self._async_build_state(result)
