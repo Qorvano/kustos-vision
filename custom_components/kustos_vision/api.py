@@ -25,7 +25,7 @@ from homeassistant.util import dt as dt_util
 
 from .actions import CapabilityError, async_trigger
 from .config_flow import async_validate_base_path
-from .const import DOMAIN
+from .const import DATA_STAMP_AVAILABLE, DOMAIN
 from .coordinator import CamwatchCoordinator
 from .core.capabilities import (
     CAPABILITY_KEYS,
@@ -183,6 +183,11 @@ def _snapshot(coordinator: CamwatchCoordinator) -> dict[str, Any]:
         # built with and says so plainly.
         "build": {
             "version": integration_version(),
+            # Greyed-out checkbox instead of a failed download: whether the
+            # shipped ffmpeg can draw the clock into an export at all.
+            "stamp_available": bool(
+                coordinator.hass.data.get(DATA_STAMP_AVAILABLE, False)
+            ),
             # True when the bundle on disk is no longer the one the sidebar
             # entry points at. Registration happens once per Home Assistant
             # run, so an update through HACS leaves the address naming the

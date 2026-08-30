@@ -81,6 +81,62 @@ def top_level_boxes(fh: BinaryIO, file_size: int) -> list[Box]:
     return boxes
 
 
+def _moov_bytes(path: Path) -> bytes:
+    """The moov box, which describes every track without carrying media."""
+    file_size = path.stat().st_size
+    with path.open("rb") as fh:
+        for box in top_level_boxes(fh, file_size):
+            if box.kind == "moov" and box.complete:
+                fh.seek(box.offset)
+                return fh.read(box.size)
+    return b""
+
+
+def has_audio_track(path: Path) -> bool:
+    """Whether the file carries an audio track.
+
+    The sample description names its format, so an AAC track shows up as an
+    "mp4a" entry inside the moov. Needed by the stamped export: feeding a
+    concat of silent segments an audio graph fails outright, and pretending a
+    sound track exists where none does is how players get handed data that
+    does not match its declaration.
+    """
+    return b"mp4a" in _moov_bytes(path)
+
+
+def video_size(path: Path) -> tuple[int, int] | None:
+    """The visible width and height, read from the track header.
+
+    Needed so the timestamp the export burns in can be sized relative to the
+    picture without probing tools: ffprobe is not guaranteed to exist next to
+    the ffmpeg Home Assistant ships. The tkhd box stores both as 16.16 fixed
+    point; the audio track's header carries zeros there, so the first nonzero
+    pair is the video.
+    """
+    moov = _moov_bytes(path)
+    offset = 0
+    while (found := moov.find(b"tkhd", offset)) != -1:
+        offset = found + 4
+        # Byte layout from the specification: after the fourcc come version
+        # and flags; version 1 widens the two timestamps and the duration
+        # from 4 to 8 bytes, shifting width and height back by 12.
+        version = moov[found + 4] if found + 4 < len(moov) else None
+        # From the fourcc: 4 bytes version+flags, then (v0) three 4-byte
+        # timestamps/id, 4 reserved, 4 duration, 8 reserved, three 2-byte
+        # fields, 2 reserved, the 36-byte matrix = 76 into the payload; v1
+        # widens the two timestamps and the duration by 4 bytes each. The
+        # first attempt was four bytes short and read 0x4000 out of the
+        # identity matrix as a 16384-pixel width, caught against a real file.
+        at = found + 4 + (88 if version == 1 else 76)
+        if at + 8 > len(moov):
+            continue
+        width = int.from_bytes(moov[at : at + 4], "big") >> 16
+        height = int.from_bytes(moov[at + 4 : at + 8], "big") >> 16
+        if width and height:
+            return width, height
+    return None
+
+
 def playable_length(path: Path) -> int:
     """How many leading bytes of the file are worth handing to a demuxer.
 

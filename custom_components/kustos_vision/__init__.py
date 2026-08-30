@@ -74,6 +74,18 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     async_register_services(hass)
     async_register_views(hass)
     await async_register_panel(hass)
+
+    # Whether the stamped export can work at all; the panel greys the option
+    # out when it cannot. Run once, off the event loop.
+    from homeassistant.components.ffmpeg import get_ffmpeg_manager
+
+    from .const import DATA_STAMP_AVAILABLE
+    from .export import ffmpeg_supports_drawtext
+
+    binary = get_ffmpeg_manager(hass).binary
+    hass.data[DATA_STAMP_AVAILABLE] = await hass.async_add_executor_job(
+        ffmpeg_supports_drawtext, binary
+    )
     return True
 
 

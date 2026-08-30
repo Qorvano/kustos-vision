@@ -22,7 +22,7 @@ from aiohttp import web
 from homeassistant.components.http import HomeAssistantView
 from homeassistant.core import HomeAssistant
 
-from .const import DOMAIN
+from .const import DATA_STAMP_AVAILABLE, DOMAIN
 from .core.index import SegmentIndex
 from .core.paths import parse_day_dir, parse_segment_name
 from .export import stream_export
@@ -178,8 +178,19 @@ class ExportView(CamwatchFileView):
         if not segments:
             return web.Response(status=404, text="nothing recorded in that range")
 
+        # Burnt-in clock on request; the raw join stays the default because it
+        # is lossless and finishes in seconds instead of the footage's length.
+        stamp = request.query.get("stamp") == "1"
+        if stamp and not self.hass.data.get(DATA_STAMP_AVAILABLE, False):
+            return web.Response(
+                status=400,
+                text="Das mitgelieferte ffmpeg kann keinen Text zeichnen "
+                "(drawtext fehlt); nur der Roh-Export ist verfügbar.",
+            )
+
         began = datetime.fromtimestamp(start, tz=UTC).astimezone()
-        filename = f"{camera}_{began:%Y-%m-%d_%H-%M-%S}.mp4"
+        suffix = "_zeitstempel" if stamp else ""
+        filename = f"{camera}_{began:%Y-%m-%d_%H-%M-%S}{suffix}.mp4"
 
         response = web.StreamResponse(
             headers={
@@ -188,7 +199,7 @@ class ExportView(CamwatchFileView):
             }
         )
         await response.prepare(request)
-        async for chunk in stream_export(self.hass, segments, base):
+        async for chunk in stream_export(self.hass, segments, base, stamp=stamp):
             await response.write(chunk)
         await response.write_eof()
         return response

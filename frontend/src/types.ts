@@ -157,6 +157,8 @@ export interface Snapshot {
   build: {
     /** The version that is installed, as the manifest states it. */
     version: string;
+    /** The server's ffmpeg can burn a clock into exports (drawtext). */
+    stamp_available: boolean;
     /** The built front-end on disk is no longer the one being served. */
     restart_pending: boolean;
   };

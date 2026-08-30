@@ -18,6 +18,7 @@
 import { LitElement, css, html, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import { errorText } from "../api";
+import { clockText } from "./player";
 import type { HomeAssistant } from "../types";
 
 type Mode = "idle" | "webrtc" | "hls" | "mjpeg" | "still" | "error";
@@ -38,6 +39,10 @@ export class CamwatchLiveStream extends LitElement {
 
   @state() private mode: Mode = "idle";
   @state() private message = "";
+  /** Ticks once a second while a live picture is showing. */
+  @state() private nowSeconds = 0;
+
+  private clockTimer?: ReturnType<typeof setInterval>;
 
   private peer?: RTCPeerConnection;
   private unsubscribe?: () => Promise<void>;
@@ -71,10 +76,30 @@ export class CamwatchLiveStream extends LitElement {
       color: var(--secondary-text-color, #bbb);
       font-size: 0.9em;
     }
+    .clock {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      background: rgba(0, 0, 0, 0.55);
+      color: #fff;
+      font-family: ui-monospace, monospace;
+      font-size: 0.8em;
+      padding: 2px 8px;
+      border-radius: 6px;
+      pointer-events: none;
+      z-index: 1;
+    }
   `;
 
   override connectedCallback(): void {
     super.connectedCallback();
+    // The live clock is this machine's NTP-synchronised time, deliberately
+    // not the camera's: their clocks drift without a time source, which is
+    // exactly why the picture no longer carries one.
+    this.nowSeconds = Date.now() / 1000;
+    this.clockTimer = setInterval(() => {
+      this.nowSeconds = Date.now() / 1000;
+    }, 1000);
     // Streaming only while on screen keeps a wall of cameras from opening a
     // connection per tile.
     this.observer = new IntersectionObserver((entries) => {
@@ -89,6 +114,8 @@ export class CamwatchLiveStream extends LitElement {
 
   override disconnectedCallback(): void {
     super.disconnectedCallback();
+    if (this.clockTimer !== undefined) clearInterval(this.clockTimer);
+    this.clockTimer = undefined;
     this.observer?.disconnect();
     this.observer = undefined;
     this.stop();
@@ -267,6 +294,12 @@ export class CamwatchLiveStream extends LitElement {
   // --------------------------------------------------------------------
 
   override render() {
+    const live = ["webrtc", "hls", "mjpeg"].includes(this.mode);
+    return html`${this.renderPicture()}
+    ${live ? html`<div class="clock">${clockText(this.nowSeconds)}</div>` : nothing}`;
+  }
+
+  private renderPicture() {
     const token = this.accessToken;
     switch (this.mode) {
       case "webrtc":

@@ -178,6 +178,26 @@ export function readVideoCodec(header: Uint8Array): string | null {
   return `avc1.${hex(profile)}${hex(compatibility)}${hex(level)}`;
 }
 
+/**
+ * The corner clock's text: date and second-exact time of the shown moment.
+ *
+ * Derived from the index rather than from the cameras' own OSD, whose clocks
+ * drift as soon as they lose their time source; the file names and fragment
+ * times come from this machine's NTP-synchronised clock.
+ */
+export function clockText(utcSeconds: number): string {
+  const at = new Date(utcSeconds * 1000);
+  return `${at.toLocaleDateString(undefined, {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  })} ${at.toLocaleTimeString(undefined, {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  })}`;
+}
+
 const isQuotaError = (err: unknown): boolean =>
   err instanceof DOMException && err.name === "QuotaExceededError";
 
@@ -201,6 +221,8 @@ export class CamwatchPlayer extends LitElement {
   @state() private message = "";
   /** A moment the cursor was dragged to at which nothing was recorded. */
   @state() private gapAt?: number;
+  /** The real time the shown frame was recorded, for the corner clock. */
+  @state() private clockUtc?: number;
 
   private media?: MediaSource;
   private withAudio = true;
@@ -242,6 +264,19 @@ export class CamwatchPlayer extends LitElement {
       text-align: center;
       padding: 12px;
       pointer-events: none;
+    }
+    .clock {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      background: rgba(0, 0, 0, 0.55);
+      color: #fff;
+      font-family: ui-monospace, monospace;
+      font-size: 0.8em;
+      padding: 2px 8px;
+      border-radius: 6px;
+      pointer-events: none;
+      z-index: 1;
     }
     .gap {
       position: absolute;
@@ -286,13 +321,20 @@ export class CamwatchPlayer extends LitElement {
       // The timeline above follows the playback through this; without it the
       // red cursor only ever moved when somebody clicked.
       if (this.placed.length > 0 && !video.seeking) {
+        const time = utcFor(this.placed, video.currentTime);
+        this.clockUtc = time;
         this.dispatchEvent(
           new CustomEvent("positionchange", {
-            detail: { time: utcFor(this.placed, video.currentTime) },
+            detail: { time },
             bubbles: true,
             composed: true,
           }),
         );
+      }
+    });
+    video.addEventListener("seeked", () => {
+      if (this.placed.length > 0) {
+        this.clockUtc = utcFor(this.placed, video.currentTime);
       }
     });
     video.addEventListener("seeking", () => this.onSeeking());
@@ -791,6 +833,9 @@ export class CamwatchPlayer extends LitElement {
   override render() {
     return html`
       <video controls playsinline></video>
+      ${this.clockUtc !== undefined && !this.message && this.gapAt === undefined
+        ? html`<div class="clock">${clockText(this.clockUtc)}</div>`
+        : nothing}
       ${this.gapAt !== undefined
         ? html`<div class="gap">
             Um ${new Date(this.gapAt * 1000).toLocaleTimeString()} liegt keine

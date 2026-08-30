@@ -550,3 +550,83 @@ def test_a_pipe_export_names_its_container() -> None:
     assert args[-3:] == ["-f", "mp4", "pipe:1"]
     flags = args[args.index("-movflags") + 1]
     assert "frag_keyframe" in flags and "empty_moov" in flags
+
+
+def test_the_stamped_export_gets_one_clock_per_segment() -> None:
+    """One shared clock base would be wrong from the first recording gap
+    onward: the joined timeline is contiguous while real time jumps."""
+    from custom_components.kustos_vision.export import stamp_concat_args
+
+    args = stamp_concat_args(
+        [(Path("/a.mp4"), 1000.0), (Path("/b.mp4"), 5000.0)],
+        height=1620,
+        with_audio=True,
+    )
+    graph = args[args.index("-filter_complex") + 1]
+    assert r"localtime\:1000\:" in graph
+    assert r"localtime\:5000\:" in graph
+    assert "concat=n=2:v=1:a=1" in graph
+    assert "fontsize=68" in graph  # 1620 / 24, rounded
+    assert args[-3:] == ["-f", "mp4", "pipe:1"]
+    assert "libx264" in args
+
+
+def test_the_stamped_export_stays_silent_for_silent_footage() -> None:
+    from custom_components.kustos_vision.export import stamp_concat_args
+
+    args = stamp_concat_args([(Path("/a.mp4"), 0.0)], height=360, with_audio=False)
+    graph = args[args.index("-filter_complex") + 1]
+    assert "a=0" in graph
+    assert "-an" in args
+    assert "aac" not in args
+
+
+def test_the_dominant_stream_wins_the_stamped_export(recorded) -> None:
+    """Mixing resolutions in a transcode would mean scaling evidence footage;
+    the stream with the most material is exported instead."""
+    from types import SimpleNamespace
+
+    from custom_components.kustos_vision.export import dominant_stream
+
+    segments = [
+        SimpleNamespace(stream_key="sd", duration_s=300.0),
+        SimpleNamespace(stream_key="hd", duration_s=200.0),
+        SimpleNamespace(stream_key="hd", duration_s=200.0),
+    ]
+    chosen = dominant_stream(segments)  # type: ignore[arg-type]
+    assert {s.stream_key for s in chosen} == {"hd"}
+
+
+async def test_the_export_passes_the_stamp_wish_on(
+    hass: HomeAssistant, hass_client, recorded
+) -> None:
+    from custom_components.kustos_vision.const import DATA_STAMP_AVAILABLE
+
+    hass.data[DATA_STAMP_AVAILABLE] = True
+    _, _, _, first = recorded
+    client = await hass_client()
+    query = f"camera=beispiel&from={first}&to={first + 3600}&stream=hd&stamp=1"
+    with patch(
+        "custom_components.kustos_vision.http_views.stream_export"
+    ) as export:
+        export.return_value = _async_bytes(b"gestempelt")
+        response = await client.get(f"/api/{DOMAIN}/export?{query}")
+    assert response.status == 200
+    assert export.call_args.kwargs["stamp"] is True
+    assert "_zeitstempel" in response.headers["Content-Disposition"]
+
+
+async def test_a_stampless_ffmpeg_refuses_honestly(
+    hass: HomeAssistant, hass_client, recorded
+) -> None:
+    """A greyed-out checkbox plus a clear refusal beat a download that
+    silently arrives without the clock that was asked for."""
+    from custom_components.kustos_vision.const import DATA_STAMP_AVAILABLE
+
+    hass.data[DATA_STAMP_AVAILABLE] = False
+    _, _, _, first = recorded
+    client = await hass_client()
+    query = f"camera=beispiel&from={first}&to={first + 3600}&stamp=1"
+    response = await client.get(f"/api/{DOMAIN}/export?{query}")
+    assert response.status == 400
+    assert "drawtext" in await response.text()

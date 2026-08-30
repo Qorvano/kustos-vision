@@ -12,6 +12,8 @@ import "../components/timeline";
 export class CamwatchRecordings extends LitElement {
   @property({ attribute: false }) api!: CamwatchApi;
   @property({ attribute: false }) cameras: Camera[] = [];
+  /** Whether the server's ffmpeg can draw the clock at all. */
+  @property({ type: Boolean }) stampAvailable = false;
 
   @state() private camera = "";
   @state() private stream = "";
@@ -25,6 +27,8 @@ export class CamwatchRecordings extends LitElement {
   /** A drag on the timeline is in progress; playback reports pause then. */
   private scrubbing = false;
   @state() private downloading = false;
+  /** Burn the recording clock into the download, at transcoding cost. */
+  @state() private stampExport = false;
   @state() private error = "";
 
   static override styles = [
@@ -76,6 +80,13 @@ export class CamwatchRecordings extends LitElement {
       }
       .page .card {
         margin-bottom: 0;
+      }
+      label.stamp {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin: 0;
+        white-space: nowrap;
       }
     `,
   ];
@@ -154,6 +165,7 @@ export class CamwatchRecordings extends LitElement {
       to: String(to),
     });
     if (this.stream) params.set("stream", this.stream);
+    if (this.stampExport && this.stampAvailable) params.set("stamp", "1");
     return `/api/kustos_vision/export?${params.toString()}`;
   }
 
@@ -293,8 +305,26 @@ export class CamwatchRecordings extends LitElement {
               >
                 Diesen Tag herunterladen
               </button>
+              <label class="stamp" title=${this.stampAvailable
+                ? "Aufnahmezeit sichtbar ins Bild schreiben"
+                : "Das ffmpeg dieser Installation kann keinen Text zeichnen"}>
+                <input
+                  type="checkbox"
+                  ?disabled=${!this.stampAvailable}
+                  .checked=${this.stampExport && this.stampAvailable}
+                  @change=${(e: Event) => {
+                    this.stampExport = (e.target as HTMLInputElement).checked;
+                  }}
+                />
+                Zeitstempel einbrennen
+              </label>
               <span class="muted">
-                Die Segmente werden ohne Neukodierung zusammengefügt.
+                ${this.stampExport && this.stampAvailable
+                  ? "Das Video wird neu kodiert und die Aufnahmezeit ins Bild geschrieben; das dauert etwa so lange wie das Material selbst." +
+                    (this.stream === "" && this.streamKeys.length > 1
+                      ? " Eingebrannt wird der Stream mit dem meisten Material; oben lässt sich ein bestimmter wählen."
+                      : "")
+                  : "Die Segmente werden ohne Neukodierung zusammengefügt."}
               </span>
             </div>`
           : nothing}

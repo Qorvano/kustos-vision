@@ -22,3 +22,6 @@ INDEX_DB_NAME: Final = "index.db"
 
 # Default name of the directory created below the media root on first setup.
 DEFAULT_DIR_NAME: Final = DOMAIN
+
+# Whether the shipped ffmpeg can burn a clock into exports (drawtext).
+DATA_STAMP_AVAILABLE = f"{DOMAIN}_stamp_available"

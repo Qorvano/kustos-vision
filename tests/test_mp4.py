@@ -84,3 +84,36 @@ def test_the_walk_reports_what_it_saw(tmp_path: Path) -> None:
     with path.open("rb") as fh:
         kinds = [b.kind for b in top_level_boxes(fh, len(data))]
     assert kinds == ["ftyp", "moov", "moof", "mdat"]
+
+
+def test_an_audio_track_is_recognised_in_the_moov(tmp_path: Path) -> None:
+    from custom_components.kustos_vision.core.mp4 import has_audio_track
+
+    with_audio = fragmented(FTYP, box("moov", b"\0" * 20 + b"mp4a" + b"\0" * 20), MOOF, MDAT)
+    without = fragmented(FTYP, MOOV, MOOF, MDAT)
+    assert has_audio_track(write(tmp_path, with_audio)) is True
+    assert has_audio_track(write(tmp_path, without)) is False
+
+
+def test_the_video_size_comes_from_the_track_header(tmp_path: Path) -> None:
+    """tkhd stores width and height as 16.16 fixed point at the end of the
+    box; the audio track's header carries zeros there and must be skipped."""
+    import struct as st
+
+    from custom_components.kustos_vision.core.mp4 import video_size
+
+    def tkhd(width: int, height: int) -> bytes:
+        # Version 0 payload per the specification: 76 bytes of fixed fields
+        # and matrix before width and height.
+        body = b"\0" * 76 + st.pack(">II", width << 16, height << 16)
+        return box("tkhd", body)
+
+    moov = box("moov", tkhd(0, 0) + tkhd(2880, 1620))
+    data = fragmented(FTYP, moov, MOOF, MDAT)
+    assert video_size(write(tmp_path, data)) == (2880, 1620)
+
+
+def test_no_video_track_means_no_size(tmp_path: Path) -> None:
+    from custom_components.kustos_vision.core.mp4 import video_size
+
+    assert video_size(write(tmp_path, fragmented(FTYP, MOOV, MOOF, MDAT))) is None

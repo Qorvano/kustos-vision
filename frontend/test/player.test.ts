@@ -11,6 +11,7 @@ import {
   utcFor,
 } from "../src/components/player";
 import { CamwatchApi, errorText } from "../src/api";
+import { clockText } from "../src/components/player";
 import type { HomeAssistant } from "../src/types";
 import { readFileSync } from "node:fs";
 import { capabilityLabel, kindsForEntity } from "../src/capabilities";
@@ -494,5 +495,27 @@ describe("scrubbing", () => {
     const source = read("components/player.ts");
     expect(source).toContain("startup.resume");
     expect(source).toMatch(/video\.play\(\)/);
+  });
+});
+
+describe("the corner clock", () => {
+  const read = (name: string) =>
+    readFileSync(new URL(`../src/${name}`, import.meta.url), "utf8");
+
+  it("renders a second-exact time", () => {
+    const text = clockText(Date.UTC(2026, 5, 15, 12, 30, 45) / 1000);
+    expect(text).toMatch(/\d{1,2}:\d{2}:\d{2}/);
+    expect(text).toMatch(/2026/);
+  });
+
+  it("both pictures carry one", () => {
+    expect(read("components/player.ts")).toContain('class="clock"');
+    expect(read("components/live-stream.ts")).toContain('class="clock"');
+  });
+
+  it("the download can ask for the burnt-in clock", () => {
+    const source = read("views/recordings.ts");
+    expect(source).toContain('params.set("stamp", "1")');
+    expect(source).toContain("Zeitstempel einbrennen");
   });
 });
