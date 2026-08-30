@@ -1,0 +1,25 @@
+{
+  "domain": "camwatch",
+  "name": "camwatch",
+  "codeowners": [
+    "@Qorvano"
+  ],
+  "config_flow": true,
+  "dependencies": [
+    "camera",
+    "ffmpeg",
+    "http",
+    "panel_custom",
+    "websocket_api"
+  ],
+  "documentation": "https://github.com/Qorvano/ha-camwatch",
+  "integration_type": "hub",
+  "iot_class": "local_polling",
+  "issue_tracker": "https://github.com/Qorvano/ha-camwatch/issues",
+  "requirements": [],
+  "single_config_entry": true,
+  "version": "0.1.0",
+  "after_dependencies": [
+    "ai_task"
+  ]
+}

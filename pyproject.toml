@@ -1,0 +1,39 @@
+[project]
+name = "ha-camwatch"
+version = "0.1.0"
+description = "Camera recording and LLM vision for Home Assistant"
+requires-python = ">=3.13"
+
+[tool.pytest.ini_options]
+# Core suite only: pure stdlib, no Home Assistant. The pytest plugin of
+# pytest-homeassistant-custom-component injects async autouse fixtures into
+# every test, so it is disabled here; the HA-layer suite lives in tests_ha/
+# and runs with its own configuration:
+#     pytest -c tests_ha/pytest.ini tests_ha
+testpaths = ["tests"]
+addopts = "-q -p no:homeassistant"
+
+[tool.ruff]
+target-version = "py313"
+line-length = 100
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle
+    "F",    # pyflakes
+    "I",    # import ordering
+    "UP",   # pyupgrade
+    "B",    # bugbear
+    "SIM",  # simplifications
+    "RUF",
+]
+ignore = [
+    # The recording tree is often on a network share whose mount options make
+    # every file look executable; the shebang rule then fires on all of them.
+    "EXE002",
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Tests read better with plain asserts and long descriptive names.
+"tests/*" = ["E501"]
+"tests_ha/*" = ["E501"]

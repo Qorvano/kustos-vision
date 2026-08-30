@@ -1,0 +1,3 @@
+# The built bundle is committed on purpose: HACS ships what is in the
+# repository and never runs a build.
+!dist/

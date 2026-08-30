@@ -1,0 +1,188 @@
+// The shapes the websocket API sends. Kept in one place so a change to the
+// Python side shows up as a type error here rather than as a blank panel.
+
+export interface StreamConfig {
+  key: string;
+  entity_id: string;
+  record: boolean;
+  audio: "transcode" | "copy" | "none";
+}
+
+export interface CapabilityBinding {
+  entity_id?: string;
+  action?: string;
+  data?: Record<string, unknown>;
+}
+
+export interface StreamState {
+  stream_key: string;
+  running: boolean;
+  restarts: number;
+  last_error: string | null;
+  recent_output: string[];
+}
+
+export interface CameraState {
+  recording: boolean;
+  paused: boolean;
+  used_bytes: number;
+  oldest_start: string | null;
+  streams: StreamState[];
+}
+
+export interface Camera {
+  slug: string;
+  name: string;
+  streams: StreamConfig[];
+  capabilities: Record<string, CapabilityBinding>;
+  retention_days: number | null;
+  enabled: boolean;
+  area_id: string | null;
+  state: CameraState;
+}
+
+export interface View {
+  id: string;
+  name: string;
+  cameras: string[];
+  icon: string;
+  columns: number;
+}
+
+export type ObservationType = "boolean" | "text" | "number" | "select";
+
+export interface Observation {
+  key: string;
+  type: ObservationType;
+  question: string;
+  device_class?: string;
+  options?: string[];
+  minimum?: number;
+  maximum?: number;
+}
+
+export interface VisionBackend {
+  kind: "ai_task" | "openai";
+  entity_id?: string;
+  url?: string;
+  model?: string;
+  api_key?: string;
+  timeout_seconds?: number;
+}
+
+export interface VisionState {
+  values: Record<string, unknown>;
+  last_run: string | null;
+  last_error: string | null;
+  running: boolean;
+  analyses_today: number;
+}
+
+export interface VisionProfile {
+  camera_slug: string;
+  backend: VisionBackend;
+  observations: Observation[];
+  triggers: string[];
+  context: string;
+  cooldown_seconds: number;
+  daily_budget: number;
+  condition_entity: string | null;
+  enabled: boolean;
+  state: VisionState;
+}
+
+export interface AnalysisRun {
+  at: string;
+  trigger: string;
+  values: Record<string, unknown>;
+  problems: Record<string, string>;
+  raw: unknown;
+  duration: number | null;
+  error: string | null;
+}
+
+export interface AiTaskEntity {
+  entity_id: string;
+  name: string;
+  available: boolean;
+}
+
+export interface Storage {
+  base_path: string;
+  segment_seconds: number;
+  max_total_bytes: number | null;
+  max_gap_seconds: number;
+}
+
+export interface Snapshot {
+  storage: Storage;
+  cameras: Camera[];
+  views: View[];
+  vision: VisionProfile[];
+  capability_keys: string[];
+  totals: {
+    used_bytes: number;
+    free_bytes: number | null;
+    over_budget_bytes: number;
+  };
+  maintenance: {
+    indexed: number;
+    deleted: number;
+    thumbnails: number;
+    error: string | null;
+  };
+}
+
+export interface TimelineBlock {
+  stream_key: string;
+  start: number;
+  end: number;
+  segments: number;
+}
+
+export interface TimelineSegment {
+  path: string;
+  stream_key: string;
+  start: number;
+  duration: number;
+  size: number;
+  thumbnail: boolean;
+}
+
+export interface Timeline {
+  blocks: TimelineBlock[];
+  segments: TimelineSegment[];
+}
+
+export interface AvailableCamera {
+  entity_id: string;
+  name: string | null;
+  device_id: string | null;
+  area_id: string | null;
+  available: boolean;
+}
+
+export interface Suggestion {
+  name: string;
+  area_id: string | null;
+  streams: { key: string; entity_id: string }[];
+  capabilities: Record<string, string>;
+  candidates: { entity_id: string; name: string }[];
+}
+
+// The slice of Home Assistant's frontend object a custom panel is handed.
+export interface HomeAssistant {
+  callWS<T>(message: Record<string, unknown>): Promise<T>;
+  connection: {
+    subscribeEvents<T>(
+      callback: (event: T) => void,
+      eventType: string,
+    ): Promise<() => Promise<void>>;
+  };
+  states: Record<string, { state: string; attributes: Record<string, unknown> }>;
+  auth: { data?: { access_token?: string } };
+  hassUrl(path?: string): string;
+  language: string;
+  themes: unknown;
+  user?: { is_admin: boolean };
+}

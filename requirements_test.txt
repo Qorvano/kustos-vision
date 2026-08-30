@@ -1,0 +1,13 @@
+# Pinned to the release that matches Home Assistant 2026.8.1, the version this
+# integration is developed against.
+pytest-homeassistant-custom-component==0.13.355
+
+# Runtime dependencies of the Home Assistant integrations camwatch declares in
+# its manifest. Home Assistant installs these itself at runtime, but the test
+# harness does not, so importing camwatch fails without them. Versions taken
+# from the respective homeassistant/components/*/manifest.json.
+ha-ffmpeg==3.2.2                    # homeassistant.components.ffmpeg
+PyTurboJPEG==1.8.3                  # homeassistant.components.camera
+home-assistant-frontend==20260729.6 # homeassistant.components.frontend
+
+ruff

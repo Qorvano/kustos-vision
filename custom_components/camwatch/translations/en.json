@@ -1,0 +1,66 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "camwatch",
+        "description": "Choose where recordings are stored. A location below the media folder also makes them show up in the media browser.",
+        "data": {
+          "base_path": "Storage location"
+        }
+      }
+    },
+    "error": {
+      "path_required": "A storage location is required.",
+      "path_not_absolute": "Enter an absolute path.",
+      "path_not_writable": "That location cannot be written to. If it is a network share, check that it is mounted."
+    },
+    "abort": {
+      "single_instance_allowed": "camwatch is already set up."
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "recording": {
+        "name": "Recording"
+      }
+    },
+    "sensor": {
+      "used_storage": {
+        "name": "Used storage"
+      },
+      "oldest_recording": {
+        "name": "Oldest recording"
+      },
+      "total_storage": {
+        "name": "Total storage"
+      },
+      "free_storage": {
+        "name": "Free storage"
+      },
+      "over_budget": {
+        "name": "Over budget"
+      }
+    },
+    "switch": {
+      "recording": {
+        "name": "Recording"
+      }
+    }
+  },
+  "services": {
+    "analyze": {
+      "name": "Analyse",
+      "description": "Hands a snapshot of the camera to the configured model and updates its observation sensors.",
+      "fields": {
+        "camera": {
+          "name": "Kamera",
+          "description": "The camwatch camera identifier, as shown in the panel."
+        },
+        "force": {
+          "name": "Cooldown ignorieren",
+          "description": "Run even if the cooldown has not elapsed. The daily budget still applies."
+        }
+      }
+    }
+  }
+}
