@@ -3,7 +3,13 @@
 // the three bytes are read from the right place.
 
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { hasAudioTrack, readVideoCodec } from "../src/components/player";
+import {
+  hasAudioTrack,
+  mediaTimeFor,
+  placeRun,
+  readVideoCodec,
+  utcFor,
+} from "../src/components/player";
 import { CamwatchApi, errorText } from "../src/api";
 import type { HomeAssistant } from "../src/types";
 import { readFileSync } from "node:fs";
@@ -350,5 +356,93 @@ describe("no file endpoint is reached without credentials", () => {
       const opening = source.slice(source.indexOf(`<${tag}`));
       expect(opening.slice(0, opening.indexOf(">"))).toContain(".api=${this.api}");
     }
+  });
+});
+
+// Regression: the media timeline used to map real time directly, so a pause
+// in recording became minutes of seekable nothing. A day with ten minutes of
+// footage around a gap read as a quarter hour of running time, and seeking
+// into the hole stalled the element for good. And with every stream of the
+// camera in one list, a run could feed two different encodings into one
+// SourceBuffer.
+describe("placing a run of segments on the media timeline", () => {
+  const sd = (start: number, duration: number) => ({
+    path: `sd-${start}`,
+    start,
+    duration,
+    stream_key: "sd",
+  });
+  const hd = (start: number, duration: number) => ({
+    path: `hd-${start}`,
+    start,
+    duration,
+    stream_key: "hd",
+  });
+
+  it("lays segments end to end with the gaps removed", () => {
+    // The measured shape of a real evening: a clip, a pause, two more clips.
+    const placed = placeRun([sd(0, 300), sd(774, 42), sd(816, 85)], 0);
+    expect(placed.map((p) => p.mediaStart)).toEqual([0, 300, 342]);
+  });
+
+  it("keeps a run to one stream even when the other overlaps it", () => {
+    const placed = placeRun(
+      [sd(0, 300), hd(0, 300), sd(300, 300), hd(300, 300)],
+      10,
+    );
+    expect(new Set(placed.map((p) => p.segment.stream_key)).size).toBe(1);
+    expect(placed).toHaveLength(2);
+  });
+
+  it("stays on the preferred stream when it also covers the moment", () => {
+    const placed = placeRun([sd(0, 300), hd(0, 300)], 10, "sd");
+    expect(placed[0].segment.stream_key).toBe("sd");
+  });
+
+  it("switches stream when only the other one has footage there", () => {
+    // SD ended in the evening, HD took over: clicking into the HD part must
+    // play HD, not jump to some later SD clip.
+    const placed = placeRun([sd(0, 300), hd(1000, 300)], 1100, "sd");
+    expect(placed[0].segment.stream_key).toBe("hd");
+  });
+
+  it("starts at the next recording when the moment falls into a gap", () => {
+    const placed = placeRun([sd(0, 300), sd(1000, 300)], 500);
+    expect(placed[0].segment.start).toBe(1000);
+    expect(placed[0].mediaStart).toBe(0);
+  });
+
+  it("is empty after the last recording", () => {
+    expect(placeRun([sd(0, 300)], 1000)).toEqual([]);
+  });
+});
+
+describe("mapping between real time and the media timeline", () => {
+  const placed = placeRun(
+    [
+      { path: "a", start: 100, duration: 300 },
+      { path: "b", start: 900, duration: 300 },
+    ],
+    0,
+  );
+
+  it("maps a moment inside a segment", () => {
+    expect(mediaTimeFor(placed, 250)).toBe(150);
+    expect(mediaTimeFor(placed, 1000)).toBe(400);
+  });
+
+  it("snaps a moment inside the gap to the segment after it", () => {
+    expect(mediaTimeFor(placed, 600)).toBe(300);
+  });
+
+  it("round-trips", () => {
+    expect(utcFor(placed, mediaTimeFor(placed, 1000))).toBe(1000);
+    expect(utcFor(placed, 0)).toBe(100);
+    expect(utcFor(placed, 450)).toBe(1050);
+  });
+
+  it("clamps beyond the end", () => {
+    expect(mediaTimeFor(placed, 5000)).toBe(600);
+    expect(utcFor(placed, 5000)).toBe(1200);
   });
 });
