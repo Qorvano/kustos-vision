@@ -2,7 +2,7 @@
 
 import { LitElement, html, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
-import type { CamwatchApi } from "../api";
+import { errorText, type CamwatchApi } from "../api";
 import { shared } from "../styles";
 import type { Camera, TimelineBlock, TimelineSegment } from "../types";
 import "../components/player";
@@ -54,7 +54,7 @@ export class CamwatchRecordings extends LitElement {
       this.day = days[days.length - 1] ?? "";
       await this.loadDay();
     } catch (err) {
-      this.error = err instanceof Error ? err.message : String(err);
+      this.error = errorText(err);
     } finally {
       this.busy = false;
     }
@@ -81,7 +81,7 @@ export class CamwatchRecordings extends LitElement {
       this.position = result.segments[0]?.start ?? from;
       this.seekTo = this.position;
     } catch (err) {
-      this.error = err instanceof Error ? err.message : String(err);
+      this.error = errorText(err);
     } finally {
       this.busy = false;
     }

@@ -37,8 +37,21 @@ export class CamwatchApi {
     });
   }
 
-  setCamera(camera: Omit<Camera, "state">): Promise<Snapshot> {
-    return this.hass.callWS({ type: `${DOMAIN}/camera/set`, ...camera });
+  /**
+   * Save a camera. `replaceExisting` distinguishes editing from adding: without
+   * it the command refuses to overwrite a camera that is already there, which
+   * is what stops a new camera from silently taking over an existing one's
+   * identifier and recording folder.
+   */
+  setCamera(
+    camera: Omit<Camera, "state">,
+    replaceExisting = false,
+  ): Promise<Snapshot> {
+    return this.hass.callWS({
+      type: `${DOMAIN}/camera/set`,
+      replace_existing: replaceExisting,
+      ...camera,
+    });
   }
 
   deleteCamera(slug: string): Promise<Snapshot> {
@@ -128,6 +141,33 @@ export class CamwatchApi {
   rebuildIndex(): Promise<Snapshot> {
     return this.hass.callWS({ type: `${DOMAIN}/index/rebuild` });
   }
+}
+
+/**
+ * Turn whatever a failed call threw into something worth showing.
+ *
+ * The websocket client rejects with a plain `{code, message}` object rather
+ * than an Error, so the usual `err instanceof Error ? err.message : String(err)`
+ * renders it as "[object Object]" and the reason the call was refused never
+ * reaches the person who has to act on it.
+ */
+export function errorText(err: unknown): string {
+  if (err instanceof Error) return err.message;
+  if (typeof err === "string") return err;
+  if (err && typeof err === "object") {
+    const record = err as { message?: unknown; error?: unknown; code?: unknown };
+    if (typeof record.message === "string") return record.message;
+    if (typeof record.error === "string") return record.error;
+    if (typeof record.code === "string") return record.code;
+    // Something unforeseen. Its contents beat "[object Object]", which tells
+    // the reader nothing at all about what went wrong.
+    try {
+      return JSON.stringify(err);
+    } catch {
+      return "Unbekannter Fehler";
+    }
+  }
+  return err === undefined || err === null ? "Unbekannter Fehler" : String(err);
 }
 
 /** Human-readable byte count, for storage figures. */

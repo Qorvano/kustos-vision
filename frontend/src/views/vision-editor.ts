@@ -7,7 +7,7 @@
 
 import { LitElement, html, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
-import type { CamwatchApi } from "../api";
+import { errorText, type CamwatchApi } from "../api";
 import { shared } from "../styles";
 import type {
   AiTaskEntity,
@@ -115,7 +115,7 @@ export class CamwatchVisionEditor extends LitElement {
       });
       this.dispatchEvent(new CustomEvent("saved", { bubbles: true, composed: true }));
     } catch (err) {
-      this.error = err instanceof Error ? err.message : String(err);
+      this.error = errorText(err);
     } finally {
       this.busy = false;
     }
@@ -139,7 +139,7 @@ export class CamwatchVisionEditor extends LitElement {
       }
       await this.loadHistory();
     } catch (err) {
-      this.error = err instanceof Error ? err.message : String(err);
+      this.error = errorText(err);
     } finally {
       this.busy = false;
     }

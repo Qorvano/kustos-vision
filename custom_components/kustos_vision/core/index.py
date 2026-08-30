@@ -222,19 +222,26 @@ class SegmentIndex:
         with self._connect() as conn:
             return conn.execute("SELECT COUNT(*) FROM segments").fetchone()[0]
 
-    def largest_segment_bytes(self) -> int:
-        """Size of the biggest segment on record.
+    def largest_segment_by_stream(self) -> dict[tuple[str, str], int]:
+        """Biggest segment of each camera and stream.
 
-        Used to size the headroom the retention run keeps free: between two
-        runs each stream can add at most one more segment, so the largest one
-        seen is the right unit to measure that growth in. Measuring it beats
-        assuming a bitrate, because it adapts to whatever the cameras actually
-        produce.
+        Per stream rather than overall, because that is what the headroom
+        derivation actually says: between two retention runs each stream adds
+        at most one more segment, so the bound is the SUM of the per-stream
+        maxima. Taking one global maximum and multiplying it by the number of
+        streams is only equal to that when every stream is identical, and
+        wildly larger when one is not: a single oversized segment would inflate
+        the headroom by the stream count and delete unrelated footage to make
+        room for it.
         """
         with self._connect() as conn:
-            return conn.execute(
-                "SELECT COALESCE(MAX(size_bytes), 0) FROM segments"
-            ).fetchone()[0]
+            return {
+                (row["camera_slug"], row["stream_key"]): row["biggest"]
+                for row in conn.execute(
+                    "SELECT camera_slug, stream_key, MAX(size_bytes) AS biggest "
+                    "FROM segments GROUP BY camera_slug, stream_key"
+                )
+            }
 
     def total_bytes(self) -> int:
         with self._connect() as conn:

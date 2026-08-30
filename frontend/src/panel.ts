@@ -7,7 +7,7 @@
 
 import { LitElement, css, html, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
-import { CamwatchApi } from "./api";
+import { CamwatchApi, errorText } from "./api";
 import { shared } from "./styles";
 import type { HomeAssistant, Snapshot } from "./types";
 import "./views/live";
@@ -92,7 +92,7 @@ export class CamwatchPanel extends LitElement {
         this.active = this.snapshot.views[0]?.id ?? SETTINGS_TAB;
       }
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
+      const message = errorText(err);
       this.error = message;
     }
   }

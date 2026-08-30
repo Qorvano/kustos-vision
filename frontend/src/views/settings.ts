@@ -6,7 +6,7 @@
 
 import { LitElement, html, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
-import { formatBytes, type CamwatchApi } from "../api";
+import { errorText, formatBytes, type CamwatchApi } from "../api";
 import { shared } from "../styles";
 import type { AvailableCamera, Camera, Snapshot, View } from "../types";
 import "./camera-editor";
@@ -50,7 +50,7 @@ export class CamwatchSettings extends LitElement {
       await work();
       await this.refresh();
     } catch (err) {
-      this.error = err instanceof Error ? err.message : String(err);
+      this.error = errorText(err);
     } finally {
       this.busy = false;
     }
@@ -62,7 +62,7 @@ export class CamwatchSettings extends LitElement {
       this.available = (await this.api.availableCameras()).cameras;
       this.adding = true;
     } catch (err) {
-      this.error = err instanceof Error ? err.message : String(err);
+      this.error = errorText(err);
     }
   }
 

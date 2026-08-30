@@ -271,13 +271,22 @@ CAMERA_SCHEMA = {
 
 @websocket_api.require_admin
 @websocket_api.websocket_command(
-    {vol.Required("type"): f"{DOMAIN}/camera/set", **CAMERA_SCHEMA}
+    {
+        vol.Required("type"): f"{DOMAIN}/camera/set",
+        vol.Optional("replace_existing", default=False): bool,
+        **CAMERA_SCHEMA,
+    }
 )
 @websocket_api.async_response
 async def ws_set_camera(
     hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict
 ) -> None:
-    """Add a camera, or replace one that already exists."""
+    """Add a camera, or update one when replace_existing says so.
+
+    The flag is what separates the two. Without it this command was a blind
+    upsert, so adding a camera under a name that already existed replaced that
+    camera and pointed both at the same recording folder.
+    """
     if (coordinator := _require(hass, connection, msg)) is None:
         return
     try:
@@ -295,6 +304,17 @@ async def ws_set_camera(
         )
     except ConfigError as err:
         connection.send_error(msg["id"], "invalid_config", str(err))
+        return
+
+    replacing = camera.slug if msg["replace_existing"] else None
+    if msg["replace_existing"] and coordinator.config.camera(camera.slug) is None:
+        connection.send_error(
+            msg["id"], "not_found", f"no camera '{camera.slug}' to update"
+        )
+        return
+
+    if conflicts := coordinator.config.camera_conflicts(camera, replacing):
+        connection.send_error(msg["id"], "duplicate", "; ".join(conflicts))
         return
 
     await coordinator.async_set_config(coordinator.config.with_camera(camera))

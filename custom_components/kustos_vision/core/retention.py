@@ -36,23 +36,39 @@ HEADROOM_INTERVALS = 2
 MINIMUM_HEADROOM_BYTES = 2 * 1024**3
 
 
-def headroom_bytes(largest_segment_bytes: int, stream_count: int) -> int:
+# The headroom may never take more than this share of the volume. Without a
+# ceiling, one anomalous segment could make the reserve exceed the capacity,
+# the budget collapse to nothing, and every recording be deleted. A volume
+# where half the space is reserve is already too small for the installation,
+# and keeping half of it is the better answer than keeping none.
+MAX_HEADROOM_SHARE = 0.5
+
+
+def headroom_bytes(
+    largest_by_stream: Mapping[tuple[str, str], int], capacity: int = 0
+) -> int:
     """How much room to leave free above the recordings.
 
     Derived from the topology rather than picked: a retention run happens once
-    per segment length, and between two runs each recorded stream can add at
-    most one more segment. The largest segment seen so far times the number of
-    streams is therefore an upper bound on that growth, and the interval factor
-    covers a run that does not happen on time.
+    per segment length, and between two runs each recorded stream adds at most
+    one more segment. The bound is therefore the SUM of the per-stream maxima,
+    not one global maximum times the stream count, which would be equal only if
+    every stream were identical and far larger when one is not.
 
     This also absorbs the preview images, which are not counted in the index
     and would otherwise sit outside the budget entirely. They are three orders
     of magnitude smaller than the segments they belong to.
+
+    ``capacity`` caps the result, so a pathological segment cannot make the
+    reserve swallow the whole volume.
     """
-    if largest_segment_bytes < 0 or stream_count < 0:
-        raise ValueError("sizes and counts must not be negative")
-    measured = largest_segment_bytes * stream_count * HEADROOM_INTERVALS
-    return max(MINIMUM_HEADROOM_BYTES, measured)
+    if any(size < 0 for size in largest_by_stream.values()):
+        raise ValueError("sizes must not be negative")
+    measured = sum(largest_by_stream.values()) * HEADROOM_INTERVALS
+    headroom = max(MINIMUM_HEADROOM_BYTES, measured)
+    if capacity > 0:
+        headroom = min(headroom, int(capacity * MAX_HEADROOM_SHARE))
+    return headroom
 
 
 def usable_capacity(free_bytes: int, used_by_us_bytes: int) -> int:

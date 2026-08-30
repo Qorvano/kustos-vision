@@ -172,14 +172,20 @@ async def test_adding_a_camera_creates_its_entities(
     assert hass.states.async_entity_ids("switch")
 
 
-async def test_setting_an_existing_camera_replaces_it(
+async def test_updating_an_existing_camera_replaces_it(
     hass: HomeAssistant, hass_ws_client, setup_kustos_vision
 ) -> None:
+    """Replacing happens only when the caller says it is editing. Without the
+    flag this was a blind upsert, which is how adding a camera under an
+    existing name wiped that camera out."""
     await setup_kustos_vision([camera_dict()])
     client = await hass_ws_client(hass)
 
     result = await send(
-        client, type=f"{DOMAIN}/camera/set", **camera_dict(name="Neuer Name")
+        client,
+        type=f"{DOMAIN}/camera/set",
+        replace_existing=True,
+        **camera_dict(name="Neuer Name"),
     )
     assert len(result["result"]["cameras"]) == 1
     assert result["result"]["cameras"][0]["name"] == "Neuer Name"
@@ -771,3 +777,107 @@ async def test_the_budget_can_still_be_cleared(
     result = await send(client, type=f"{DOMAIN}/storage/set", max_total_bytes=None)
     assert result["success"]
     assert result["result"]["storage"]["max_total_bytes"] is None
+
+
+# ----------------------------------------------------------------------
+# Duplicates
+# ----------------------------------------------------------------------
+
+
+async def test_adding_a_camera_over_an_existing_one_is_refused(
+    hass: HomeAssistant, hass_ws_client, setup_kustos_vision
+) -> None:
+    """Regression, reported from real use: adding a SECOND camera and giving it
+    the name of an existing one silently replaced that one. The name derives
+    the slug, the slug is the directory, so both cameras then recorded into the
+    same folder and their footage became indistinguishable.
+    """
+    await setup_kustos_vision([camera_dict(slug="hof", name="Hof")])
+    client = await hass_ws_client(hass)
+
+    result = await send(
+        client,
+        type=f"{DOMAIN}/camera/set",
+        **camera_dict(
+            slug="hof",
+            name="Hof",
+            streams=[{"key": "hd", "entity_id": "camera.eine_ganz_andere"}],
+        ),
+    )
+    assert not result["success"]
+    assert result["error"]["code"] == "duplicate"
+
+
+async def test_the_existing_camera_survives_a_refused_duplicate(
+    hass: HomeAssistant, hass_ws_client, setup_kustos_vision
+) -> None:
+    entry = await setup_kustos_vision([camera_dict(slug="hof", name="Hof")])
+    client = await hass_ws_client(hass)
+
+    await send(
+        client,
+        type=f"{DOMAIN}/camera/set",
+        **camera_dict(
+            slug="hof",
+            name="Hof",
+            streams=[{"key": "hd", "entity_id": "camera.eine_ganz_andere"}],
+        ),
+    )
+
+    kept = entry.runtime_data.config.camera("hof")
+    assert kept is not None
+    assert kept.streams[0].entity_id == "camera.hof_hd"
+
+
+async def test_a_duplicate_name_under_a_different_slug_is_refused(
+    hass: HomeAssistant, hass_ws_client, setup_kustos_vision
+) -> None:
+    """Two cameras called the same thing are indistinguishable everywhere the
+    user looks, even when their folders differ."""
+    await setup_kustos_vision([camera_dict(slug="hof", name="Hof")])
+    client = await hass_ws_client(hass)
+
+    result = await send(
+        client, type=f"{DOMAIN}/camera/set", **camera_dict(slug="hof2", name="Hof")
+    )
+    assert not result["success"]
+    assert result["error"]["code"] == "duplicate"
+
+
+async def test_a_stream_entity_cannot_be_recorded_by_two_cameras(
+    hass: HomeAssistant, hass_ws_client, setup_kustos_vision
+) -> None:
+    """Two cameras on the same entity would pull and store the same stream
+    twice, for twice the disk and nothing gained."""
+    await setup_kustos_vision([camera_dict(slug="hof", name="Hof")])
+    client = await hass_ws_client(hass)
+
+    result = await send(
+        client,
+        type=f"{DOMAIN}/camera/set",
+        **camera_dict(
+            slug="zweiter",
+            name="Zweiter Blick",
+            streams=[{"key": "hd", "entity_id": "camera.hof_hd"}],
+        ),
+    )
+    assert not result["success"]
+    assert result["error"]["code"] == "duplicate"
+
+
+async def test_editing_a_camera_still_works(
+    hass: HomeAssistant, hass_ws_client, setup_kustos_vision
+) -> None:
+    """The duplicate check must not make a camera uneditable: saving it back
+    over itself is the normal case, not a collision."""
+    await setup_kustos_vision([camera_dict(slug="hof", name="Hof")])
+    client = await hass_ws_client(hass)
+
+    result = await send(
+        client,
+        type=f"{DOMAIN}/camera/set",
+        replace_existing=True,
+        **camera_dict(slug="hof", name="Hof umbenannt"),
+    )
+    assert result["success"]
+    assert result["result"]["cameras"][0]["name"] == "Hof umbenannt"

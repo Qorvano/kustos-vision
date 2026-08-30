@@ -210,21 +210,37 @@ class MaintenanceRunner:
         # having a preview is not worth a warning every run.
         return code == 0 and await self._run(target.is_file)
 
-    async def async_ceiling(self, config: CamwatchConfig, base: Path) -> int:
+    async def async_ceiling(
+        self, config: CamwatchConfig, base: Path
+    ) -> int | None:
         """The largest size limit that makes sense at this location.
 
         Everything the recordings could occupy, minus the headroom a retention
-        run needs to work with. Both the automatic fallback and the check on a
-        user-entered budget go through here, so the two can never disagree
-        about what fits.
+        run needs. Both the automatic fallback and the check on a user-entered
+        budget go through here, so the two cannot disagree about what fits.
+
+        Returns None when the free space cannot be read. That is deliberate and
+        it matters: treating an unreadable volume as a full one would make the
+        automatic budget equal to what is already recorded minus the headroom,
+        so every run would delete one headroom of the oldest footage and the
+        next run would compute an even lower budget from the result. A remote
+        mount whose statfs is unsupported or briefly failing would have its
+        entire archive deleted that way, on a disk with plenty of room.
+        Unknown is not full.
         """
         usage = await self._run(_disk_usage, base)
-        used = await self._run(self._index.total_bytes)
-        largest = await self._run(self._index.largest_segment_bytes)
-        streams = sum(len(camera.recorded_streams) for camera in config.cameras)
+        if usage is None:
+            _LOGGER.warning(
+                "kustos_vision: cannot read the free space at %s, so no size "
+                "limit is applied this round; age limits still apply",
+                base,
+            )
+            return None
 
-        capacity = usable_capacity(usage.free if usage else 0, used)
-        return effective_budget(None, capacity, headroom_bytes(largest, streams))
+        used = await self._run(self._index.total_bytes)
+        per_stream = await self._run(self._index.largest_segment_by_stream)
+        capacity = usable_capacity(usage.free, used)
+        return effective_budget(None, capacity, headroom_bytes(per_stream, capacity))
 
     async def _async_budget(self, config: CamwatchConfig, base: Path) -> int:
         """The size limit this run applies, configured or not.
@@ -235,6 +251,11 @@ class MaintenanceRunner:
         assumed: see ``core.retention.headroom_bytes``.
         """
         ceiling = await self.async_ceiling(config, base)
+        if ceiling is None:
+            # Nothing measurable to bound the recordings by. A configured
+            # budget still applies; an unmeasurable volume must not invent one.
+            return config.storage.max_total_bytes
+
         budget = effective_budget(config.storage.max_total_bytes, ceiling, 0)
 
         if budget <= 0:
@@ -258,6 +279,8 @@ class MaintenanceRunner:
             max_age_days=config.retention_days_by_camera,
             max_total_bytes=await self._async_budget(config, base),
         )
+        if not policy.is_active:
+            return RetentionPlan()
 
         segments = await self._run(self._index.oldest_first)
         plan = plan_retention(segments, policy, dt_util.utcnow().timestamp())

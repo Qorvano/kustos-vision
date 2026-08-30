@@ -4,6 +4,7 @@
 
 import { describe, expect, it } from "vitest";
 import { hasAudioTrack, readVideoCodec } from "../src/components/player";
+import { errorText } from "../src/api";
 
 /** A byte run with an avcC box carrying the given profile, flags and level. */
 function withAvcC(profile: number, compat: number, level: number): Uint8Array {
@@ -75,5 +76,37 @@ describe("hasAudioTrack", () => {
 
   it("reports none for an empty buffer rather than throwing", () => {
     expect(hasAudioTrack(new Uint8Array())).toBe(false);
+  });
+});
+
+describe("errorText", () => {
+  it("reads the message a websocket rejection carries", () => {
+    // The client rejects with a plain object, not an Error. Rendering that
+    // with String() gives "[object Object]" and the reason never reaches the
+    // person who has to act on it.
+    expect(errorText({ code: "duplicate", message: "already in use" })).toBe(
+      "already in use",
+    );
+  });
+
+  it("reads a real Error", () => {
+    expect(errorText(new Error("kaputt"))).toBe("kaputt");
+  });
+
+  it("passes a string through", () => {
+    expect(errorText("kaputt")).toBe("kaputt");
+  });
+
+  it("falls back to the code when there is no message", () => {
+    expect(errorText({ code: "not_found" })).toBe("not_found");
+  });
+
+  it("never renders an object as [object Object]", () => {
+    expect(errorText({ unexpected: true })).not.toContain("[object Object]");
+  });
+
+  it("survives null and undefined", () => {
+    expect(typeof errorText(null)).toBe("string");
+    expect(typeof errorText(undefined)).toBe("string");
   });
 });

@@ -7,7 +7,7 @@
 
 import { LitElement, html, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
-import type { CamwatchApi } from "../api";
+import { errorText, type CamwatchApi } from "../api";
 import type {
   AvailableCamera,
   CapabilityBinding,
@@ -86,7 +86,7 @@ export class CamwatchCameraEditor extends LitElement {
       );
       this.candidates = suggestion.candidates;
     } catch (err) {
-      this.error = err instanceof Error ? err.message : String(err);
+      this.error = errorText(err);
     } finally {
       this.busy = false;
     }
@@ -109,18 +109,22 @@ export class CamwatchCameraEditor extends LitElement {
     this.busy = true;
     this.error = "";
     try {
-      await this.api.setCamera({
-        slug: this.slug,
-        name: this.name,
-        streams: this.streams,
-        capabilities: this.capabilities,
-        retention_days: this.retentionDays,
-        enabled: this.enabled,
-        area_id: this.camera?.area_id ?? null,
-      });
+      await this.api.setCamera(
+        {
+          slug: this.slug,
+          name: this.name,
+          streams: this.streams,
+          capabilities: this.capabilities,
+          retention_days: this.retentionDays,
+          enabled: this.enabled,
+          area_id: this.camera?.area_id ?? null,
+        },
+        // Editing an existing camera is the only case allowed to replace one.
+        this.camera !== undefined,
+      );
       this.dispatchEvent(new CustomEvent("saved", { bubbles: true, composed: true }));
     } catch (err) {
-      this.error = err instanceof Error ? err.message : String(err);
+      this.error = errorText(err);
     } finally {
       this.busy = false;
     }

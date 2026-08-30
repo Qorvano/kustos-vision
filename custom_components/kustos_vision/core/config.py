@@ -438,8 +438,58 @@ class CamwatchConfig:
     def camera(self, slug: str) -> CameraConfig | None:
         return next((c for c in self.cameras if c.slug == slug), None)
 
+    def camera_conflicts(
+        self, camera: CameraConfig, replacing: str | None = None
+    ) -> list[str]:
+        """Reasons this camera cannot be saved, phrased for the user.
+
+        ``replacing`` names the camera being edited, which is exempt from every
+        check: saving a camera back over itself is the normal case, not a
+        collision.
+
+        The identifier check is the important one. It derives from the name, it
+        is the directory recordings are written into, and adding a second
+        camera under an existing identifier used to replace the first one
+        outright. Both cameras then recorded into the same folder and their
+        footage became indistinguishable, with the older configuration gone.
+        """
+        others = [c for c in self.cameras if c.slug != replacing]
+        problems: list[str] = []
+
+        if any(c.slug == camera.slug for c in others):
+            problems.append(
+                f"another camera already uses the identifier '{camera.slug}', "
+                "and it decides which folder recordings are written to"
+            )
+
+        wanted = camera.name.strip().casefold()
+        clash = next((c for c in others if c.name.strip().casefold() == wanted), None)
+        if clash is not None:
+            problems.append(
+                f"another camera is already called '{clash.name}', which would "
+                "make the two impossible to tell apart"
+            )
+
+        taken = {
+            stream.entity_id: other.name
+            for other in others
+            for stream in other.streams
+        }
+        for stream in camera.streams:
+            if stream.entity_id in taken:
+                problems.append(
+                    f"'{stream.entity_id}' is already used by "
+                    f"'{taken[stream.entity_id]}', so it would be pulled and "
+                    "stored twice"
+                )
+        return problems
+
     def with_camera(self, camera: CameraConfig) -> Self:
-        """Return a copy with this camera added or replaced."""
+        """Return a copy with this camera added or replaced.
+
+        Replacing is intended for editing. Callers adding a camera must check
+        ``camera_conflicts`` first; this method cannot tell the two apart.
+        """
         others = tuple(c for c in self.cameras if c.slug != camera.slug)
         return replace(self, cameras=(*others, camera))
 

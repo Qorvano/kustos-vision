@@ -305,26 +305,46 @@ def test_planning_over_an_empty_tree_is_harmless() -> None:
 # ----------------------------------------------------------------------
 
 
-def test_headroom_scales_with_what_is_actually_recorded() -> None:
-    """A retention run happens once per segment length, and between two runs
-    each stream can add at most one more segment. Measuring the largest segment
-    seen beats assuming a bitrate, because it adapts to the cameras."""
-    one_segment = 500 * 1024**2  # a large 4K segment
-    assert headroom_bytes(one_segment, 4) == one_segment * 4 * HEADROOM_INTERVALS
+def test_headroom_sums_the_streams_rather_than_scaling_one() -> None:
+    """Each stream adds at most one segment between runs, so the bound is the
+    sum of the per-stream maxima."""
+    big = 500 * 1024**2
+    per_stream = {("a", "hd"): big, ("b", "hd"): big, ("c", "sd"): big}
+    assert headroom_bytes(per_stream) == big * 3 * HEADROOM_INTERVALS
+
+
+def test_one_oversized_segment_does_not_inflate_every_stream() -> None:
+    """Regression: the headroom used one global maximum times the stream count.
+    A single anomalous segment therefore reserved that size for every stream
+    and deleted unrelated footage to make room for a file only one camera
+    produced."""
+    small, huge = 16 * 1024**2, 3 * 1024**3
+    per_stream = {("a", "sd"): small, ("b", "sd"): small, ("c", "hd"): huge}
+
+    honest = headroom_bytes(per_stream)
+    naive = max(per_stream.values()) * len(per_stream) * HEADROOM_INTERVALS
+    assert honest < naive
+    assert honest == (small + small + huge) * HEADROOM_INTERVALS
+
+
+def test_headroom_never_takes_more_than_half_the_volume() -> None:
+    """Without a cap, one pathological segment makes the reserve exceed the
+    capacity, the budget collapse to nothing, and everything be deleted."""
+    huge = {("a", "hd"): 100 * 1024**3}
+    capacity = 20 * 1024**3
+    assert headroom_bytes(huge, capacity) == capacity // 2
 
 
 def test_headroom_never_falls_below_its_floor() -> None:
     """Before anything is indexed there is nothing to measure, and a headroom
     of zero would let the disk fill completely."""
-    assert headroom_bytes(0, 0) == MINIMUM_HEADROOM_BYTES
-    assert headroom_bytes(1024, 1) == MINIMUM_HEADROOM_BYTES
+    assert headroom_bytes({}) == MINIMUM_HEADROOM_BYTES
+    assert headroom_bytes({("a", "sd"): 1024}) == MINIMUM_HEADROOM_BYTES
 
 
 def test_headroom_rejects_nonsense_inputs() -> None:
     with pytest.raises(ValueError):
-        headroom_bytes(-1, 1)
-    with pytest.raises(ValueError):
-        headroom_bytes(1, -1)
+        headroom_bytes({("a", "sd"): -1})
 
 
 def test_capacity_counts_what_deleting_would_free() -> None:

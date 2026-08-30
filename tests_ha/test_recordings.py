@@ -368,3 +368,64 @@ async def test_retention_runs_even_without_a_configured_budget(
 
     after = await hass.async_add_executor_job(index.oldest_first)
     assert len(after) < len(before), "nothing was freed despite a full volume"
+
+
+async def test_an_unreadable_volume_does_not_delete_anything(
+    hass: HomeAssistant, recorded, monkeypatch
+) -> None:
+    """Regression, found by review: a failed free-space reading was folded into
+    the budget as "zero free", which made the automatic budget equal to what is
+    already recorded minus the headroom. Every run then deleted one headroom of
+    the oldest footage, and the next run computed an even lower budget from the
+    result. A remote mount whose statfs is unsupported or briefly failing would
+    lose its entire archive that way, on a disk with plenty of room.
+    """
+    entry, _base, _files, _ = recorded
+    coordinator = entry.runtime_data
+    index = coordinator.index
+    before = await hass.async_add_executor_job(index.oldest_first)
+    assert len(before) == 3
+
+    monkeypatch.setattr(
+        "custom_components.kustos_vision.maintenance._disk_usage",
+        lambda _p: None,
+    )
+
+    for _ in range(3):
+        await coordinator.async_refresh()
+        await hass.async_block_till_done()
+
+    after = await hass.async_add_executor_job(index.oldest_first)
+    assert len(after) == len(before), "recordings were deleted on an unmeasurable volume"
+
+
+async def test_an_unreadable_volume_still_honours_a_configured_budget(
+    hass: HomeAssistant, recorded, monkeypatch
+) -> None:
+    """Not measuring the volume is a reason not to invent a limit, not a reason
+    to ignore one the user set."""
+    entry, _base, _files, _ = recorded
+    coordinator = entry.runtime_data
+    index = coordinator.index
+    rows = await hass.async_add_executor_job(index.oldest_first)
+    budget = sum(r.size_bytes for r in rows) // 2
+
+    monkeypatch.setattr(
+        "custom_components.kustos_vision.maintenance._disk_usage",
+        lambda _p: None,
+    )
+    storage = coordinator.config.storage
+    await coordinator.async_set_config(
+        coordinator.config.with_storage(
+            type(storage)(
+                base_path=storage.base_path,
+                segment_seconds=storage.segment_seconds,
+                max_total_bytes=budget,
+            )
+        )
+    )
+    await coordinator.async_refresh()
+    await hass.async_block_till_done()
+
+    after = await hass.async_add_executor_job(index.oldest_first)
+    assert len(after) < len(rows)
