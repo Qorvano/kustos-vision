@@ -145,6 +145,8 @@ export const BUILT_VERSION = __KUSTOS_VISION_VERSION__;
 
 export interface Snapshot {
   storage: Storage;
+  /** Why the recording location cannot be used right now, or null. */
+  storage_error?: string | null;
   cameras: Camera[];
   views: View[];
   vision: VisionProfile[];

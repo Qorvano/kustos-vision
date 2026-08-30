@@ -223,3 +223,19 @@ def prune_empty_day_dirs(base: Path, keep: Iterable[Path] = ()) -> list[Path]:
                 continue
             removed.append(entry)
     return removed
+
+
+def prepare_storage(base: Path) -> None:
+    """Make sure the recording location exists and can be written to.
+
+    Raises OSError with the real reason when it cannot; the caller decides
+    what that means. A network share that failed to mount surfaces here as a
+    read-only placeholder, measured live as [Errno 30] on a mount the
+    supervisor could not bring up after a crash.
+    """
+    base.mkdir(parents=True, exist_ok=True)
+    probe = base / ".kustos-vision-write-test"
+    try:
+        probe.write_bytes(b"")
+    finally:
+        probe.unlink(missing_ok=True)

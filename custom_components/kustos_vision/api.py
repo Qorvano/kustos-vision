@@ -164,6 +164,10 @@ def _snapshot(coordinator: CamwatchCoordinator) -> dict[str, Any]:
             for view in coordinator.config.views
         ],
         "capability_keys": list(CAPABILITY_KEYS),
+        # Why the recording location cannot be used right now, or None. The
+        # panel shows this as a banner, because a camera page that silently
+        # records nothing is the worst way to find out.
+        "storage_error": coordinator.storage_error,
         "totals": {
             "used_bytes": data.total_bytes if data else 0,
             "free_bytes": data.free_bytes if data else None,

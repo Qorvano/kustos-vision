@@ -150,6 +150,24 @@ export class CamwatchPanel extends LitElement {
    * out is to know how browser caches and panel registration behave. Neither
    * is something anybody should have to know to see their own settings.
    */
+  /**
+   * Say so when nothing is being recorded because the location is gone.
+   *
+   * The integration loads anyway in that state, precisely so this banner and
+   * the settings behind it exist: the location can only be changed here.
+   */
+  private renderStorageNotice(snapshot: Snapshot) {
+    if (!snapshot.storage_error) return nothing;
+    return html`<div class="stale">
+      <span>
+        Der Aufnahmeort ist nicht beschreibbar, die Aufzeichnung ist pausiert:
+        ${snapshot.storage_error}. Sie startet von selbst, sobald der Ort
+        wieder verfügbar ist; ändern lässt er sich unter Einstellungen,
+        Speicher.
+      </span>
+    </div>`;
+  }
+
   private renderStaleNotice(snapshot: Snapshot) {
     const installed = snapshot.build?.version;
     if (snapshot.build?.restart_pending) {
@@ -188,6 +206,7 @@ export class CamwatchPanel extends LitElement {
 
     return html`
       ${this.renderStaleNotice(snapshot)}
+      ${this.renderStorageNotice(snapshot)}
       <div class="tabs">
         ${snapshot.views.map(
           (v) => html`

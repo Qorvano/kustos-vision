@@ -53,16 +53,6 @@ def _index_path(hass: HomeAssistant) -> Path:
     return Path(hass.config.path(LOCAL_STATE_DIR)) / INDEX_DB_NAME
 
 
-def _prepare_storage(base: Path) -> None:
-    """Make sure the recording location exists and can be written to."""
-    base.mkdir(parents=True, exist_ok=True)
-    probe = base / ".kustos-vision-write-test"
-    try:
-        probe.write_bytes(b"")
-    finally:
-        probe.unlink(missing_ok=True)
-
-
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Register the websocket API and the panel, once per Home Assistant run.
 
@@ -97,16 +87,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: CamwatchEntry) -> bool:
     except ConfigError as err:
         raise ConfigEntryNotReady(f"stored configuration is unusable: {err}") from err
 
-    base = Path(config.storage.base_path)
-    try:
-        await hass.async_add_executor_job(_prepare_storage, base)
-    except OSError as err:
-        # Typically a network share that has not mounted yet, which is worth
-        # retrying rather than failing setup outright.
-        raise ConfigEntryNotReady(
-            f"the recording location {base} is not writable: {err}"
-        ) from err
-
+    # Deliberately NO check of the recording location here. The location can
+    # only be changed inside the panel, and the panel only exists while the
+    # integration is loaded: refusing to load over an unavailable path locked
+    # the one door that leads to fixing it. The coordinator probes the path
+    # every cycle instead, pauses recording with a visible reason while it is
+    # gone, and starts on its own the moment it is back.
     index = SegmentIndex(_index_path(hass))
     try:
         await hass.async_add_executor_job(index.initialise)

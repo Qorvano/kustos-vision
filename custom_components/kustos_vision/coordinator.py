@@ -19,6 +19,7 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from .const import DOMAIN
 from .core.config import CamwatchConfig
 from .core.index import SegmentIndex
+from .core.paths import prepare_storage
 from .maintenance import MaintenanceResult, MaintenanceRunner, interval_for
 from .recorder import RecorderManager, StreamStatus
 from .storage import CamwatchStore
@@ -87,14 +88,27 @@ class CamwatchCoordinator(DataUpdateCoordinator[CamwatchData]):
         self.recorder = RecorderManager(hass, self._on_recorder_change)
         self.maintenance = MaintenanceRunner(hass, index)
         self.vision = VisionRunner(hass, self)
+        # Why the recording location cannot be used right now, or None. The
+        # location is probed every cycle rather than once at setup: the one
+        # place it can be changed is the panel, and the panel only exists
+        # while the integration is loaded, so an unavailable path must never
+        # keep the integration down. Measured live: a network share that
+        # failed to mount after a crash left a read-only placeholder, and
+        # setup-retry locked the user out of their own settings.
+        self.storage_error: str | None = None
+        self._storage_ready = False
 
     # ------------------------------------------------------------------
     # Lifecycle
     # ------------------------------------------------------------------
 
     async def async_start(self) -> None:
-        """Begin recording, start watching triggers, run the first pass."""
-        await self.recorder.async_apply(self.config.storage, self.config.cameras)
+        """Start watching triggers and run the first pass.
+
+        Recording is not started here but by the first update cycle, through
+        the same not-ready-to-ready transition that later brings it back when
+        a vanished recording location reappears. One code path for both.
+        """
         self.vision.async_apply(self.config)
         await self.async_config_entry_first_refresh()
 
@@ -113,6 +127,12 @@ class CamwatchCoordinator(DataUpdateCoordinator[CamwatchData]):
         previous = self.config
         await self.store.async_save(config)
         self.config = config
+
+        # The panel validated the new location before this was called, so the
+        # next cycle's probe is expected to agree; setting the state directly
+        # spares the panel from showing a stale warning until then.
+        self.storage_error = None
+        self._storage_ready = True
 
         if config.storage.segment_seconds != previous.storage.segment_seconds:
             self.update_interval = timedelta(
@@ -151,6 +171,13 @@ class CamwatchCoordinator(DataUpdateCoordinator[CamwatchData]):
     # ------------------------------------------------------------------
 
     async def _async_update_data(self) -> CamwatchData:
+        await self._async_reconcile_storage()
+        if self.storage_error is not None:
+            # No directory creation, no housekeeping, no stream retries: every
+            # one of them writes to the place that is gone. The state still
+            # updates so the panel can say what is wrong.
+            return await self._async_build_state(self.maintenance.last_result)
+
         # The safety net behind the state listener: a camera whose integration
         # never fires a state change still gets another chance every cycle.
         # Free when nothing is unresolved.
@@ -158,6 +185,37 @@ class CamwatchCoordinator(DataUpdateCoordinator[CamwatchData]):
         created = await self.recorder.async_ensure_directories(self.config.cameras)
         result = await self.maintenance.async_run(self.config, created)
         return await self._async_build_state(result)
+
+    async def _async_reconcile_storage(self) -> None:
+        """Probe the recording location and act on the transition.
+
+        Ready to gone: recording stops, with the reason kept for the panel.
+        Gone to ready: recording starts, which also covers the very first
+        cycle after setup.
+        """
+        try:
+            await self.hass.async_add_executor_job(
+                prepare_storage, Path(self.config.storage.base_path)
+            )
+            self.storage_error = None
+        except OSError as err:
+            self.storage_error = str(err)
+
+        if self.storage_error is None and not self._storage_ready:
+            self._storage_ready = True
+            _LOGGER.info(
+                "kustos_vision: recording location %s is available, starting",
+                self.config.storage.base_path,
+            )
+            await self.recorder.async_apply(self.config.storage, self.config.cameras)
+        elif self.storage_error is not None and self._storage_ready:
+            self._storage_ready = False
+            _LOGGER.warning(
+                "kustos_vision: recording location became unavailable, "
+                "recording pauses: %s",
+                self.storage_error,
+            )
+            await self.recorder.async_stop_all()
 
     async def _async_build_state(self, result: MaintenanceResult) -> CamwatchData:
         by_camera = await self.hass.async_add_executor_job(self.index.bytes_by_camera)

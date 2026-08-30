@@ -408,3 +408,88 @@ async def test_the_update_cycle_is_the_safety_net(
     await hass.async_block_till_done()
 
     assert len(spawned) == 1
+
+
+# ----------------------------------------------------------------------
+# A recording location that is gone
+# ----------------------------------------------------------------------
+#
+# The location can only be changed inside the panel, and the panel only
+# exists while the integration is loaded. Refusing to load over an
+# unavailable path therefore locked the one door that leads to fixing it,
+# measured live when a network share came back as a read-only placeholder
+# after a crash and the integration sat in setup-retry.
+
+
+async def test_a_readonly_location_does_not_keep_the_integration_down(
+    hass: HomeAssistant,
+    hass_storage: dict,
+    tmp_path: Path,
+    recording_env,
+    spawned: list[list[str]],
+) -> None:
+    import os
+
+    base = tmp_path / "recordings"
+    base.mkdir()
+    os.chmod(base, 0o555)
+    try:
+        hass_storage[STORAGE_KEY_CONFIG] = stored_config(base)
+        entry = MockConfigEntry(domain=DOMAIN, data={CONF_BASE_PATH: str(base)})
+        entry.add_to_hass(hass)
+        assert await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+
+        assert entry.state is ConfigEntryState.LOADED
+        assert spawned == []
+        assert entry.runtime_data.storage_error is not None
+        assert "read-only" in entry.runtime_data.storage_error.lower() or "denied" in entry.runtime_data.storage_error.lower()
+    finally:
+        os.chmod(base, 0o755)
+
+
+async def test_recording_starts_when_the_location_returns(
+    hass: HomeAssistant,
+    hass_storage: dict,
+    tmp_path: Path,
+    recording_env,
+    spawned: list[list[str]],
+) -> None:
+    import os
+
+    base = tmp_path / "recordings"
+    base.mkdir()
+    os.chmod(base, 0o555)
+    try:
+        hass_storage[STORAGE_KEY_CONFIG] = stored_config(base)
+        entry = MockConfigEntry(domain=DOMAIN, data={CONF_BASE_PATH: str(base)})
+        entry.add_to_hass(hass)
+        assert await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+        assert spawned == []
+    finally:
+        os.chmod(base, 0o755)
+
+    # The share is back; the next cycle notices and recording starts.
+    await entry.runtime_data.async_refresh()
+    await hass.async_block_till_done()
+    assert len(spawned) == 1
+    assert entry.runtime_data.storage_error is None
+
+
+async def test_a_vanishing_location_pauses_recording_with_a_reason(
+    hass: HomeAssistant, loaded, recording_env, spawned: list[list[str]]
+) -> None:
+    import os
+
+    coordinator = loaded.runtime_data
+    assert len(spawned) == 1
+    base = Path(coordinator.config.storage.base_path)
+    os.chmod(base, 0o555)
+    try:
+        await coordinator.async_refresh()
+        await hass.async_block_till_done()
+        assert coordinator.storage_error is not None
+        assert recording_env[0].terminated or recording_env[0].killed
+    finally:
+        os.chmod(base, 0o755)

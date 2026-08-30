@@ -82,18 +82,39 @@ async def test_no_cameras_means_no_camera_entities(
     assert hass.states.async_entity_ids("switch") == []
 
 
-async def test_setup_is_retried_when_the_location_is_unusable(
-    hass: HomeAssistant, tmp_path: Path
+async def test_an_unusable_location_no_longer_blocks_setup(
+    hass: HomeAssistant, hass_storage: dict, tmp_path: Path
 ) -> None:
-    """A network share that has not mounted yet is worth retrying rather than
-    failing outright, so this must be ConfigEntryNotReady."""
-    blocker = tmp_path / "blocked"
-    blocker.write_text("not a directory")
+    """The exact opposite of what this test used to assert.
 
-    entry = MockConfigEntry(
-        domain=DOMAIN, data={CONF_BASE_PATH: str(blocker / "recordings")}
+    It used to demand SETUP_RETRY for an unusable recording location. That
+    locked the user out: the location can only be changed inside the panel,
+    and the panel's data only exists while the integration is loaded. Measured
+    live when a network share came back as a read-only placeholder after a
+    crash. The integration now loads, says why nothing records, and recovers
+    on its own; the full behaviour lives in test_recording.py.
+    """
+    from custom_components.kustos_vision.const import (
+        STORAGE_KEY_CONFIG,
+        STORAGE_VERSION_CONFIG,
     )
+
+    missing = tmp_path / "file-in-the-way"
+    missing.write_text("a recording location cannot be a file")
+    hass_storage[STORAGE_KEY_CONFIG] = {
+        "version": STORAGE_VERSION_CONFIG,
+        "minor_version": 1,
+        "key": STORAGE_KEY_CONFIG,
+        "data": {
+            "version": 1,
+            "storage": {"base_path": str(missing), "segment_seconds": 60},
+            "cameras": [],
+        },
+    }
+    entry = MockConfigEntry(domain=DOMAIN, data={CONF_BASE_PATH: str(missing)})
     entry.add_to_hass(hass)
-    await hass.config_entries.async_setup(entry.entry_id)
+    assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
-    assert entry.state is ConfigEntryState.SETUP_RETRY
+
+    assert entry.state is ConfigEntryState.LOADED
+    assert entry.runtime_data.storage_error is not None
