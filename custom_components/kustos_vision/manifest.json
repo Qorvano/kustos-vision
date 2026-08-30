@@ -1,6 +1,6 @@
 {
-  "domain": "camwatch",
-  "name": "camwatch",
+  "domain": "kustos_vision",
+  "name": "Kustos Vision",
   "codeowners": [
     "@Qorvano"
   ],
@@ -12,10 +12,10 @@
     "panel_custom",
     "websocket_api"
   ],
-  "documentation": "https://github.com/Qorvano/ha-camwatch",
+  "documentation": "https://github.com/Qorvano/kustos-vision",
   "integration_type": "hub",
   "iot_class": "local_polling",
-  "issue_tracker": "https://github.com/Qorvano/ha-camwatch/issues",
+  "issue_tracker": "https://github.com/Qorvano/kustos-vision/issues",
   "requirements": [],
   "single_config_entry": true,
   "version": "0.1.0",

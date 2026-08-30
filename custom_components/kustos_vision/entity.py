@@ -1,4 +1,4 @@
-"""Shared plumbing for camwatch entities.
+"""Shared plumbing for kustos_vision entities.
 
 Cameras are created and removed in the panel, not in a config flow, so every
 platform has to be able to grow entities after setup. ``async_setup_cameras``
@@ -20,7 +20,7 @@ from .coordinator import CameraState, CamwatchCoordinator
 
 
 class CamwatchEntity(CoordinatorEntity[CamwatchCoordinator]):
-    """Base for every camwatch entity."""
+    """Base for every kustos_vision entity."""
 
     _attr_has_entity_name = True
 
@@ -36,8 +36,8 @@ class CamwatchInstanceEntity(CamwatchEntity):
         super().__init__(coordinator, key)
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, coordinator.entry.entry_id)},
-            name="camwatch",
-            manufacturer="camwatch",
+            name="Kustos Vision",
+            manufacturer="Kustos Vision",
             entry_type="service",
         )
 
@@ -54,7 +54,7 @@ class CamwatchCameraEntity(CamwatchEntity):
             identifiers={(DOMAIN, f"{coordinator.entry.entry_id}_{camera_slug}")},
             via_device=(DOMAIN, coordinator.entry.entry_id),
             name=self._camera_name,
-            manufacturer="camwatch",
+            manufacturer="Kustos Vision",
             model="Recorded camera",
         )
 

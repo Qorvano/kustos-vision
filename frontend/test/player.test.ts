@@ -3,7 +3,7 @@
 // the three bytes are read from the right place.
 
 import { describe, expect, it } from "vitest";
-import { readVideoCodec } from "../src/components/player";
+import { hasAudioTrack, readVideoCodec } from "../src/components/player";
 
 /** A byte run with an avcC box carrying the given profile, flags and level. */
 function withAvcC(profile: number, compat: number, level: number): Uint8Array {
@@ -54,5 +54,26 @@ describe("readVideoCodec", () => {
     const padding = new Uint8Array(4096).fill(0x20);
     const combined = new Uint8Array([...padding, ...withAvcC(0x64, 0x00, 0x1f)]);
     expect(readVideoCodec(combined)).toBe("avc1.64001f");
+  });
+});
+
+describe("hasAudioTrack", () => {
+  function withBox(type: string): Uint8Array {
+    const bytes = [...type].map((c) => c.charCodeAt(0));
+    return new Uint8Array([0, 0, 0, 24, 0x6d, 0x6f, 0x6f, 0x76, ...bytes, 1, 2, 3, 4, 5]);
+  }
+
+  it("sees an AAC track", () => {
+    expect(hasAudioTrack(withBox("mp4a"))).toBe(true);
+  });
+
+  it("reports none for a video-only recording", () => {
+    // What the recorder writes when audio is switched off for a camera.
+    // Declaring AAC anyway hands MediaSource a type the data does not match.
+    expect(hasAudioTrack(withBox("avc1"))).toBe(false);
+  });
+
+  it("reports none for an empty buffer rather than throwing", () => {
+    expect(hasAudioTrack(new Uint8Array())).toBe(false);
   });
 });

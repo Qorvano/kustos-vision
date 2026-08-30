@@ -43,4 +43,4 @@ jobs:
       # The bundle is committed, so a build that changes it means someone
       # edited the sources without rebuilding.
       - name: The committed bundle matches the sources
-        run: git diff --exit-code custom_components/camwatch/frontend/dist
+        run: git diff --exit-code custom_components/kustos_vision/frontend/dist

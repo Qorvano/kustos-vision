@@ -15,7 +15,7 @@ const PTZ: [string, string][] = [
   ["ptz_down", "▼"],
 ];
 
-@customElement("camwatch-camera-tile")
+@customElement("kustos-vision-camera-tile")
 export class CamwatchCameraTile extends LitElement {
   @property({ attribute: false }) hass!: HomeAssistant;
   @property({ attribute: false }) api!: CamwatchApi;
@@ -140,10 +140,10 @@ export class CamwatchCameraTile extends LitElement {
       </header>
 
       ${entity
-        ? html`<camwatch-live-stream
+        ? html`<kustos-vision-live-stream
             .hass=${this.hass}
             .entityId=${entity}
-          ></camwatch-live-stream>`
+          ></kustos-vision-live-stream>`
         : html`<div class="meta" style="padding:12px">Kein Stream zugeordnet</div>`}
 
       <div class="controls">
@@ -161,6 +161,6 @@ export class CamwatchCameraTile extends LitElement {
 
 declare global {
   interface HTMLElementTagNameMap {
-    "camwatch-camera-tile": CamwatchCameraTile;
+    "kustos-vision-camera-tile": CamwatchCameraTile;
   }
 }

@@ -10,8 +10,8 @@ from __future__ import annotations
 from datetime import UTC, datetime
 
 import pytest
-from camwatch.core.index import Segment
-from camwatch.core.retention import (
+from kustos_vision.core.index import Segment
+from kustos_vision.core.retention import (
     RetentionPolicy,
     newest_per_stream,
     plan_retention,

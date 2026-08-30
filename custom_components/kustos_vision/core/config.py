@@ -135,7 +135,7 @@ class CapabilityBinding:
 
 @dataclass(frozen=True, slots=True)
 class CameraConfig:
-    """One camera as camwatch knows it."""
+    """One camera as kustos_vision knows it."""
 
     slug: str
     name: str
@@ -272,7 +272,7 @@ class VisionProfile:
     triggers: tuple[str, ...] = ()
     """Entities whose turning on starts an analysis. Camera-side motion or
     person detection costs Home Assistant nothing, which is why it is the
-    intended source rather than anything camwatch computes."""
+    intended source rather than anything kustos_vision computes."""
     context: str = ""
     """Extra prompt text placed before the questions, for what the model
     cannot see: which way the camera points, what belongs in the picture."""

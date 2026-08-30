@@ -29,7 +29,7 @@ interface WebRtcClientConfig {
   configuration: RTCConfiguration;
 }
 
-@customElement("camwatch-live-stream")
+@customElement("kustos-vision-live-stream")
 export class CamwatchLiveStream extends LitElement {
   @property({ attribute: false }) hass!: HomeAssistant;
   @property() entityId = "";
@@ -297,6 +297,6 @@ export class CamwatchLiveStream extends LitElement {
 
 declare global {
   interface HTMLElementTagNameMap {
-    "camwatch-live-stream": CamwatchLiveStream;
+    "kustos-vision-live-stream": CamwatchLiveStream;
   }
 }

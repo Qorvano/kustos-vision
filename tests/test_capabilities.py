@@ -8,7 +8,7 @@ rule, because it looks like it works.
 from __future__ import annotations
 
 import pytest
-from camwatch.core.capabilities import (
+from kustos_vision.core.capabilities import (
     CAPABILITY_KEYS,
     EntityCandidate,
     suggest_capabilities,

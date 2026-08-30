@@ -1,5 +1,5 @@
 [project]
-name = "ha-camwatch"
+name = "kustos-vision"
 version = "0.1.0"
 description = "Camera recording and LLM vision for Home Assistant"
 requires-python = ">=3.13"

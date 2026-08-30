@@ -6,7 +6,7 @@ import { defineConfig } from "vite";
 // whatever is committed and never runs a build.
 export default defineConfig({
   build: {
-    outDir: "../custom_components/camwatch/frontend/dist",
+    outDir: "../custom_components/kustos_vision/frontend/dist",
     emptyOutDir: true,
     target: "es2022",
     lib: {

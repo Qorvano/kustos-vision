@@ -58,7 +58,7 @@ async def stream_export(
         raise ValueError("nothing to export")
 
     binary = get_ffmpeg_manager(hass).binary
-    with tempfile.TemporaryDirectory(prefix="camwatch-export-") as tmp:
+    with tempfile.TemporaryDirectory(prefix="kustos-vision-export-") as tmp:
         list_file = Path(tmp) / "segments.txt"
         await hass.async_add_executor_job(
             write_concat_list, segments, base, list_file
@@ -88,7 +88,7 @@ async def stream_export(
                     break
                 yield chunk
         except TimeoutError:
-            _LOGGER.warning("camwatch: export stalled, giving up")
+            _LOGGER.warning("kustos_vision: export stalled, giving up")
         finally:
             if process.returncode is None:
                 with contextlib.suppress(ProcessLookupError):
@@ -102,7 +102,7 @@ async def stream_export(
                 with contextlib.suppress(Exception):
                     stderr = await process.stderr.read()
             _LOGGER.warning(
-                "camwatch: export failed (exit %s): %s",
+                "kustos_vision: export failed (exit %s): %s",
                 process.returncode,
                 stderr.decode("utf-8", errors="replace")[-500:],
             )

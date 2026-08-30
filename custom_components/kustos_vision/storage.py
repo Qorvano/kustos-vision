@@ -26,7 +26,7 @@ def default_base_path(hass: HomeAssistant) -> Path:
     of Home Assistant installation has, it is writable, and a user who mounts a
     network share for recordings almost always mounts it there. Putting
     recordings inside it also makes them show up in the media browser, which is
-    a free extra rather than something camwatch depends on.
+    a free extra rather than something kustos_vision depends on.
     """
     media_dirs = hass.config.media_dirs
     root = media_dirs.get("local") or next(iter(media_dirs.values()), None)
@@ -66,7 +66,7 @@ class CamwatchStore:
             return CamwatchConfig.from_dict(data)
         except ConfigError:
             _LOGGER.error(
-                "camwatch: the stored configuration could not be read; it has been "
+                "kustos_vision: the stored configuration could not be read; it has been "
                 "left untouched so it can be recovered or corrected by hand"
             )
             raise

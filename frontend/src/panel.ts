@@ -17,7 +17,7 @@ import "./views/settings";
 const RECORDINGS_TAB = "__recordings";
 const SETTINGS_TAB = "__settings";
 
-@customElement("camwatch-panel")
+@customElement("kustos-vision-panel")
 export class CamwatchPanel extends LitElement {
   @property({ attribute: false }) hass!: HomeAssistant;
   @property({ type: Boolean, reflect: true }) narrow = false;
@@ -100,7 +100,7 @@ export class CamwatchPanel extends LitElement {
   override render() {
     if (this.error) {
       return html`<div class="notice">
-        camwatch ist nicht eingerichtet oder nicht erreichbar.<br />
+        kustos_vision ist nicht eingerichtet oder nicht erreichbar.<br />
         <span class="muted">${this.error}</span>
       </div>`;
     }
@@ -139,23 +139,23 @@ export class CamwatchPanel extends LitElement {
 
       <div class="body">
         ${this.active === RECORDINGS_TAB
-          ? html`<camwatch-recordings
+          ? html`<kustos-vision-recordings
               .api=${this.api}
               .cameras=${snapshot.cameras}
-            ></camwatch-recordings>`
+            ></kustos-vision-recordings>`
           : this.active === SETTINGS_TAB
-          ? html`<camwatch-settings
+          ? html`<kustos-vision-settings
               .api=${this.api}
               .snapshot=${snapshot}
               @changed=${() => this.load()}
-            ></camwatch-settings>`
+            ></kustos-vision-settings>`
           : view
-            ? html`<camwatch-live-view
+            ? html`<kustos-vision-live-view
                 .hass=${this.hass}
                 .api=${this.api}
                 .view=${view}
                 .cameras=${snapshot.cameras}
-              ></camwatch-live-view>`
+              ></kustos-vision-live-view>`
             : html`<div class="notice">
                 Noch keine Ansicht angelegt.<br />
                 Unter Einstellungen, Ansichten lässt sich eine erstellen.
@@ -167,6 +167,6 @@ export class CamwatchPanel extends LitElement {
 
 declare global {
   interface HTMLElementTagNameMap {
-    "camwatch-panel": CamwatchPanel;
+    "kustos-vision-panel": CamwatchPanel;
   }
 }

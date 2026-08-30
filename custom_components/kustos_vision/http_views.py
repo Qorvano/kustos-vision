@@ -46,12 +46,12 @@ CACHE_SECONDS = 24 * 60 * 60
 
 
 def _safe_relative(raw: str) -> Path | None:
-    """Return the relative path, or None when it is not one camwatch writes.
+    """Return the relative path, or None when it is not one kustos_vision writes.
 
     Checked in two independent ways. The shape check rejects anything that does
     not look like a recording, including traversal attempts, before any
     file system call happens. The caller then confirms ownership against the
-    index, so only files camwatch itself recorded can be served.
+    index, so only files kustos_vision itself recorded can be served.
     """
     candidate = Path(raw)
     if candidate.is_absolute() or ".." in candidate.parts:
@@ -82,7 +82,7 @@ class CamwatchFileView(HomeAssistantView):
         return Path(coordinator.config.storage.base_path), coordinator.index
 
     async def _resolve(self, raw: str) -> Path | None:
-        """Turn a requested path into a file camwatch actually recorded."""
+        """Turn a requested path into a file kustos_vision actually recorded."""
         relative = _safe_relative(raw)
         if relative is None:
             return None

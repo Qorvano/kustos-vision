@@ -103,7 +103,7 @@ class StreamProcess:
         if self._supervisor is not None:
             return
         self._supervisor = self._hass.async_create_background_task(
-            self._supervise(), f"camwatch record {self._spec.stream_id}"
+            self._supervise(), f"kustos_vision record {self._spec.stream_id}"
         )
 
     async def async_stop(self) -> None:
@@ -145,7 +145,7 @@ class StreamProcess:
                 raise
             except Exception:
                 _LOGGER.exception(
-                    "camwatch: recording %s failed unexpectedly", self._spec.stream_id
+                    "kustos_vision: recording %s failed unexpectedly", self._spec.stream_id
                 )
 
             # An exit we asked for is not a crash and must not be replaced.
@@ -175,7 +175,7 @@ class StreamProcess:
 
         binary = get_ffmpeg_manager(self._hass).binary
         args = build_record_args(self._spec, self._base)
-        _LOGGER.debug("camwatch: starting %s", self._spec.stream_id)
+        _LOGGER.debug("kustos_vision: starting %s", self._spec.stream_id)
 
         self._process = await create_subprocess_exec(
             binary,
@@ -199,7 +199,7 @@ class StreamProcess:
         if code != 0:
             self.status.last_error = self._output[-1] if self._output else f"exit {code}"
             _LOGGER.warning(
-                "camwatch: recording %s stopped (exit %s): %s",
+                "kustos_vision: recording %s stopped (exit %s): %s",
                 self._spec.stream_id,
                 code,
                 self.status.last_error,
@@ -229,7 +229,7 @@ class StreamProcess:
             await asyncio.wait_for(process.wait(), TERMINATE_TIMEOUT_SECONDS)
         except TimeoutError:
             _LOGGER.warning(
-                "camwatch: %s did not stop in time, killing it", self._spec.stream_id
+                "kustos_vision: %s did not stop in time, killing it", self._spec.stream_id
             )
             with contextlib.suppress(ProcessLookupError):
                 process.kill()
@@ -306,20 +306,20 @@ class RecorderManager:
 
         The URL, credentials included, comes from whichever integration owns
         the camera entity. Nothing about a camera brand is stored or assumed
-        here, and the user never types a password into camwatch.
+        here, and the user never types a password into kustos_vision.
         """
         try:
             source = await async_get_stream_source(self._hass, stream.entity_id)
         except Exception as err:
             _LOGGER.warning(
-                "camwatch: could not resolve a stream URL for %s: %s",
+                "kustos_vision: could not resolve a stream URL for %s: %s",
                 stream.entity_id,
                 err,
             )
             return None
         if not source:
             _LOGGER.warning(
-                "camwatch: %s provides no stream URL, so it cannot be recorded",
+                "kustos_vision: %s provides no stream URL, so it cannot be recorded",
                 stream.entity_id,
             )
             return None

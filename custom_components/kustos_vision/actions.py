@@ -101,7 +101,7 @@ async def _async_call_entity(
     target = table.get(domain)
     if target is None:
         raise CapabilityError(
-            f"camwatch does not know how to {'turn off' if turning_off else 'trigger'} "
+            f"kustos_vision does not know how to {'turn off' if turning_off else 'trigger'} "
             f"a {domain} entity; bind an explicit action instead"
         )
     # Brightness and similar extras only make sense when switching on.

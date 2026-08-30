@@ -11,7 +11,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.camwatch.const import (
+from custom_components.kustos_vision.const import (
     CONF_BASE_PATH,
     DOMAIN,
     STORAGE_KEY_CONFIG,
@@ -29,11 +29,11 @@ TIMEZONE = "Europe/Berlin"
 def no_ffmpeg():
     with (
         patch(
-            "custom_components.camwatch.recorder.async_get_stream_source",
+            "custom_components.kustos_vision.recorder.async_get_stream_source",
             AsyncMock(return_value=None),
         ),
         patch(
-            "custom_components.camwatch.maintenance.get_ffmpeg_manager",
+            "custom_components.kustos_vision.maintenance.get_ffmpeg_manager",
             MagicMock(return_value=MagicMock(binary="/usr/bin/ffmpeg")),
         ),
     ):
@@ -42,9 +42,9 @@ def no_ffmpeg():
 
 @pytest.fixture
 async def recorded(hass: HomeAssistant, hass_storage: dict, tmp_path: Path, no_ffmpeg):
-    """A camwatch with three real files on disk, indexed the way it really is.
+    """A kustos_vision with three real files on disk, indexed the way it really is.
 
-    The index is filled by camwatch's own scan rather than by inserting rows:
+    The index is filled by kustos_vision's own scan rather than by inserting rows:
     the start time comes from the file name and never changes afterwards, so a
     test that writes its own times would be testing something the integration
     does not do.
@@ -108,7 +108,7 @@ async def recorded(hass: HomeAssistant, hass_storage: dict, tmp_path: Path, no_f
 
     coordinator = entry.runtime_data
     rows = await hass.async_add_executor_job(coordinator.index.oldest_first)
-    assert len(rows) == 3, "camwatch did not index the prepared recordings"
+    assert len(rows) == 3, "kustos_vision did not index the prepared recordings"
     first = rows[0].start_utc
     yield entry, base, files, first
     await hass.config_entries.async_unload(entry.entry_id)
@@ -253,7 +253,7 @@ async def test_a_thumbnail_is_served_under_the_segment_path(
         "vorgarten/2026-08-30/14-00-00_hd.mp4/extra",
     ],
 )
-async def test_only_camwatch_recordings_can_be_fetched(
+async def test_only_kustos_vision_recordings_can_be_fetched(
     hass: HomeAssistant, hass_client, recorded, path: str
 ) -> None:
     """Two independent checks: the shape has to look like a recording, and the

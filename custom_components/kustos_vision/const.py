@@ -1,10 +1,10 @@
-"""Constants for the camwatch integration."""
+"""Constants for the kustos_vision integration."""
 
 from __future__ import annotations
 
 from typing import Final
 
-DOMAIN: Final = "camwatch"
+DOMAIN: Final = "kustos_vision"
 
 # Storage keys
 STORAGE_KEY_CONFIG: Final = f"{DOMAIN}.config"

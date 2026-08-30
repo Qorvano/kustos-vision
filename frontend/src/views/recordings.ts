@@ -8,7 +8,7 @@ import type { Camera, TimelineBlock, TimelineSegment } from "../types";
 import "../components/player";
 import "../components/timeline";
 
-@customElement("camwatch-recordings")
+@customElement("kustos-vision-recordings")
 export class CamwatchRecordings extends LitElement {
   @property({ attribute: false }) api!: CamwatchApi;
   @property({ attribute: false }) cameras: Camera[] = [];
@@ -100,7 +100,7 @@ export class CamwatchRecordings extends LitElement {
       to: String(to),
     });
     if (this.stream) params.set("stream", this.stream);
-    return `/api/camwatch/export?${params.toString()}`;
+    return `/api/kustos_vision/export?${params.toString()}`;
   }
 
   override render() {
@@ -167,13 +167,13 @@ export class CamwatchRecordings extends LitElement {
           ${this.error ? html`<p class="error">${this.error}</p>` : nothing}
         </div>
 
-        <camwatch-player
+        <kustos-vision-player
           .segments=${this.segments}
           .seekTo=${this.seekTo}
-        ></camwatch-player>
+        ></kustos-vision-player>
 
         <div style="margin-top:12px">
-          <camwatch-timeline
+          <kustos-vision-timeline
             .from=${this.bounds[0]}
             .to=${this.bounds[1]}
             .blocks=${this.blocks}
@@ -183,7 +183,7 @@ export class CamwatchRecordings extends LitElement {
               this.position = e.detail.time;
               this.seekTo = e.detail.time;
             }}
-          ></camwatch-timeline>
+          ></kustos-vision-timeline>
         </div>
 
         ${this.segments.length > 0
@@ -205,6 +205,6 @@ export class CamwatchRecordings extends LitElement {
 
 declare global {
   interface HTMLElementTagNameMap {
-    "camwatch-recordings": CamwatchRecordings;
+    "kustos-vision-recordings": CamwatchRecordings;
   }
 }

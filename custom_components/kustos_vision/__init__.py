@@ -1,4 +1,4 @@
-"""camwatch: recording, viewing and understanding camera streams.
+"""kustos_vision: recording, viewing and understanding camera streams.
 
 Three things in one integration, none of which needs another integration or a
 front-end card from anywhere else:
@@ -56,7 +56,7 @@ def _index_path(hass: HomeAssistant) -> Path:
 def _prepare_storage(base: Path) -> None:
     """Make sure the recording location exists and can be written to."""
     base.mkdir(parents=True, exist_ok=True)
-    probe = base / ".camwatch-write-test"
+    probe = base / ".kustos-vision-write-test"
     try:
         probe.write_bytes(b"")
     finally:
@@ -67,7 +67,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Register the websocket API and the panel, once per Home Assistant run.
 
     Both are independent of whether a config entry is loaded: the panel has to
-    be able to say that camwatch is not set up yet, rather than not being there
+    be able to say that kustos_vision is not set up yet, rather than not being there
     at all.
     """
     api.async_register(hass)
@@ -78,7 +78,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: CamwatchEntry) -> bool:
-    """Set up camwatch from a config entry."""
+    """Set up kustos_vision from a config entry."""
     store = CamwatchStore(hass)
     try:
         config = await store.async_load(entry.data.get(CONF_BASE_PATH))
@@ -107,8 +107,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: CamwatchEntry) -> bool:
     dr.async_get(hass).async_get_or_create(
         config_entry_id=entry.entry_id,
         identifiers={(DOMAIN, entry.entry_id)},
-        name="camwatch",
-        manufacturer="camwatch",
+        name="Kustos Vision",
+        manufacturer="Kustos Vision",
         entry_type=dr.DeviceEntryType.SERVICE,
     )
 
@@ -130,7 +130,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: CamwatchEntry) -> bool:
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: CamwatchEntry) -> bool:
-    """Unload camwatch, stopping every recording."""
+    """Unload kustos_vision, stopping every recording."""
     unloaded = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unloaded:
         await entry.runtime_data.async_shutdown()

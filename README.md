@@ -1,10 +1,10 @@
-# camwatch
+# Kustos Vision
 
 Records your camera streams, shows them in its own Home Assistant panel, and
 lets an LLM of your choosing turn what it sees into sensors.
 
 It does not run object detection. That is the point: detection is what makes a
-conventional NVR expensive to run, and camwatch leaves it to a model you pick,
+conventional NVR expensive to run, and Kustos Vision leaves it to a model you pick,
 local or hosted. What stays on your machine is remuxing, which never decodes a
 frame.
 
@@ -36,8 +36,8 @@ that Home Assistant already ships.
 
 ## The panel
 
-camwatch adds its own entry to the sidebar. Cameras are added there, not in a
-config flow: pick a Home Assistant camera entity and camwatch proposes the
+Kustos Vision adds its own entry to the sidebar. Cameras are added there, not in a
+config flow: pick a Home Assistant camera entity and Kustos Vision proposes the
 rest, by looking at the other entities of the same device and matching them on
 generic traits. It proposes which of them are the streams, and which drive pan,
 tilt, light and siren. Every proposal is editable, because a proposal is a
@@ -74,7 +74,7 @@ leaves a second copy behind.
 
 ## Vision
 
-camwatch runs no detection of its own. A snapshot goes to a model you choose,
+Kustos Vision runs no detection of its own. A snapshot goes to a model you choose,
 and the answers become sensors.
 
 Each camera gets a list of questions. A question has a type, and that decides
@@ -90,7 +90,7 @@ both the entity and the shape the model has to answer in:
 Two backends, both first class:
 
 * **Home Assistant AI Task**, which covers every provider Home Assistant
-  supports and will cover whatever comes next without camwatch changing.
+  supports and will cover whatever comes next without Kustos Vision changing.
 * **An OpenAI-compatible endpoint** given by URL, which is what a local
   llama.cpp, LM Studio or vLLM offers, and several hosted services too.
 
@@ -108,9 +108,9 @@ writing an automation.
 The panel keeps the last analyses with the raw answer next to them. Improving a
 question is otherwise guesswork.
 
-The `camwatch.analyze` service runs an analysis on demand and returns the
+The `kustos_vision.analyze` service runs an analysis on demand and returns the
 answers, for trying a question out and for automations that know about a moment
-camwatch's own triggers would miss.
+Kustos Vision's own triggers would miss.
 
 ## Recording layout
 
@@ -121,7 +121,7 @@ camwatch's own triggers would miss.
 
 Plain files in plain directories, readable in any file manager. Put the storage
 location under your media folder and Home Assistant's media browser will play
-them without camwatch being involved at all.
+them without Kustos Vision being involved at all.
 
 File names are in local time because you read them. The index stores UTC,
 which is what every comparison and retention decision uses, so the twice-yearly
@@ -151,8 +151,8 @@ Per camera:
 | `sensor.<camera>_oldest_recording` | How far back coverage actually reaches, which is not the same as the configured retention. |
 | `switch.<camera>_recording` | Pause and resume without changing the configuration. |
 
-Overall: `sensor.camwatch_total_storage`, `sensor.camwatch_free_storage`,
-`sensor.camwatch_over_budget`.
+Overall: `sensor.kustos_vision_total_storage`, `sensor.kustos_vision_free_storage`,
+`sensor.kustos_vision_over_budget`.
 
 Each vision question adds one more entity, named after the question.
 
@@ -173,7 +173,7 @@ The panel is built separately:
 cd frontend
 npm install
 npm run typecheck
-npm run build     # writes custom_components/camwatch/frontend/dist/panel.js
+npm run build     # writes custom_components/kustos_vision/frontend/dist/panel.js
 ```
 
 That bundle is committed. HACS ships what is in the repository and never runs a
@@ -186,5 +186,5 @@ is testable as plain Python. The end-to-end tests record with a real ffmpeg and
 skip themselves when the binary is missing.
 
 `requirements_test.txt` pins the runtime dependencies of the Home Assistant
-integrations camwatch declares. Home Assistant installs those itself at
+integrations Kustos Vision declares. Home Assistant installs those itself at
 runtime; the test harness does not.

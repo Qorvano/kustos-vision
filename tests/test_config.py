@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import pytest
-from camwatch.core.config import (
+from kustos_vision.core.config import (
     CONFIG_VERSION,
     CameraConfig,
     CamwatchConfig,
@@ -13,11 +13,11 @@ from camwatch.core.config import (
     StreamConfig,
     ViewConfig,
 )
-from camwatch.core.recorder import AudioMode
+from kustos_vision.core.recorder import AudioMode
 
 
 def storage(**overrides) -> StorageConfig:
-    return StorageConfig(**{"base_path": "/media/camwatch", **overrides})
+    return StorageConfig(**{"base_path": "/media/kustos_vision", **overrides})
 
 
 def camera(**overrides) -> CameraConfig:

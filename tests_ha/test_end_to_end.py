@@ -21,14 +21,14 @@ import pytest
 from homeassistant.core import HomeAssistant
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.camwatch.const import (
+from custom_components.kustos_vision.const import (
     CONF_BASE_PATH,
     DOMAIN,
     STORAGE_KEY_CONFIG,
     STORAGE_VERSION_CONFIG,
 )
-from custom_components.camwatch.core.index import SegmentIndex
-from custom_components.camwatch.core.paths import iter_segments
+from custom_components.kustos_vision.core.index import SegmentIndex
+from custom_components.kustos_vision.core.paths import iter_segments
 
 pytestmark = pytest.mark.skipif(
     shutil.which("ffmpeg") is None, reason="needs a real ffmpeg binary"
@@ -90,13 +90,13 @@ def stored_config(base: Path, **storage_overrides) -> dict:
 async def _record(
     hass: HomeAssistant, hass_storage: dict, base: Path, source: Path, **storage_overrides
 ) -> MockConfigEntry:
-    """Set up camwatch against the clip and let it record for a while."""
+    """Set up kustos_vision against the clip and let it record for a while."""
     hass_storage[STORAGE_KEY_CONFIG] = stored_config(base, **storage_overrides)
     entry = MockConfigEntry(domain=DOMAIN, data={CONF_BASE_PATH: str(base)})
     entry.add_to_hass(hass)
 
     with patch(
-        "custom_components.camwatch.recorder.async_get_stream_source",
+        "custom_components.kustos_vision.recorder.async_get_stream_source",
         AsyncMock(return_value=str(source)),
     ):
         assert await hass.config_entries.async_setup(entry.entry_id)
@@ -180,7 +180,7 @@ async def test_housekeeping_indexes_and_previews_what_was_recorded(
     await coordinator.async_refresh()
     await hass.async_block_till_done()
 
-    index = SegmentIndex(Path(hass.config.path("camwatch")) / "index.db")
+    index = SegmentIndex(Path(hass.config.path("kustos_vision")) / "index.db")
     rows = await hass.async_add_executor_job(index.oldest_first)
     assert len(rows) >= 2
     assert all(row.camera_slug == "vorgarten" for row in rows)
@@ -209,7 +209,7 @@ async def test_the_size_budget_deletes_the_oldest_first(
     await coordinator.async_refresh()
     await hass.async_block_till_done()
 
-    index = SegmentIndex(Path(hass.config.path("camwatch")) / "index.db")
+    index = SegmentIndex(Path(hass.config.path("kustos_vision")) / "index.db")
     before = await hass.async_add_executor_job(index.oldest_first)
     assert len(before) >= 3
 
@@ -249,7 +249,7 @@ def _read_codec_like_the_player_does(header: bytes) -> str | None:
     Kept deliberately in step with ``readVideoCodec`` in
     ``frontend/src/components/player.ts``. The player has its own unit tests
     for the parsing; this one checks the assumption underneath both, namely
-    that the segments camwatch actually writes carry an avcC box near the
+    that the segments kustos_vision actually writes carry an avcC box near the
     front with the codec bytes where the player looks for them.
     """
     marker = header.find(b"avcC")

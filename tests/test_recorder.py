@@ -10,7 +10,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-from camwatch.core.recorder import (
+from kustos_vision.core.recorder import (
     AAC_BITRATE,
     AudioMode,
     StreamSpec,
@@ -19,7 +19,7 @@ from camwatch.core.recorder import (
     build_thumbnail_args,
 )
 
-BASE = Path("/media/camwatch")
+BASE = Path("/media/kustos_vision")
 
 
 def spec(**overrides) -> StreamSpec:
@@ -86,7 +86,7 @@ def test_segment_length_and_clock_alignment_are_set() -> None:
 
 def test_output_is_the_strftime_pattern() -> None:
     args = build_record_args(spec(), BASE)
-    assert args[-1] == "/media/camwatch/vorgarten/%Y-%m-%d/%H-%M-%S_hd.mp4"
+    assert args[-1] == "/media/kustos_vision/vorgarten/%Y-%m-%d/%H-%M-%S_hd.mp4"
     assert pair_after(args, "-strftime") == "1"
 
 

@@ -9,14 +9,14 @@ import { customElement, property, state } from "lit/decorators.js";
 
 import type { TimelineBlock, TimelineSegment } from "../types";
 
-@customElement("camwatch-timeline")
+@customElement("kustos-vision-timeline")
 export class CamwatchTimeline extends LitElement {
   @property({ type: Number }) from = 0;
   @property({ type: Number }) to = 0;
   @property({ attribute: false }) blocks: TimelineBlock[] = [];
   @property({ attribute: false }) segments: TimelineSegment[] = [];
   @property({ type: Number }) position = 0;
-  @property() thumbnailUrlBase = "/api/camwatch/thumbnail";
+  @property() thumbnailUrlBase = "/api/kustos_vision/thumbnail";
 
   @state() private hover?: { x: number; time: number; segment?: TimelineSegment };
 
@@ -214,6 +214,6 @@ export class CamwatchTimeline extends LitElement {
 
 declare global {
   interface HTMLElementTagNameMap {
-    "camwatch-timeline": CamwatchTimeline;
+    "kustos-vision-timeline": CamwatchTimeline;
   }
 }

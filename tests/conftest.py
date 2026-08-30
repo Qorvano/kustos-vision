@@ -15,9 +15,9 @@ _REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(_REPO_ROOT))
 
 # The core must stay importable WITHOUT Home Assistant: register a synthetic
-# parent package that only carries the search path, so `camwatch.core`
+# parent package that only carries the search path, so `kustos_vision.core`
 # resolves without executing the real integration __init__.py (which imports
 # homeassistant).
-_pkg = types.ModuleType("camwatch")
-_pkg.__path__ = [str(_REPO_ROOT / "custom_components" / "camwatch")]
-sys.modules.setdefault("camwatch", _pkg)
+_pkg = types.ModuleType("kustos_vision")
+_pkg.__path__ = [str(_REPO_ROOT / "custom_components" / "kustos_vision")]
+sys.modules.setdefault("kustos_vision", _pkg)

@@ -34,6 +34,6 @@ def _fresh_segment_index(hass) -> None:
     incremental scan would skip those paths as already known rather than
     re-reading them.
     """
-    index_dir = Path(hass.config.path("camwatch"))
+    index_dir = Path(hass.config.path("kustos_vision"))
     if index_dir.is_dir():
         shutil.rmtree(index_dir, ignore_errors=True)

@@ -16,8 +16,8 @@ from homeassistant.core import HomeAssistant
 from homeassistant.setup import async_setup_component
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.camwatch import panel as panel_module
-from custom_components.camwatch.const import (
+from custom_components.kustos_vision import panel as panel_module
+from custom_components.kustos_vision.const import (
     CONF_BASE_PATH,
     DOMAIN,
     STORAGE_KEY_CONFIG,
@@ -29,11 +29,11 @@ from custom_components.camwatch.const import (
 def no_ffmpeg():
     with (
         patch(
-            "custom_components.camwatch.recorder.async_get_stream_source",
+            "custom_components.kustos_vision.recorder.async_get_stream_source",
             AsyncMock(return_value=None),
         ),
         patch(
-            "custom_components.camwatch.maintenance.get_ffmpeg_manager",
+            "custom_components.kustos_vision.maintenance.get_ffmpeg_manager",
             MagicMock(return_value=MagicMock(binary="/usr/bin/ffmpeg")),
         ),
     ):
@@ -46,7 +46,10 @@ async def test_the_panel_appears_in_the_sidebar(hass: HomeAssistant) -> None:
 
     panels = hass.data[frontend.DATA_PANELS]
     assert DOMAIN in panels
-    assert panels[DOMAIN].sidebar_title == "camwatch"
+    # The sidebar carries the product name, not the domain slug: the slug is an
+    # identifier for entity ids and file paths, and showing it to the user
+    # instead would be a bug that only ever surfaces by looking at the sidebar.
+    assert panels[DOMAIN].sidebar_title == "Kustos Vision"
 
 
 async def test_the_panel_requires_an_admin(hass: HomeAssistant) -> None:
@@ -79,7 +82,7 @@ def test_the_bundle_defines_the_element_the_panel_asks_for() -> None:
     """A mismatch between the registered web component name and the one the
     bundle defines shows up as an empty page, with nothing in any log."""
     source = (panel_module.FRONTEND_DIR / "panel.js").read_text(encoding="utf-8")
-    assert "camwatch-panel" in source
+    assert "kustos-vision-panel" in source
 
 
 def test_the_bundle_is_self_contained() -> None:

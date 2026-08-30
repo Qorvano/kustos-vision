@@ -38,10 +38,10 @@ async def async_register_panel(hass: HomeAssistant) -> None:
     )
     await panel_custom.async_register_panel(
         hass,
-        webcomponent_name="camwatch-panel",
+        webcomponent_name="kustos-vision-panel",
         frontend_url_path=PANEL_URL_PATH,
         module_url=f"/{DOMAIN}-frontend/panel.js?v={integration.version}",
-        sidebar_title="camwatch",
+        sidebar_title="Kustos Vision",
         sidebar_icon="mdi:cctv",
         # Recording configuration decides what is captured and kept, and the
         # live view shows every camera in the house.

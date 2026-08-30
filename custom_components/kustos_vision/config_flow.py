@@ -1,4 +1,4 @@
-"""Setting camwatch up.
+"""Setting kustos_vision up.
 
 The flow asks one question, the storage location, and stops. Everything else,
 cameras included, is configured in the panel, so that there is exactly one
@@ -21,7 +21,7 @@ from .storage import default_base_path
 def _check_writable(path: Path) -> None:
     """Raise OSError when recordings cannot be written to this location."""
     path.mkdir(parents=True, exist_ok=True)
-    probe = path / ".camwatch-write-test"
+    probe = path / ".kustos-vision-write-test"
     try:
         probe.write_bytes(b"")
     finally:
@@ -44,7 +44,7 @@ async def async_validate_base_path(hass: HomeAssistant, raw: str) -> tuple[str, 
 
 
 class CamwatchConfigFlow(ConfigFlow, domain=DOMAIN):
-    """Handle the one step camwatch needs to start."""
+    """Handle the one step kustos_vision needs to start."""
 
     VERSION = 1
 
@@ -59,7 +59,7 @@ class CamwatchConfigFlow(ConfigFlow, domain=DOMAIN):
             cleaned, error = await async_validate_base_path(self.hass, suggested)
             if error is None:
                 return self.async_create_entry(
-                    title="camwatch", data={CONF_BASE_PATH: cleaned}
+                    title="Kustos Vision", data={CONF_BASE_PATH: cleaned}
                 )
             errors[CONF_BASE_PATH] = error
 

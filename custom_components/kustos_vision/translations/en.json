@@ -2,7 +2,7 @@
   "config": {
     "step": {
       "user": {
-        "title": "camwatch",
+        "title": "Kustos Vision",
         "description": "Choose where recordings are stored. A location below the media folder also makes them show up in the media browser.",
         "data": {
           "base_path": "Storage location"
@@ -15,7 +15,7 @@
       "path_not_writable": "That location cannot be written to. If it is a network share, check that it is mounted."
     },
     "abort": {
-      "single_instance_allowed": "camwatch is already set up."
+      "single_instance_allowed": "Kustos Vision is already set up."
     }
   },
   "entity": {
@@ -54,7 +54,7 @@
       "fields": {
         "camera": {
           "name": "Kamera",
-          "description": "The camwatch camera identifier, as shown in the panel."
+          "description": "The kustos_vision camera identifier, as shown in the panel."
         },
         "force": {
           "name": "Cooldown ignorieren",

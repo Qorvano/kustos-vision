@@ -111,7 +111,7 @@ class VisionRunner:
                 return
             for slug in watched.get(event.data["entity_id"], []):
                 self._hass.async_create_task(
-                    self.async_analyse(slug, reason=event.data["entity_id"])
+                    self._async_analyse_quietly(slug, event.data["entity_id"])
                 )
 
         self._unsubscribe = async_track_state_change_event(
@@ -123,6 +123,25 @@ class VisionRunner:
         if self._unsubscribe is not None:
             self._unsubscribe()
             self._unsubscribe = None
+
+    async def _async_analyse_quietly(self, camera_slug: str, trigger: str) -> None:
+        """Run a triggered analysis without letting it escape as a bare task.
+
+        A trigger fires from an event callback, so an exception here has nobody
+        to catch it: it would surface as an unhandled task error in the log and
+        the user would never learn that their camera stopped being analysed.
+        Recording it on the profile is what makes it visible in the panel.
+        """
+        try:
+            await self.async_analyse(camera_slug, reason=trigger)
+        except VisionError as err:
+            state = self.state_for(camera_slug)
+            state.last_error = str(err)
+            self._record(state, trigger, None, str(err))
+            _LOGGER.warning(
+                "kustos_vision: cannot analyse %s: %s", camera_slug, err
+            )
+            self._coordinator.async_update_listeners()
 
     # ------------------------------------------------------------------
     # Running
@@ -180,19 +199,19 @@ class VisionRunner:
         state = self.state_for(camera_slug)
         lock = self._locks.setdefault(camera_slug, asyncio.Lock())
         if lock.locked():
-            _LOGGER.debug("camwatch: %s is still being analysed", camera_slug)
+            _LOGGER.debug("kustos_vision: %s is still being analysed", camera_slug)
             return None
 
         today = dt_util.now().date()
         if state.count_for(today) >= profile.daily_budget:
             _LOGGER.warning(
-                "camwatch: %s has used today's budget of %s analyses",
+                "kustos_vision: %s has used today's budget of %s analyses",
                 camera_slug,
                 profile.daily_budget,
             )
             return None
         if not force and (skip := self._may_run(profile, state)) is not None:
-            _LOGGER.debug("camwatch: not analysing %s: %s", camera_slug, skip)
+            _LOGGER.debug("kustos_vision: not analysing %s: %s", camera_slug, skip)
             return None
 
         entity_id = self._camera_entity(camera_slug)
@@ -211,7 +230,7 @@ class VisionRunner:
             except VisionError as err:
                 state.last_error = str(err)
                 state.last_run = dt_util.utcnow()
-                _LOGGER.warning("camwatch: analysing %s failed: %s", camera_slug, err)
+                _LOGGER.warning("kustos_vision: analysing %s failed: %s", camera_slug, err)
                 self._record(state, reason, None, str(err))
                 return None
             finally:

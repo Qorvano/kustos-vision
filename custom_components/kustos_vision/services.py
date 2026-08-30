@@ -1,7 +1,7 @@
 """The service that runs an analysis on demand.
 
 Useful twice over: it is how a question is tried out while it is being written,
-and it is how an automation asks for an analysis at a moment camwatch's own
+and it is how an automation asks for an analysis at a moment kustos_vision's own
 triggers would not have caught, such as on a doorbell press.
 """
 
@@ -42,14 +42,14 @@ def async_register_services(hass: HomeAssistant) -> None:
     async def _analyze(call: ServiceCall) -> ServiceResponse:
         entries = hass.config_entries.async_loaded_entries(DOMAIN)
         if not entries:
-            raise ServiceValidationError("camwatch is not set up")
+            raise ServiceValidationError("kustos_vision is not set up")
         coordinator = entries[0].runtime_data
 
         slug = call.data["camera"]
         if coordinator.config.camera(slug) is None:
             known = ", ".join(c.slug for c in coordinator.config.cameras) or "none"
             raise ServiceValidationError(
-                f"no camera {slug!r} in camwatch (known: {known})"
+                f"no camera {slug!r} in kustos_vision (known: {known})"
             )
         if coordinator.config.vision_for(slug) is None:
             raise ServiceValidationError(

@@ -5,7 +5,7 @@ different places a model can live:
 
 * **AI Task** hands the work to Home Assistant, which already knows how to talk
   to OpenAI, Anthropic, Google and Ollama, and will know about whatever comes
-  next without camwatch changing.
+  next without kustos_vision changing.
 * **OpenAI-compatible** speaks the protocol directly to a URL, which is what a
   local llama.cpp, LM Studio or vLLM offers, and what several hosted services
   offer as well.
@@ -103,7 +103,7 @@ async def async_analyse(
     values, problems = coerce_answers(list(profile.observations), raw)
     if problems:
         _LOGGER.debug(
-            "camwatch: %s could not be read from the answer: %s",
+            "kustos_vision: %s could not be read from the answer: %s",
             camera.slug,
             problems,
         )

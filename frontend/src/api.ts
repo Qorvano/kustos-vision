@@ -17,7 +17,7 @@ import type {
   VisionProfile,
 } from "./types";
 
-const DOMAIN = "camwatch";
+const DOMAIN = "kustos_vision";
 
 export class CamwatchApi {
   constructor(private hass: HomeAssistant) {}

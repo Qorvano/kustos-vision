@@ -26,7 +26,7 @@ const TYPES: [ObservationType, string][] = [
   ["select", "Auswahl"],
 ];
 
-@customElement("camwatch-vision-editor")
+@customElement("kustos-vision-vision-editor")
 export class CamwatchVisionEditor extends LitElement {
   @property({ attribute: false }) api!: CamwatchApi;
   @property({ attribute: false }) camera!: Camera;
@@ -521,6 +521,6 @@ ${JSON.stringify(this.lastRun.raw, null, 2)}</pre
 
 declare global {
   interface HTMLElementTagNameMap {
-    "camwatch-vision-editor": CamwatchVisionEditor;
+    "kustos-vision-vision-editor": CamwatchVisionEditor;
   }
 }

@@ -7,7 +7,7 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 import pytest
-from camwatch.core.index import (
+from kustos_vision.core.index import (
     Segment,
     SegmentIndex,
     blocks_from_segments,
@@ -320,7 +320,7 @@ def _tree(root: Path, *names: str) -> None:
 
 
 def test_incremental_scan_reports_new_segments(tmp_path: Path) -> None:
-    from camwatch.core.index import scan_incremental
+    from kustos_vision.core.index import scan_incremental
 
     _tree(tmp_path, "14-30-00_hd.mp4", "14-35-00_hd.mp4")
     result = scan_incremental(tmp_path, BERLIN, known=set())
@@ -331,7 +331,7 @@ def test_incremental_scan_reports_new_segments(tmp_path: Path) -> None:
 def test_incremental_scan_skips_files_it_already_knows(tmp_path: Path) -> None:
     """stat() on a network share is the expensive part, so a file whose facts
     cannot have changed must not be touched at all."""
-    from camwatch.core.index import scan_incremental
+    from kustos_vision.core.index import scan_incremental
 
     _tree(tmp_path, "14-30-00_hd.mp4", "14-35-00_hd.mp4")
     known = {"vorgarten/2026-08-30/14-30-00_hd.mp4"}
@@ -344,7 +344,7 @@ def test_incremental_scan_skips_files_it_already_knows(tmp_path: Path) -> None:
 def test_incremental_scan_refreshes_the_growing_segment(tmp_path: Path) -> None:
     """The segment ffmpeg is writing into keeps growing, so its size and
     duration have to be re-read even though the index knows the path."""
-    from camwatch.core.index import scan_incremental
+    from kustos_vision.core.index import scan_incremental
 
     _tree(tmp_path, "14-30-00_hd.mp4")
     rel = "vorgarten/2026-08-30/14-30-00_hd.mp4"
@@ -353,7 +353,7 @@ def test_incremental_scan_refreshes_the_growing_segment(tmp_path: Path) -> None:
 
 
 def test_incremental_scan_reports_files_deleted_behind_its_back(tmp_path: Path) -> None:
-    from camwatch.core.index import scan_incremental
+    from kustos_vision.core.index import scan_incremental
 
     _tree(tmp_path, "14-30-00_hd.mp4")
     known = {

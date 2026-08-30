@@ -7,16 +7,16 @@ import json
 import pytest
 from homeassistant.core import HomeAssistant
 
-from custom_components.camwatch.core.config import (
+from custom_components.kustos_vision.core.config import (
     CameraConfig,
     StreamConfig,
     VisionBackend,
     VisionBackendKind,
     VisionProfile,
 )
-from custom_components.camwatch.core.observations import Observation, ObservationType
-from custom_components.camwatch.vision import VisionError, build_prompt
-from custom_components.camwatch.vision.openai_compat import _endpoint, _extract
+from custom_components.kustos_vision.core.observations import Observation, ObservationType
+from custom_components.kustos_vision.vision import VisionError, build_prompt
+from custom_components.kustos_vision.vision.openai_compat import _endpoint, _extract
 
 CAMERA = CameraConfig(
     slug="vorgarten",
@@ -150,14 +150,14 @@ def test_a_non_text_answer_is_an_error() -> None:
 
 
 def test_an_ai_task_backend_needs_an_ai_task_entity() -> None:
-    from custom_components.camwatch.core.config import ConfigError
+    from custom_components.kustos_vision.core.config import ConfigError
 
     with pytest.raises(ConfigError, match="AI Task entity"):
         VisionBackend(kind=VisionBackendKind.AI_TASK, entity_id="sensor.nope")
 
 
 def test_an_openai_backend_needs_a_url_and_a_model() -> None:
-    from custom_components.camwatch.core.config import ConfigError
+    from custom_components.kustos_vision.core.config import ConfigError
 
     with pytest.raises(ConfigError, match="URL"):
         VisionBackend(kind=VisionBackendKind.OPENAI, model="x")
@@ -188,7 +188,7 @@ def test_backends_round_trip() -> None:
 
 async def test_analysing_without_questions_is_refused(hass: HomeAssistant) -> None:
     """An empty profile would send a picture and get nothing back."""
-    from custom_components.camwatch.vision import async_analyse
+    from custom_components.kustos_vision.vision import async_analyse
 
     empty = VisionProfile(camera_slug="vorgarten", backend=PROFILE.backend)
     with pytest.raises(VisionError, match="asks nothing"):

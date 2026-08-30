@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import pytest
-from camwatch.core.observations import (
+from kustos_vision.core.observations import (
     Observation,
     ObservationError,
     ObservationType,

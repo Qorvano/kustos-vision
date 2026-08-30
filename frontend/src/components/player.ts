@@ -24,9 +24,11 @@ export interface PlayableSegment {
 // somewhere else has not wasted much.
 const LOOKAHEAD_SEGMENTS = 2;
 
-// The audio track is always AAC-LC, because the recorder either encodes it
-// that way or drops it. The video codec is not known in advance: it is copied
-// from the camera untouched, so it is read out of the file below.
+// When there is an audio track it is AAC-LC, because the recorder either
+// encodes it that way or drops it entirely. Whether there is one at all has to
+// be read from the file: a camera recorded with audio switched off produces
+// segments with no audio track, and declaring one anyway hands MediaSource a
+// type the data does not match.
 const AUDIO_CODEC = "mp4a.40.2";
 
 /**
@@ -38,6 +40,33 @@ const AUDIO_CODEC = "mp4a.40.2";
  * avcC box. Searching for the four-character code is enough here: it appears
  * once, inside the sample description that every segment carries in its moov.
  */
+function findBox(header: Uint8Array, type: string): number {
+  const [a, b, c, d] = [0, 1, 2, 3].map((i) => type.charCodeAt(i));
+  for (let i = 0; i + 8 < header.length; i += 1) {
+    if (
+      header[i] === a &&
+      header[i + 1] === b &&
+      header[i + 2] === c &&
+      header[i + 3] === d
+    ) {
+      return i;
+    }
+  }
+  return -1;
+}
+
+/**
+ * Whether the segment carries an audio track.
+ *
+ * The sample description names its format, so an AAC track shows up as an
+ * "mp4a" box in the moov. A segment recorded with audio switched off has none,
+ * and declaring AAC for it would make MediaSource reject data that is
+ * otherwise perfectly playable.
+ */
+export function hasAudioTrack(header: Uint8Array): boolean {
+  return findBox(header, "mp4a") !== -1;
+}
+
 export function readVideoCodec(header: Uint8Array): string | null {
   for (let i = 0; i + 8 < header.length; i += 1) {
     if (
@@ -59,16 +88,17 @@ export function readVideoCodec(header: Uint8Array): string | null {
   return null;
 }
 
-@customElement("camwatch-player")
+@customElement("kustos-vision-player")
 export class CamwatchPlayer extends LitElement {
   @property({ attribute: false }) segments: PlayableSegment[] = [];
   /** Where to start, as a UTC timestamp in seconds. */
   @property({ type: Number }) seekTo = 0;
-  @property() segmentUrlBase = "/api/camwatch/segment";
+  @property() segmentUrlBase = "/api/kustos_vision/segment";
 
   @state() private message = "";
 
   private media?: MediaSource;
+  private withAudio = true;
   private buffer?: SourceBuffer;
   private objectUrl?: string;
   private queue: PlayableSegment[] = [];
@@ -176,23 +206,31 @@ export class CamwatchPlayer extends LitElement {
 
     let codec: string | null;
     try {
-      codec = await this.detectCodec(this.queue[0]);
+      codec = await this.inspect(this.queue[0]);
     } catch (err) {
       this.message = err instanceof Error ? err.message : String(err);
       return;
     }
     if (generation !== this.generation) return;
     if (!codec) {
-      this.message = "Das Format der Aufnahme konnte nicht bestimmt werden.";
+      // Only H.264 can be described here. A recording copied from an H.265,
+      // AV1 or MJPEG camera reaches this point, and saying so beats a silent
+      // black rectangle.
+      this.message =
+        "Diese Aufnahme ist nicht H.264. Die Wiedergabe im Panel unterstützt " +
+        "derzeit nur H.264; die Datei selbst ist unbeschädigt und lässt sich " +
+        "herunterladen.";
       return;
     }
 
-    const mime = `video/mp4; codecs="${codec}, ${AUDIO_CODEC}"`;
-    const fallback = `video/mp4; codecs="${codec}"`;
-    const supported = MediaSource.isTypeSupported(mime)
-      ? mime
-      : MediaSource.isTypeSupported(fallback)
-        ? fallback
+    // Video only, unless the file actually carries an audio track.
+    const videoOnly = `video/mp4; codecs="${codec}"`;
+    const withAudio = `video/mp4; codecs="${codec}, ${AUDIO_CODEC}"`;
+    const wanted = this.withAudio ? withAudio : videoOnly;
+    const supported = MediaSource.isTypeSupported(wanted)
+      ? wanted
+      : MediaSource.isTypeSupported(videoOnly)
+        ? videoOnly
         : null;
     if (!supported) {
       this.message = `Dieser Browser kann ${codec} nicht abspielen.`;
@@ -230,17 +268,19 @@ export class CamwatchPlayer extends LitElement {
     video.addEventListener("timeupdate", () => void this.pump());
   }
 
-  private async detectCodec(segment: PlayableSegment): Promise<string | null> {
+  private async inspect(segment: PlayableSegment): Promise<string | null> {
     // The moov box sits at the front of a fragmented MP4, so the first few
-    // kilobytes are enough and the whole file need not be fetched to find out
-    // what it is.
+    // kilobytes describe the whole thing and the file need not be fetched to
+    // find out what it is.
     const response = await fetch(this.urlFor(segment), {
       headers: { Range: "bytes=0-8191" },
     });
     if (!response.ok && response.status !== 206) {
       throw new Error("Die Aufnahme konnte nicht geladen werden.");
     }
-    return readVideoCodec(new Uint8Array(await response.arrayBuffer()));
+    const header = new Uint8Array(await response.arrayBuffer());
+    this.withAudio = hasAudioTrack(header);
+    return readVideoCodec(header);
   }
 
   private urlFor(segment: PlayableSegment): string {
@@ -296,7 +336,7 @@ export class CamwatchPlayer extends LitElement {
       // shows up as a short jump, which is what the file actually is.
       this.appended.add(next.path);
       // eslint-disable-next-line no-console
-      console.warn("camwatch: segment could not be appended", next.path, err);
+      console.warn("kustos_vision: segment could not be appended", next.path, err);
     } finally {
       this.loading = false;
     }
@@ -312,6 +352,6 @@ export class CamwatchPlayer extends LitElement {
 
 declare global {
   interface HTMLElementTagNameMap {
-    "camwatch-player": CamwatchPlayer;
+    "kustos-vision-player": CamwatchPlayer;
   }
 }

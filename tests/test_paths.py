@@ -7,7 +7,7 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 import pytest
-from camwatch.core import paths
+from kustos_vision.core import paths
 
 BERLIN = ZoneInfo("Europe/Berlin")
 
@@ -45,8 +45,8 @@ def test_unsafe_slugs_are_rejected(slug: str) -> None:
 
 
 def test_segment_output_pattern_is_the_documented_layout() -> None:
-    pattern = paths.segment_output_pattern(Path("/media/camwatch"), "vorgarten", "hd")
-    assert pattern == "/media/camwatch/vorgarten/%Y-%m-%d/%H-%M-%S_hd.mp4"
+    pattern = paths.segment_output_pattern(Path("/media/kustos_vision"), "vorgarten", "hd")
+    assert pattern == "/media/kustos_vision/vorgarten/%Y-%m-%d/%H-%M-%S_hd.mp4"
 
 
 def test_segment_output_pattern_rejects_an_unsafe_stream_key() -> None:
@@ -55,9 +55,9 @@ def test_segment_output_pattern_rejects_an_unsafe_stream_key() -> None:
 
 
 def test_thumbnail_sits_next_to_its_segment() -> None:
-    segment = Path("/media/camwatch/cam/2026-08-30/14-30-00_hd.mp4")
+    segment = Path("/media/kustos_vision/cam/2026-08-30/14-30-00_hd.mp4")
     assert paths.thumbnail_for(segment) == Path(
-        "/media/camwatch/cam/2026-08-30/14-30-00_hd.jpg"
+        "/media/kustos_vision/cam/2026-08-30/14-30-00_hd.jpg"
     )
 
 

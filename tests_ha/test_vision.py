@@ -16,13 +16,13 @@ from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.camwatch.const import (
+from custom_components.kustos_vision.const import (
     CONF_BASE_PATH,
     DOMAIN,
     STORAGE_KEY_CONFIG,
     STORAGE_VERSION_CONFIG,
 )
-from custom_components.camwatch.vision import VisionResult
+from custom_components.kustos_vision.vision import VisionResult
 
 TRIGGER = "binary_sensor.vorgarten_motion"
 CONDITION = "input_boolean.scharf"
@@ -104,15 +104,15 @@ def vision_env(analysed: list[dict]):
 
     with (
         patch(
-            "custom_components.camwatch.recorder.async_get_stream_source",
+            "custom_components.kustos_vision.recorder.async_get_stream_source",
             AsyncMock(return_value=None),
         ),
         patch(
-            "custom_components.camwatch.maintenance.get_ffmpeg_manager",
+            "custom_components.kustos_vision.maintenance.get_ffmpeg_manager",
             MagicMock(return_value=MagicMock(binary="/usr/bin/ffmpeg")),
         ),
         patch(
-            "custom_components.camwatch.vision_runner.async_analyse",
+            "custom_components.kustos_vision.vision_runner.async_analyse",
             AsyncMock(side_effect=_analyse),
         ),
     ):
@@ -349,15 +349,15 @@ async def test_a_long_answer_is_shortened_for_the_state(
 
     with (
         patch(
-            "custom_components.camwatch.recorder.async_get_stream_source",
+            "custom_components.kustos_vision.recorder.async_get_stream_source",
             AsyncMock(return_value=None),
         ),
         patch(
-            "custom_components.camwatch.maintenance.get_ffmpeg_manager",
+            "custom_components.kustos_vision.maintenance.get_ffmpeg_manager",
             MagicMock(return_value=MagicMock(binary="/usr/bin/ffmpeg")),
         ),
         patch(
-            "custom_components.camwatch.vision_runner.async_analyse",
+            "custom_components.kustos_vision.vision_runner.async_analyse",
             AsyncMock(side_effect=_analyse),
         ),
     ):
@@ -441,3 +441,31 @@ async def test_the_service_rejects_a_camera_without_a_profile(
         await hass.services.async_call(
             DOMAIN, "analyze", {"camera": "vorgarten"}, blocking=True
         )
+
+
+async def test_a_trigger_on_a_camera_without_streams_does_not_crash_the_task(
+    hass: HomeAssistant, hass_storage: dict, tmp_path: Path, vision_env
+) -> None:
+    """Regression: the "no entity to snapshot" error was raised outside the
+    handler and outside the lock, so a trigger-driven run died as an unhandled
+    task. The user saw an asyncio traceback, and the profile never recorded
+    that anything had gone wrong."""
+    base = tmp_path / "recordings"
+    stored_config = stored(base)
+    stored_config["data"]["cameras"][0]["streams"] = []
+    hass_storage[STORAGE_KEY_CONFIG] = stored_config
+
+    entry = MockConfigEntry(domain=DOMAIN, data={CONF_BASE_PATH: str(base)})
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    await fire(hass, "on")
+
+    state = entry.runtime_data.vision.state_for("vorgarten")
+    assert state.last_error is not None
+    assert "snapshot" in state.last_error
+    assert state.history and state.history[0]["error"] == state.last_error
+
+    await hass.config_entries.async_unload(entry.entry_id)
+    await hass.async_block_till_done()

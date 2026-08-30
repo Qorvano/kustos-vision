@@ -11,7 +11,7 @@ from homeassistant.config_entries import ConfigEntryState
 from homeassistant.core import HomeAssistant
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.camwatch.const import (
+from custom_components.kustos_vision.const import (
     CONF_BASE_PATH,
     DOMAIN,
     STORAGE_KEY_CONFIG,
@@ -91,18 +91,18 @@ def recording_env(spawned: list[list[str]]):
 
     with (
         patch(
-            "custom_components.camwatch.recorder.async_get_stream_source",
+            "custom_components.kustos_vision.recorder.async_get_stream_source",
             AsyncMock(return_value=STREAM_URL),
         ),
         patch(
-            "custom_components.camwatch.recorder.get_ffmpeg_manager",
+            "custom_components.kustos_vision.recorder.get_ffmpeg_manager",
             MagicMock(return_value=MagicMock(binary="/usr/bin/ffmpeg")),
         ),
         patch(
-            "custom_components.camwatch.maintenance.get_ffmpeg_manager",
+            "custom_components.kustos_vision.maintenance.get_ffmpeg_manager",
             MagicMock(return_value=MagicMock(binary="/usr/bin/ffmpeg")),
         ),
-        patch("custom_components.camwatch.recorder.create_subprocess_exec", _spawn),
+        patch("custom_components.kustos_vision.recorder.create_subprocess_exec", _spawn),
     ):
         yield processes
 
@@ -133,14 +133,14 @@ async def test_the_resolved_url_is_what_gets_recorded(
     hass: HomeAssistant, loaded: MockConfigEntry, spawned: list[list[str]]
 ) -> None:
     """Credentials come from whichever integration owns the camera entity, so
-    the user never types a password into camwatch."""
+    the user never types a password into kustos_vision."""
     assert STREAM_URL in spawned[0]
 
 
 async def test_the_recording_never_decodes_video(
     hass: HomeAssistant, loaded: MockConfigEntry, spawned: list[list[str]]
 ) -> None:
-    """The whole cost argument for camwatch rests on this."""
+    """The whole cost argument for kustos_vision rests on this."""
     args = spawned[0]
     assert args[args.index("-c:v") + 1] == "copy"
 
@@ -230,15 +230,15 @@ async def test_a_stream_without_a_url_is_skipped_not_fatal(
 
     with (
         patch(
-            "custom_components.camwatch.recorder.async_get_stream_source",
+            "custom_components.kustos_vision.recorder.async_get_stream_source",
             AsyncMock(return_value=None),
         ),
         patch(
-            "custom_components.camwatch.recorder.get_ffmpeg_manager",
+            "custom_components.kustos_vision.recorder.get_ffmpeg_manager",
             MagicMock(return_value=MagicMock(binary="/usr/bin/ffmpeg")),
         ),
         patch(
-            "custom_components.camwatch.maintenance.get_ffmpeg_manager",
+            "custom_components.kustos_vision.maintenance.get_ffmpeg_manager",
             MagicMock(return_value=MagicMock(binary="/usr/bin/ffmpeg")),
         ),
     ):

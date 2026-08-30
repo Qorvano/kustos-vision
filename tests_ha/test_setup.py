@@ -9,14 +9,14 @@ from homeassistant.config_entries import ConfigEntryState
 from homeassistant.core import HomeAssistant
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.camwatch.const import CONF_BASE_PATH, DOMAIN
+from custom_components.kustos_vision.const import CONF_BASE_PATH, DOMAIN
 
 
 @pytest.fixture
 async def entry(hass: HomeAssistant, tmp_path: Path):
     entry = MockConfigEntry(
         domain=DOMAIN,
-        title="camwatch",
+        title="kustos_vision",
         data={CONF_BASE_PATH: str(tmp_path / "recordings")},
     )
     entry.add_to_hass(hass)
@@ -55,7 +55,7 @@ async def test_setup_creates_the_segment_index(
     unreliable."""
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
-    assert Path(hass.config.path("camwatch")) .joinpath("index.db").is_file()
+    assert Path(hass.config.path("kustos_vision")) .joinpath("index.db").is_file()
 
 
 async def test_instance_sensors_appear(

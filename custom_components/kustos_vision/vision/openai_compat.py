@@ -30,7 +30,7 @@ _LOGGER = logging.getLogger(__name__)
 # memory on a local one without adding anything the model can act on.
 IMAGE_LONG_EDGE = 1024
 
-SCHEMA_NAME = "camwatch_observations"
+SCHEMA_NAME = "kustos_vision_observations"
 
 
 def _endpoint(url: str) -> str:

@@ -1,6 +1,6 @@
 // Adding and editing a camera.
 //
-// Adding starts from a Home Assistant camera entity, and camwatch proposes the
+// Adding starts from a Home Assistant camera entity, and kustos_vision proposes the
 // rest: the other streams of the same device, and which of its entities drive
 // pan, tilt, light and so on. Every proposal is editable, because the proposal
 // is a heuristic and the assignment is the truth.
@@ -31,7 +31,7 @@ function slugify(value: string): string {
   return /^[a-z0-9]/.test(slug) ? slug : `kamera_${slug}`;
 }
 
-@customElement("camwatch-camera-editor")
+@customElement("kustos-vision-camera-editor")
 export class CamwatchCameraEditor extends LitElement {
   @property({ attribute: false }) api!: CamwatchApi;
   @property({ attribute: false }) camera?: Camera;
@@ -141,7 +141,7 @@ export class CamwatchCameraEditor extends LitElement {
         )}
       </select>
       <p class="hint">
-        camwatch schlägt danach Streams und Bedienelemente vor, die zum selben
+        kustos_vision schlägt danach Streams und Bedienelemente vor, die zum selben
         Gerät gehören. Alles davon lässt sich ändern.
       </p>
     `;
@@ -315,6 +315,6 @@ export class CamwatchCameraEditor extends LitElement {
 
 declare global {
   interface HTMLElementTagNameMap {
-    "camwatch-camera-editor": CamwatchCameraEditor;
+    "kustos-vision-camera-editor": CamwatchCameraEditor;
   }
 }

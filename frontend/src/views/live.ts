@@ -6,7 +6,7 @@ import type { CamwatchApi } from "../api";
 import type { Camera, HomeAssistant, View } from "../types";
 import "../components/camera-tile";
 
-@customElement("camwatch-live-view")
+@customElement("kustos-vision-live-view")
 export class CamwatchLiveView extends LitElement {
   @property({ attribute: false }) hass!: HomeAssistant;
   @property({ attribute: false }) api!: CamwatchApi;
@@ -58,11 +58,11 @@ export class CamwatchLiveView extends LitElement {
       <div class="grid" style=${style}>
         ${cameras.map(
           (camera) => html`
-            <camwatch-camera-tile
+            <kustos-vision-camera-tile
               .hass=${this.hass}
               .api=${this.api}
               .camera=${camera}
-            ></camwatch-camera-tile>
+            ></kustos-vision-camera-tile>
           `,
         )}
       </div>
@@ -72,6 +72,6 @@ export class CamwatchLiveView extends LitElement {
 
 declare global {
   interface HTMLElementTagNameMap {
-    "camwatch-live-view": CamwatchLiveView;
+    "kustos-vision-live-view": CamwatchLiveView;
   }
 }

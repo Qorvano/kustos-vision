@@ -19,7 +19,7 @@ from ..core.config import CameraConfig, VisionProfile
 from ..core.observations import to_ai_task_structure
 from . import VisionError, build_prompt
 
-TASK_NAME = "camwatch vision"
+TASK_NAME = "kustos_vision vision"
 
 
 def _structure(profile: VisionProfile) -> vol.Schema:

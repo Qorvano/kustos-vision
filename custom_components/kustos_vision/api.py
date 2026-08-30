@@ -1,12 +1,12 @@
 """The websocket API the panel talks to.
 
-This is the whole of camwatch's interface. The panel renders what these
+This is the whole of kustos_vision's interface. The panel renders what these
 commands return and calls them to change anything; deleting the front-end
 directory must not cost a single capability. That is a hard rule, not a style
 preference: it keeps the logic testable without a browser, and it means a
 future front-end rewrite touches nothing else.
 
-Commands are named ``camwatch/<area>/<action>``. Everything that writes
+Commands are named ``kustos_vision/<area>/<action>``. Everything that writes
 requires an admin, because it changes what gets recorded and where.
 """
 
@@ -77,11 +77,11 @@ def _coordinator(hass: HomeAssistant) -> CamwatchCoordinator | None:
 
 
 def _require(hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict):
-    """Return the coordinator, or report that camwatch is not set up."""
+    """Return the coordinator, or report that kustos_vision is not set up."""
     coordinator = _coordinator(hass)
     if coordinator is None:
         connection.send_error(
-            msg["id"], "not_loaded", "camwatch is not set up"
+            msg["id"], "not_loaded", "kustos_vision is not set up"
         )
         return None
     return coordinator
@@ -302,6 +302,28 @@ async def ws_suggest_camera(
         return
 
     candidates = _device_candidates(hass, entry.device_id)
+
+    # The chosen entity is always a candidate for itself, even when its
+    # integration creates no device to walk. Several of the most general camera
+    # integrations do exactly that: a generic camera pointed at an arbitrary
+    # RTSP URL, or a template camera, has no device, so the device walk returns
+    # nothing and the user would be unable to add the very camera they picked.
+    if all(c.entity_id != msg["entity_id"] for c in candidates):
+        state = hass.states.get(msg["entity_id"])
+        candidates.insert(
+            0,
+            EntityCandidate(
+                entity_id=msg["entity_id"],
+                name=(
+                    entry.name
+                    or entry.original_name
+                    or (state.name if state else "")
+                    or msg["entity_id"]
+                ),
+                device_class=entry.device_class or entry.original_device_class,
+            ),
+        )
+
     device_name = None
     if entry.device_id:
         device = dr.async_get(hass).async_get(entry.device_id)
@@ -356,7 +378,7 @@ async def ws_available_cameras(
 ) -> None:
     """List the camera entities that could be added.
 
-    Cameras camwatch itself might publish later are excluded, so that the panel
+    Cameras kustos_vision itself might publish later are excluded, so that the panel
     cannot offer to record its own output.
     """
     entity_registry = er.async_get(hass)

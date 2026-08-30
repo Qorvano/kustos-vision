@@ -24,7 +24,7 @@ const SECTIONS: [Section, string][] = [
 
 const GIGABYTE = 1000 * 1000 * 1000;
 
-@customElement("camwatch-settings")
+@customElement("kustos-vision-settings")
 export class CamwatchSettings extends LitElement {
   @property({ attribute: false }) api!: CamwatchApi;
   @property({ attribute: false }) snapshot!: Snapshot;
@@ -72,7 +72,7 @@ export class CamwatchSettings extends LitElement {
 
   private renderCameras() {
     if (this.adding || this.editing) {
-      return html`<camwatch-camera-editor
+      return html`<kustos-vision-camera-editor
         .api=${this.api}
         .camera=${this.editing}
         .capabilityKeys=${this.snapshot.capability_keys}
@@ -86,7 +86,7 @@ export class CamwatchSettings extends LitElement {
           this.adding = false;
           this.editing = undefined;
         }}
-      ></camwatch-camera-editor>`;
+      ></kustos-vision-camera-editor>`;
     }
 
     return html`
@@ -94,7 +94,7 @@ export class CamwatchSettings extends LitElement {
         <h2>Kameras</h2>
         ${this.snapshot.cameras.length === 0
           ? html`<p class="hint">
-              Noch keine Kamera eingerichtet. camwatch schlägt beim Hinzufügen
+              Noch keine Kamera eingerichtet. kustos_vision schlägt beim Hinzufügen
               vor, welche Streams und Bedienelemente zum Gerät gehören.
             </p>`
           : html`<table>
@@ -178,7 +178,7 @@ export class CamwatchSettings extends LitElement {
 
   private renderVision() {
     if (this.visionFor) {
-      return html`<camwatch-vision-editor
+      return html`<kustos-vision-vision-editor
         .api=${this.api}
         .camera=${this.visionFor}
         .profile=${this.snapshot.vision.find(
@@ -189,7 +189,7 @@ export class CamwatchSettings extends LitElement {
           void this.refresh();
         }}
         @cancelled=${() => (this.visionFor = undefined)}
-      ></camwatch-vision-editor>`;
+      ></kustos-vision-vision-editor>`;
     }
 
     return html`
@@ -198,7 +198,7 @@ export class CamwatchSettings extends LitElement {
         <p class="hint">
           Ein Standbild wird an ein Modell Ihrer Wahl geschickt, sobald ein
           Auslöser meldet. Aus jeder Frage wird ein Sensor, den Automationen
-          und Dashboards wie jeden anderen nutzen können. camwatch selbst
+          und Dashboards wie jeden anderen nutzen können. kustos_vision selbst
           erkennt nichts; die Arbeit macht das Modell.
         </p>
         ${this.snapshot.cameras.length === 0
@@ -573,6 +573,6 @@ export class CamwatchSettings extends LitElement {
 
 declare global {
   interface HTMLElementTagNameMap {
-    "camwatch-settings": CamwatchSettings;
+    "kustos-vision-settings": CamwatchSettings;
   }
 }

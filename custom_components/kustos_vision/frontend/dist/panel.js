@@ -3,119 +3,119 @@
  * Copyright 2019 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
  */
-const ae = globalThis, pe = ae.ShadowRoot && (ae.ShadyCSS === void 0 || ae.ShadyCSS.nativeShadow) && "adoptedStyleSheets" in Document.prototype && "replace" in CSSStyleSheet.prototype, ue = Symbol(), ye = /* @__PURE__ */ new WeakMap();
-let Te = class {
-  constructor(e, s, i) {
-    if (this._$cssResult$ = !0, i !== ue) throw Error("CSSResult is not constructable. Use `unsafeCSS` or `css` instead.");
-    this.cssText = e, this.t = s;
+const at = globalThis, pt = at.ShadowRoot && (at.ShadyCSS === void 0 || at.ShadyCSS.nativeShadow) && "adoptedStyleSheets" in Document.prototype && "replace" in CSSStyleSheet.prototype, ut = Symbol(), ft = /* @__PURE__ */ new WeakMap();
+let Tt = class {
+  constructor(t, s, i) {
+    if (this._$cssResult$ = !0, i !== ut) throw Error("CSSResult is not constructable. Use `unsafeCSS` or `css` instead.");
+    this.cssText = t, this.t = s;
   }
   get styleSheet() {
-    let e = this.o;
+    let t = this.o;
     const s = this.t;
-    if (pe && e === void 0) {
+    if (pt && t === void 0) {
       const i = s !== void 0 && s.length === 1;
-      i && (e = ye.get(s)), e === void 0 && ((this.o = e = new CSSStyleSheet()).replaceSync(this.cssText), i && ye.set(s, e));
+      i && (t = ft.get(s)), t === void 0 && ((this.o = t = new CSSStyleSheet()).replaceSync(this.cssText), i && ft.set(s, t));
     }
-    return e;
+    return t;
   }
   toString() {
     return this.cssText;
   }
 };
-const Re = (t) => new Te(typeof t == "string" ? t : t + "", void 0, ue), H = (t, ...e) => {
-  const s = t.length === 1 ? t[0] : e.reduce((i, r, a) => i + ((n) => {
+const Rt = (e) => new Tt(typeof e == "string" ? e : e + "", void 0, ut), H = (e, ...t) => {
+  const s = e.length === 1 ? e[0] : t.reduce((i, r, a) => i + ((n) => {
     if (n._$cssResult$ === !0) return n.cssText;
     if (typeof n == "number") return n;
     throw Error("Value passed to 'css' function must be a 'css' function result: " + n + ". Use 'unsafeCSS' to pass non-literal values, but take care to ensure page security.");
-  })(r) + t[a + 1], t[0]);
-  return new Te(s, t, ue);
-}, Ue = (t, e) => {
-  if (pe) t.adoptedStyleSheets = e.map((s) => s instanceof CSSStyleSheet ? s : s.styleSheet);
-  else for (const s of e) {
-    const i = document.createElement("style"), r = ae.litNonce;
-    r !== void 0 && i.setAttribute("nonce", r), i.textContent = s.cssText, t.appendChild(i);
+  })(r) + e[a + 1], e[0]);
+  return new Tt(s, e, ut);
+}, Ut = (e, t) => {
+  if (pt) e.adoptedStyleSheets = t.map((s) => s instanceof CSSStyleSheet ? s : s.styleSheet);
+  else for (const s of t) {
+    const i = document.createElement("style"), r = at.litNonce;
+    r !== void 0 && i.setAttribute("nonce", r), i.textContent = s.cssText, e.appendChild(i);
   }
-}, fe = pe ? (t) => t : (t) => t instanceof CSSStyleSheet ? ((e) => {
+}, yt = pt ? (e) => e : (e) => e instanceof CSSStyleSheet ? ((t) => {
   let s = "";
-  for (const i of e.cssRules) s += i.cssText;
-  return Re(s);
-})(t) : t;
+  for (const i of t.cssRules) s += i.cssText;
+  return Rt(s);
+})(e) : e;
 /**
  * @license
  * Copyright 2017 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
  */
-const { is: Ne, defineProperty: Be, getOwnPropertyDescriptor: He, getOwnPropertyNames: Ie, getOwnPropertySymbols: Ve, getPrototypeOf: Ke } = Object, le = globalThis, $e = le.trustedTypes, Le = $e ? $e.emptyScript : "", We = le.reactiveElementPolyfillSupport, G = (t, e) => t, ne = { toAttribute(t, e) {
-  switch (e) {
+const { is: Nt, defineProperty: Bt, getOwnPropertyDescriptor: Ht, getOwnPropertyNames: It, getOwnPropertySymbols: Vt, getPrototypeOf: Kt } = Object, lt = globalThis, $t = lt.trustedTypes, Lt = $t ? $t.emptyScript : "", Wt = lt.reactiveElementPolyfillSupport, G = (e, t) => e, nt = { toAttribute(e, t) {
+  switch (t) {
     case Boolean:
-      t = t ? Le : null;
+      e = e ? Lt : null;
       break;
     case Object:
     case Array:
-      t = t == null ? t : JSON.stringify(t);
+      e = e == null ? e : JSON.stringify(e);
   }
-  return t;
-}, fromAttribute(t, e) {
-  let s = t;
-  switch (e) {
+  return e;
+}, fromAttribute(e, t) {
+  let s = e;
+  switch (t) {
     case Boolean:
-      s = t !== null;
+      s = e !== null;
       break;
     case Number:
-      s = t === null ? null : Number(t);
+      s = e === null ? null : Number(e);
       break;
     case Object:
     case Array:
       try {
-        s = JSON.parse(t);
+        s = JSON.parse(e);
       } catch {
         s = null;
       }
   }
   return s;
-} }, me = (t, e) => !Ne(t, e), we = { attribute: !0, type: String, converter: ne, reflect: !1, useDefault: !1, hasChanged: me };
-Symbol.metadata ??= Symbol("metadata"), le.litPropertyMetadata ??= /* @__PURE__ */ new WeakMap();
+} }, mt = (e, t) => !Nt(e, t), wt = { attribute: !0, type: String, converter: nt, reflect: !1, useDefault: !1, hasChanged: mt };
+Symbol.metadata ??= Symbol("metadata"), lt.litPropertyMetadata ??= /* @__PURE__ */ new WeakMap();
 let I = class extends HTMLElement {
-  static addInitializer(e) {
-    this._$Ei(), (this.l ??= []).push(e);
+  static addInitializer(t) {
+    this._$Ei(), (this.l ??= []).push(t);
   }
   static get observedAttributes() {
     return this.finalize(), this._$Eh && [...this._$Eh.keys()];
   }
-  static createProperty(e, s = we) {
-    if (s.state && (s.attribute = !1), this._$Ei(), this.prototype.hasOwnProperty(e) && ((s = Object.create(s)).wrapped = !0), this.elementProperties.set(e, s), !s.noAccessor) {
-      const i = Symbol(), r = this.getPropertyDescriptor(e, i, s);
-      r !== void 0 && Be(this.prototype, e, r);
+  static createProperty(t, s = wt) {
+    if (s.state && (s.attribute = !1), this._$Ei(), this.prototype.hasOwnProperty(t) && ((s = Object.create(s)).wrapped = !0), this.elementProperties.set(t, s), !s.noAccessor) {
+      const i = Symbol(), r = this.getPropertyDescriptor(t, i, s);
+      r !== void 0 && Bt(this.prototype, t, r);
     }
   }
-  static getPropertyDescriptor(e, s, i) {
-    const { get: r, set: a } = He(this.prototype, e) ?? { get() {
+  static getPropertyDescriptor(t, s, i) {
+    const { get: r, set: a } = Ht(this.prototype, t) ?? { get() {
       return this[s];
     }, set(n) {
       this[s] = n;
     } };
     return { get: r, set(n) {
-      const d = r?.call(this);
-      a?.call(this, n), this.requestUpdate(e, d, i);
+      const p = r?.call(this);
+      a?.call(this, n), this.requestUpdate(t, p, i);
     }, configurable: !0, enumerable: !0 };
   }
-  static getPropertyOptions(e) {
-    return this.elementProperties.get(e) ?? we;
+  static getPropertyOptions(t) {
+    return this.elementProperties.get(t) ?? wt;
   }
   static _$Ei() {
     if (this.hasOwnProperty(G("elementProperties"))) return;
-    const e = Ke(this);
-    e.finalize(), e.l !== void 0 && (this.l = [...e.l]), this.elementProperties = new Map(e.elementProperties);
+    const t = Kt(this);
+    t.finalize(), t.l !== void 0 && (this.l = [...t.l]), this.elementProperties = new Map(t.elementProperties);
   }
   static finalize() {
     if (this.hasOwnProperty(G("finalized"))) return;
     if (this.finalized = !0, this._$Ei(), this.hasOwnProperty(G("properties"))) {
-      const s = this.properties, i = [...Ie(s), ...Ve(s)];
+      const s = this.properties, i = [...It(s), ...Vt(s)];
       for (const r of i) this.createProperty(r, s[r]);
     }
-    const e = this[Symbol.metadata];
-    if (e !== null) {
-      const s = litPropertyMetadata.get(e);
+    const t = this[Symbol.metadata];
+    if (t !== null) {
+      const s = litPropertyMetadata.get(t);
       if (s !== void 0) for (const [i, r] of s) this.elementProperties.set(i, r);
     }
     this._$Eh = /* @__PURE__ */ new Map();
@@ -125,76 +125,76 @@ let I = class extends HTMLElement {
     }
     this.elementStyles = this.finalizeStyles(this.styles);
   }
-  static finalizeStyles(e) {
+  static finalizeStyles(t) {
     const s = [];
-    if (Array.isArray(e)) {
-      const i = new Set(e.flat(1 / 0).reverse());
-      for (const r of i) s.unshift(fe(r));
-    } else e !== void 0 && s.push(fe(e));
+    if (Array.isArray(t)) {
+      const i = new Set(t.flat(1 / 0).reverse());
+      for (const r of i) s.unshift(yt(r));
+    } else t !== void 0 && s.push(yt(t));
     return s;
   }
-  static _$Eu(e, s) {
+  static _$Eu(t, s) {
     const i = s.attribute;
-    return i === !1 ? void 0 : typeof i == "string" ? i : typeof e == "string" ? e.toLowerCase() : void 0;
+    return i === !1 ? void 0 : typeof i == "string" ? i : typeof t == "string" ? t.toLowerCase() : void 0;
   }
   constructor() {
     super(), this._$Ep = void 0, this.isUpdatePending = !1, this.hasUpdated = !1, this._$Em = null, this._$Ev();
   }
   _$Ev() {
-    this._$ES = new Promise((e) => this.enableUpdating = e), this._$AL = /* @__PURE__ */ new Map(), this._$E_(), this.requestUpdate(), this.constructor.l?.forEach((e) => e(this));
+    this._$ES = new Promise((t) => this.enableUpdating = t), this._$AL = /* @__PURE__ */ new Map(), this._$E_(), this.requestUpdate(), this.constructor.l?.forEach((t) => t(this));
   }
-  addController(e) {
-    (this._$EO ??= /* @__PURE__ */ new Set()).add(e), this.renderRoot !== void 0 && this.isConnected && e.hostConnected?.();
+  addController(t) {
+    (this._$EO ??= /* @__PURE__ */ new Set()).add(t), this.renderRoot !== void 0 && this.isConnected && t.hostConnected?.();
   }
-  removeController(e) {
-    this._$EO?.delete(e);
+  removeController(t) {
+    this._$EO?.delete(t);
   }
   _$E_() {
-    const e = /* @__PURE__ */ new Map(), s = this.constructor.elementProperties;
-    for (const i of s.keys()) this.hasOwnProperty(i) && (e.set(i, this[i]), delete this[i]);
-    e.size > 0 && (this._$Ep = e);
+    const t = /* @__PURE__ */ new Map(), s = this.constructor.elementProperties;
+    for (const i of s.keys()) this.hasOwnProperty(i) && (t.set(i, this[i]), delete this[i]);
+    t.size > 0 && (this._$Ep = t);
   }
   createRenderRoot() {
-    const e = this.shadowRoot ?? this.attachShadow(this.constructor.shadowRootOptions);
-    return Ue(e, this.constructor.elementStyles), e;
+    const t = this.shadowRoot ?? this.attachShadow(this.constructor.shadowRootOptions);
+    return Ut(t, this.constructor.elementStyles), t;
   }
   connectedCallback() {
-    this.renderRoot ??= this.createRenderRoot(), this.enableUpdating(!0), this._$EO?.forEach((e) => e.hostConnected?.());
+    this.renderRoot ??= this.createRenderRoot(), this.enableUpdating(!0), this._$EO?.forEach((t) => t.hostConnected?.());
   }
-  enableUpdating(e) {
+  enableUpdating(t) {
   }
   disconnectedCallback() {
-    this._$EO?.forEach((e) => e.hostDisconnected?.());
+    this._$EO?.forEach((t) => t.hostDisconnected?.());
   }
-  attributeChangedCallback(e, s, i) {
-    this._$AK(e, i);
+  attributeChangedCallback(t, s, i) {
+    this._$AK(t, i);
   }
-  _$ET(e, s) {
-    const i = this.constructor.elementProperties.get(e), r = this.constructor._$Eu(e, i);
+  _$ET(t, s) {
+    const i = this.constructor.elementProperties.get(t), r = this.constructor._$Eu(t, i);
     if (r !== void 0 && i.reflect === !0) {
-      const a = (i.converter?.toAttribute !== void 0 ? i.converter : ne).toAttribute(s, i.type);
-      this._$Em = e, a == null ? this.removeAttribute(r) : this.setAttribute(r, a), this._$Em = null;
+      const a = (i.converter?.toAttribute !== void 0 ? i.converter : nt).toAttribute(s, i.type);
+      this._$Em = t, a == null ? this.removeAttribute(r) : this.setAttribute(r, a), this._$Em = null;
     }
   }
-  _$AK(e, s) {
-    const i = this.constructor, r = i._$Eh.get(e);
+  _$AK(t, s) {
+    const i = this.constructor, r = i._$Eh.get(t);
     if (r !== void 0 && this._$Em !== r) {
-      const a = i.getPropertyOptions(r), n = typeof a.converter == "function" ? { fromAttribute: a.converter } : a.converter?.fromAttribute !== void 0 ? a.converter : ne;
+      const a = i.getPropertyOptions(r), n = typeof a.converter == "function" ? { fromAttribute: a.converter } : a.converter?.fromAttribute !== void 0 ? a.converter : nt;
       this._$Em = r;
-      const d = n.fromAttribute(s, a.type);
-      this[r] = d ?? this._$Ej?.get(r) ?? d, this._$Em = null;
+      const p = n.fromAttribute(s, a.type);
+      this[r] = p ?? this._$Ej?.get(r) ?? p, this._$Em = null;
     }
   }
-  requestUpdate(e, s, i, r = !1, a) {
-    if (e !== void 0) {
+  requestUpdate(t, s, i, r = !1, a) {
+    if (t !== void 0) {
       const n = this.constructor;
-      if (r === !1 && (a = this[e]), i ??= n.getPropertyOptions(e), !((i.hasChanged ?? me)(a, s) || i.useDefault && i.reflect && a === this._$Ej?.get(e) && !this.hasAttribute(n._$Eu(e, i)))) return;
-      this.C(e, s, i);
+      if (r === !1 && (a = this[t]), i ??= n.getPropertyOptions(t), !((i.hasChanged ?? mt)(a, s) || i.useDefault && i.reflect && a === this._$Ej?.get(t) && !this.hasAttribute(n._$Eu(t, i)))) return;
+      this.C(t, s, i);
     }
     this.isUpdatePending === !1 && (this._$ES = this._$EP());
   }
-  C(e, s, { useDefault: i, reflect: r, wrapped: a }, n) {
-    i && !(this._$Ej ??= /* @__PURE__ */ new Map()).has(e) && (this._$Ej.set(e, n ?? s ?? this[e]), a !== !0 || n !== void 0) || (this._$AL.has(e) || (this.hasUpdated || i || (s = void 0), this._$AL.set(e, s)), r === !0 && this._$Em !== e && (this._$Eq ??= /* @__PURE__ */ new Set()).add(e));
+  C(t, s, { useDefault: i, reflect: r, wrapped: a }, n) {
+    i && !(this._$Ej ??= /* @__PURE__ */ new Map()).has(t) && (this._$Ej.set(t, n ?? s ?? this[t]), a !== !0 || n !== void 0) || (this._$AL.has(t) || (this.hasUpdated || i || (s = void 0), this._$AL.set(t, s)), r === !0 && this._$Em !== t && (this._$Eq ??= /* @__PURE__ */ new Set()).add(t));
   }
   async _$EP() {
     this.isUpdatePending = !0;
@@ -203,8 +203,8 @@ let I = class extends HTMLElement {
     } catch (s) {
       Promise.reject(s);
     }
-    const e = this.scheduleUpdate();
-    return e != null && await e, !this.isUpdatePending;
+    const t = this.scheduleUpdate();
+    return t != null && await t, !this.isUpdatePending;
   }
   scheduleUpdate() {
     return this.performUpdate();
@@ -218,23 +218,23 @@ let I = class extends HTMLElement {
       }
       const i = this.constructor.elementProperties;
       if (i.size > 0) for (const [r, a] of i) {
-        const { wrapped: n } = a, d = this[r];
-        n !== !0 || this._$AL.has(r) || d === void 0 || this.C(r, void 0, a, d);
+        const { wrapped: n } = a, p = this[r];
+        n !== !0 || this._$AL.has(r) || p === void 0 || this.C(r, void 0, a, p);
       }
     }
-    let e = !1;
+    let t = !1;
     const s = this._$AL;
     try {
-      e = this.shouldUpdate(s), e ? (this.willUpdate(s), this._$EO?.forEach((i) => i.hostUpdate?.()), this.update(s)) : this._$EM();
+      t = this.shouldUpdate(s), t ? (this.willUpdate(s), this._$EO?.forEach((i) => i.hostUpdate?.()), this.update(s)) : this._$EM();
     } catch (i) {
-      throw e = !1, this._$EM(), i;
+      throw t = !1, this._$EM(), i;
     }
-    e && this._$AE(s);
+    t && this._$AE(s);
   }
-  willUpdate(e) {
+  willUpdate(t) {
   }
-  _$AE(e) {
-    this._$EO?.forEach((s) => s.hostUpdated?.()), this.hasUpdated || (this.hasUpdated = !0, this.firstUpdated(e)), this.updated(e);
+  _$AE(t) {
+    this._$EO?.forEach((s) => s.hostUpdated?.()), this.hasUpdated || (this.hasUpdated = !0, this.firstUpdated(t)), this.updated(t);
   }
   _$EM() {
     this._$AL = /* @__PURE__ */ new Map(), this.isUpdatePending = !1;
@@ -245,88 +245,88 @@ let I = class extends HTMLElement {
   getUpdateComplete() {
     return this._$ES;
   }
-  shouldUpdate(e) {
+  shouldUpdate(t) {
     return !0;
   }
-  update(e) {
+  update(t) {
     this._$Eq &&= this._$Eq.forEach((s) => this._$ET(s, this[s])), this._$EM();
   }
-  updated(e) {
+  updated(t) {
   }
-  firstUpdated(e) {
+  firstUpdated(t) {
   }
 };
-I.elementStyles = [], I.shadowRootOptions = { mode: "open" }, I[G("elementProperties")] = /* @__PURE__ */ new Map(), I[G("finalized")] = /* @__PURE__ */ new Map(), We?.({ ReactiveElement: I }), (le.reactiveElementVersions ??= []).push("2.1.2");
+I.elementStyles = [], I.shadowRootOptions = { mode: "open" }, I[G("elementProperties")] = /* @__PURE__ */ new Map(), I[G("finalized")] = /* @__PURE__ */ new Map(), Wt?.({ ReactiveElement: I }), (lt.reactiveElementVersions ??= []).push("2.1.2");
 /**
  * @license
  * Copyright 2017 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
  */
-const ge = globalThis, _e = (t) => t, oe = ge.trustedTypes, xe = oe ? oe.createPolicy("lit-html", { createHTML: (t) => t }) : void 0, ze = "$lit$", P = `lit$${Math.random().toFixed(9).slice(2)}$`, De = "?" + P, qe = `<${De}>`, U = document, Z = () => U.createComment(""), J = (t) => t === null || typeof t != "object" && typeof t != "function", be = Array.isArray, Fe = (t) => be(t) || typeof t?.[Symbol.iterator] == "function", ce = `[ 	
-\f\r]`, F = /<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g, Ae = /-->/g, Se = />/g, M = RegExp(`>|${ce}(?:([^\\s"'>=/]+)(${ce}*=${ce}*(?:[^ 	
-\f\r"'\`<>=]|("|')|))|$)`, "g"), ke = /'/g, Ee = /"/g, je = /^(?:script|style|textarea|title)$/i, Ge = (t) => (e, ...s) => ({ _$litType$: t, strings: e, values: s }), o = Ge(1), V = Symbol.for("lit-noChange"), l = Symbol.for("lit-nothing"), Ce = /* @__PURE__ */ new WeakMap(), R = U.createTreeWalker(U, 129);
-function Me(t, e) {
-  if (!be(t) || !t.hasOwnProperty("raw")) throw Error("invalid template strings array");
-  return xe !== void 0 ? xe.createHTML(e) : e;
+const gt = globalThis, _t = (e) => e, ot = gt.trustedTypes, kt = ot ? ot.createPolicy("lit-html", { createHTML: (e) => e }) : void 0, zt = "$lit$", P = `lit$${Math.random().toFixed(9).slice(2)}$`, Dt = "?" + P, qt = `<${Dt}>`, U = document, Z = () => U.createComment(""), J = (e) => e === null || typeof e != "object" && typeof e != "function", vt = Array.isArray, Ft = (e) => vt(e) || typeof e?.[Symbol.iterator] == "function", ct = `[ 	
+\f\r]`, F = /<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g, At = /-->/g, xt = />/g, M = RegExp(`>|${ct}(?:([^\\s"'>=/]+)(${ct}*=${ct}*(?:[^ 	
+\f\r"'\`<>=]|("|')|))|$)`, "g"), St = /'/g, Et = /"/g, jt = /^(?:script|style|textarea|title)$/i, Gt = (e) => (t, ...s) => ({ _$litType$: e, strings: t, values: s }), o = Gt(1), V = Symbol.for("lit-noChange"), l = Symbol.for("lit-nothing"), Ct = /* @__PURE__ */ new WeakMap(), R = U.createTreeWalker(U, 129);
+function Mt(e, t) {
+  if (!vt(e) || !e.hasOwnProperty("raw")) throw Error("invalid template strings array");
+  return kt !== void 0 ? kt.createHTML(t) : t;
 }
-const Ze = (t, e) => {
-  const s = t.length - 1, i = [];
-  let r, a = e === 2 ? "<svg>" : e === 3 ? "<math>" : "", n = F;
-  for (let d = 0; d < s; d++) {
-    const c = t[d];
-    let g, u, m = -1, C = 0;
-    for (; C < c.length && (n.lastIndex = C, u = n.exec(c), u !== null); ) C = n.lastIndex, n === F ? u[1] === "!--" ? n = Ae : u[1] !== void 0 ? n = Se : u[2] !== void 0 ? (je.test(u[2]) && (r = RegExp("</" + u[2], "g")), n = M) : u[3] !== void 0 && (n = M) : n === M ? u[0] === ">" ? (n = r ?? F, m = -1) : u[1] === void 0 ? m = -2 : (m = n.lastIndex - u[2].length, g = u[1], n = u[3] === void 0 ? M : u[3] === '"' ? Ee : ke) : n === Ee || n === ke ? n = M : n === Ae || n === Se ? n = F : (n = M, r = void 0);
-    const O = n === M && t[d + 1].startsWith("/>") ? " " : "";
-    a += n === F ? c + qe : m >= 0 ? (i.push(g), c.slice(0, m) + ze + c.slice(m) + P + O) : c + P + (m === -2 ? d : O);
+const Zt = (e, t) => {
+  const s = e.length - 1, i = [];
+  let r, a = t === 2 ? "<svg>" : t === 3 ? "<math>" : "", n = F;
+  for (let p = 0; p < s; p++) {
+    const c = e[p];
+    let m, g, d = -1, C = 0;
+    for (; C < c.length && (n.lastIndex = C, g = n.exec(c), g !== null); ) C = n.lastIndex, n === F ? g[1] === "!--" ? n = At : g[1] !== void 0 ? n = xt : g[2] !== void 0 ? (jt.test(g[2]) && (r = RegExp("</" + g[2], "g")), n = M) : g[3] !== void 0 && (n = M) : n === M ? g[0] === ">" ? (n = r ?? F, d = -1) : g[1] === void 0 ? d = -2 : (d = n.lastIndex - g[2].length, m = g[1], n = g[3] === void 0 ? M : g[3] === '"' ? Et : St) : n === Et || n === St ? n = M : n === At || n === xt ? n = F : (n = M, r = void 0);
+    const O = n === M && e[p + 1].startsWith("/>") ? " " : "";
+    a += n === F ? c + qt : d >= 0 ? (i.push(m), c.slice(0, d) + zt + c.slice(d) + P + O) : c + P + (d === -2 ? p : O);
   }
-  return [Me(t, a + (t[s] || "<?>") + (e === 2 ? "</svg>" : e === 3 ? "</math>" : "")), i];
+  return [Mt(e, a + (e[s] || "<?>") + (t === 2 ? "</svg>" : t === 3 ? "</math>" : "")), i];
 };
 class X {
-  constructor({ strings: e, _$litType$: s }, i) {
+  constructor({ strings: t, _$litType$: s }, i) {
     let r;
     this.parts = [];
     let a = 0, n = 0;
-    const d = e.length - 1, c = this.parts, [g, u] = Ze(e, s);
-    if (this.el = X.createElement(g, i), R.currentNode = this.el.content, s === 2 || s === 3) {
-      const m = this.el.content.firstChild;
-      m.replaceWith(...m.childNodes);
+    const p = t.length - 1, c = this.parts, [m, g] = Zt(t, s);
+    if (this.el = X.createElement(m, i), R.currentNode = this.el.content, s === 2 || s === 3) {
+      const d = this.el.content.firstChild;
+      d.replaceWith(...d.childNodes);
     }
-    for (; (r = R.nextNode()) !== null && c.length < d; ) {
+    for (; (r = R.nextNode()) !== null && c.length < p; ) {
       if (r.nodeType === 1) {
-        if (r.hasAttributes()) for (const m of r.getAttributeNames()) if (m.endsWith(ze)) {
-          const C = u[n++], O = r.getAttribute(m).split(P), se = /([.?@])?(.*)/.exec(C);
-          c.push({ type: 1, index: a, name: se[2], strings: O, ctor: se[1] === "." ? Xe : se[1] === "?" ? Ye : se[1] === "@" ? Qe : he }), r.removeAttribute(m);
-        } else m.startsWith(P) && (c.push({ type: 6, index: a }), r.removeAttribute(m));
-        if (je.test(r.tagName)) {
-          const m = r.textContent.split(P), C = m.length - 1;
+        if (r.hasAttributes()) for (const d of r.getAttributeNames()) if (d.endsWith(zt)) {
+          const C = g[n++], O = r.getAttribute(d).split(P), st = /([.?@])?(.*)/.exec(C);
+          c.push({ type: 1, index: a, name: st[2], strings: O, ctor: st[1] === "." ? Xt : st[1] === "?" ? Yt : st[1] === "@" ? Qt : ht }), r.removeAttribute(d);
+        } else d.startsWith(P) && (c.push({ type: 6, index: a }), r.removeAttribute(d));
+        if (jt.test(r.tagName)) {
+          const d = r.textContent.split(P), C = d.length - 1;
           if (C > 0) {
-            r.textContent = oe ? oe.emptyScript : "";
-            for (let O = 0; O < C; O++) r.append(m[O], Z()), R.nextNode(), c.push({ type: 2, index: ++a });
-            r.append(m[C], Z());
+            r.textContent = ot ? ot.emptyScript : "";
+            for (let O = 0; O < C; O++) r.append(d[O], Z()), R.nextNode(), c.push({ type: 2, index: ++a });
+            r.append(d[C], Z());
           }
         }
-      } else if (r.nodeType === 8) if (r.data === De) c.push({ type: 2, index: a });
+      } else if (r.nodeType === 8) if (r.data === Dt) c.push({ type: 2, index: a });
       else {
-        let m = -1;
-        for (; (m = r.data.indexOf(P, m + 1)) !== -1; ) c.push({ type: 7, index: a }), m += P.length - 1;
+        let d = -1;
+        for (; (d = r.data.indexOf(P, d + 1)) !== -1; ) c.push({ type: 7, index: a }), d += P.length - 1;
       }
       a++;
     }
   }
-  static createElement(e, s) {
+  static createElement(t, s) {
     const i = U.createElement("template");
-    return i.innerHTML = e, i;
+    return i.innerHTML = t, i;
   }
 }
-function K(t, e, s = t, i) {
-  if (e === V) return e;
+function K(e, t, s = e, i) {
+  if (t === V) return t;
   let r = i !== void 0 ? s._$Co?.[i] : s._$Cl;
-  const a = J(e) ? void 0 : e._$litDirective$;
-  return r?.constructor !== a && (r?._$AO?.(!1), a === void 0 ? r = void 0 : (r = new a(t), r._$AT(t, s, i)), i !== void 0 ? (s._$Co ??= [])[i] = r : s._$Cl = r), r !== void 0 && (e = K(t, r._$AS(t, e.values), r, i)), e;
+  const a = J(t) ? void 0 : t._$litDirective$;
+  return r?.constructor !== a && (r?._$AO?.(!1), a === void 0 ? r = void 0 : (r = new a(e), r._$AT(e, s, i)), i !== void 0 ? (s._$Co ??= [])[i] = r : s._$Cl = r), r !== void 0 && (t = K(e, r._$AS(e, t.values), r, i)), t;
 }
-class Je {
-  constructor(e, s) {
-    this._$AV = [], this._$AN = void 0, this._$AD = e, this._$AM = s;
+class Jt {
+  constructor(t, s) {
+    this._$AV = [], this._$AN = void 0, this._$AD = t, this._$AM = s;
   }
   get parentNode() {
     return this._$AM.parentNode;
@@ -334,35 +334,35 @@ class Je {
   get _$AU() {
     return this._$AM._$AU;
   }
-  u(e) {
-    const { el: { content: s }, parts: i } = this._$AD, r = (e?.creationScope ?? U).importNode(s, !0);
+  u(t) {
+    const { el: { content: s }, parts: i } = this._$AD, r = (t?.creationScope ?? U).importNode(s, !0);
     R.currentNode = r;
-    let a = R.nextNode(), n = 0, d = 0, c = i[0];
+    let a = R.nextNode(), n = 0, p = 0, c = i[0];
     for (; c !== void 0; ) {
       if (n === c.index) {
-        let g;
-        c.type === 2 ? g = new Y(a, a.nextSibling, this, e) : c.type === 1 ? g = new c.ctor(a, c.name, c.strings, this, e) : c.type === 6 && (g = new et(a, this, e)), this._$AV.push(g), c = i[++d];
+        let m;
+        c.type === 2 ? m = new Y(a, a.nextSibling, this, t) : c.type === 1 ? m = new c.ctor(a, c.name, c.strings, this, t) : c.type === 6 && (m = new te(a, this, t)), this._$AV.push(m), c = i[++p];
       }
       n !== c?.index && (a = R.nextNode(), n++);
     }
     return R.currentNode = U, r;
   }
-  p(e) {
+  p(t) {
     let s = 0;
-    for (const i of this._$AV) i !== void 0 && (i.strings !== void 0 ? (i._$AI(e, i, s), s += i.strings.length - 2) : i._$AI(e[s])), s++;
+    for (const i of this._$AV) i !== void 0 && (i.strings !== void 0 ? (i._$AI(t, i, s), s += i.strings.length - 2) : i._$AI(t[s])), s++;
   }
 }
 class Y {
   get _$AU() {
     return this._$AM?._$AU ?? this._$Cv;
   }
-  constructor(e, s, i, r) {
-    this.type = 2, this._$AH = l, this._$AN = void 0, this._$AA = e, this._$AB = s, this._$AM = i, this.options = r, this._$Cv = r?.isConnected ?? !0;
+  constructor(t, s, i, r) {
+    this.type = 2, this._$AH = l, this._$AN = void 0, this._$AA = t, this._$AB = s, this._$AM = i, this.options = r, this._$Cv = r?.isConnected ?? !0;
   }
   get parentNode() {
-    let e = this._$AA.parentNode;
+    let t = this._$AA.parentNode;
     const s = this._$AM;
-    return s !== void 0 && e?.nodeType === 11 && (e = s.parentNode), e;
+    return s !== void 0 && t?.nodeType === 11 && (t = s.parentNode), t;
   }
   get startNode() {
     return this._$AA;
@@ -370,140 +370,140 @@ class Y {
   get endNode() {
     return this._$AB;
   }
-  _$AI(e, s = this) {
-    e = K(this, e, s), J(e) ? e === l || e == null || e === "" ? (this._$AH !== l && this._$AR(), this._$AH = l) : e !== this._$AH && e !== V && this._(e) : e._$litType$ !== void 0 ? this.$(e) : e.nodeType !== void 0 ? this.T(e) : Fe(e) ? this.k(e) : this._(e);
+  _$AI(t, s = this) {
+    t = K(this, t, s), J(t) ? t === l || t == null || t === "" ? (this._$AH !== l && this._$AR(), this._$AH = l) : t !== this._$AH && t !== V && this._(t) : t._$litType$ !== void 0 ? this.$(t) : t.nodeType !== void 0 ? this.T(t) : Ft(t) ? this.k(t) : this._(t);
   }
-  O(e) {
-    return this._$AA.parentNode.insertBefore(e, this._$AB);
+  O(t) {
+    return this._$AA.parentNode.insertBefore(t, this._$AB);
   }
-  T(e) {
-    this._$AH !== e && (this._$AR(), this._$AH = this.O(e));
+  T(t) {
+    this._$AH !== t && (this._$AR(), this._$AH = this.O(t));
   }
-  _(e) {
-    this._$AH !== l && J(this._$AH) ? this._$AA.nextSibling.data = e : this.T(U.createTextNode(e)), this._$AH = e;
+  _(t) {
+    this._$AH !== l && J(this._$AH) ? this._$AA.nextSibling.data = t : this.T(U.createTextNode(t)), this._$AH = t;
   }
-  $(e) {
-    const { values: s, _$litType$: i } = e, r = typeof i == "number" ? this._$AC(e) : (i.el === void 0 && (i.el = X.createElement(Me(i.h, i.h[0]), this.options)), i);
+  $(t) {
+    const { values: s, _$litType$: i } = t, r = typeof i == "number" ? this._$AC(t) : (i.el === void 0 && (i.el = X.createElement(Mt(i.h, i.h[0]), this.options)), i);
     if (this._$AH?._$AD === r) this._$AH.p(s);
     else {
-      const a = new Je(r, this), n = a.u(this.options);
+      const a = new Jt(r, this), n = a.u(this.options);
       a.p(s), this.T(n), this._$AH = a;
     }
   }
-  _$AC(e) {
-    let s = Ce.get(e.strings);
-    return s === void 0 && Ce.set(e.strings, s = new X(e)), s;
+  _$AC(t) {
+    let s = Ct.get(t.strings);
+    return s === void 0 && Ct.set(t.strings, s = new X(t)), s;
   }
-  k(e) {
-    be(this._$AH) || (this._$AH = [], this._$AR());
+  k(t) {
+    vt(this._$AH) || (this._$AH = [], this._$AR());
     const s = this._$AH;
     let i, r = 0;
-    for (const a of e) r === s.length ? s.push(i = new Y(this.O(Z()), this.O(Z()), this, this.options)) : i = s[r], i._$AI(a), r++;
+    for (const a of t) r === s.length ? s.push(i = new Y(this.O(Z()), this.O(Z()), this, this.options)) : i = s[r], i._$AI(a), r++;
     r < s.length && (this._$AR(i && i._$AB.nextSibling, r), s.length = r);
   }
-  _$AR(e = this._$AA.nextSibling, s) {
-    for (this._$AP?.(!1, !0, s); e !== this._$AB; ) {
-      const i = _e(e).nextSibling;
-      _e(e).remove(), e = i;
+  _$AR(t = this._$AA.nextSibling, s) {
+    for (this._$AP?.(!1, !0, s); t !== this._$AB; ) {
+      const i = _t(t).nextSibling;
+      _t(t).remove(), t = i;
     }
   }
-  setConnected(e) {
-    this._$AM === void 0 && (this._$Cv = e, this._$AP?.(e));
+  setConnected(t) {
+    this._$AM === void 0 && (this._$Cv = t, this._$AP?.(t));
   }
 }
-class he {
+class ht {
   get tagName() {
     return this.element.tagName;
   }
   get _$AU() {
     return this._$AM._$AU;
   }
-  constructor(e, s, i, r, a) {
-    this.type = 1, this._$AH = l, this._$AN = void 0, this.element = e, this.name = s, this._$AM = r, this.options = a, i.length > 2 || i[0] !== "" || i[1] !== "" ? (this._$AH = Array(i.length - 1).fill(new String()), this.strings = i) : this._$AH = l;
+  constructor(t, s, i, r, a) {
+    this.type = 1, this._$AH = l, this._$AN = void 0, this.element = t, this.name = s, this._$AM = r, this.options = a, i.length > 2 || i[0] !== "" || i[1] !== "" ? (this._$AH = Array(i.length - 1).fill(new String()), this.strings = i) : this._$AH = l;
   }
-  _$AI(e, s = this, i, r) {
+  _$AI(t, s = this, i, r) {
     const a = this.strings;
     let n = !1;
-    if (a === void 0) e = K(this, e, s, 0), n = !J(e) || e !== this._$AH && e !== V, n && (this._$AH = e);
+    if (a === void 0) t = K(this, t, s, 0), n = !J(t) || t !== this._$AH && t !== V, n && (this._$AH = t);
     else {
-      const d = e;
-      let c, g;
-      for (e = a[0], c = 0; c < a.length - 1; c++) g = K(this, d[i + c], s, c), g === V && (g = this._$AH[c]), n ||= !J(g) || g !== this._$AH[c], g === l ? e = l : e !== l && (e += (g ?? "") + a[c + 1]), this._$AH[c] = g;
+      const p = t;
+      let c, m;
+      for (t = a[0], c = 0; c < a.length - 1; c++) m = K(this, p[i + c], s, c), m === V && (m = this._$AH[c]), n ||= !J(m) || m !== this._$AH[c], m === l ? t = l : t !== l && (t += (m ?? "") + a[c + 1]), this._$AH[c] = m;
     }
-    n && !r && this.j(e);
+    n && !r && this.j(t);
   }
-  j(e) {
-    e === l ? this.element.removeAttribute(this.name) : this.element.setAttribute(this.name, e ?? "");
+  j(t) {
+    t === l ? this.element.removeAttribute(this.name) : this.element.setAttribute(this.name, t ?? "");
   }
 }
-class Xe extends he {
+class Xt extends ht {
   constructor() {
     super(...arguments), this.type = 3;
   }
-  j(e) {
-    this.element[this.name] = e === l ? void 0 : e;
+  j(t) {
+    this.element[this.name] = t === l ? void 0 : t;
   }
 }
-class Ye extends he {
+class Yt extends ht {
   constructor() {
     super(...arguments), this.type = 4;
   }
-  j(e) {
-    this.element.toggleAttribute(this.name, !!e && e !== l);
+  j(t) {
+    this.element.toggleAttribute(this.name, !!t && t !== l);
   }
 }
-class Qe extends he {
-  constructor(e, s, i, r, a) {
-    super(e, s, i, r, a), this.type = 5;
+class Qt extends ht {
+  constructor(t, s, i, r, a) {
+    super(t, s, i, r, a), this.type = 5;
   }
-  _$AI(e, s = this) {
-    if ((e = K(this, e, s, 0) ?? l) === V) return;
-    const i = this._$AH, r = e === l && i !== l || e.capture !== i.capture || e.once !== i.once || e.passive !== i.passive, a = e !== l && (i === l || r);
-    r && this.element.removeEventListener(this.name, this, i), a && this.element.addEventListener(this.name, this, e), this._$AH = e;
+  _$AI(t, s = this) {
+    if ((t = K(this, t, s, 0) ?? l) === V) return;
+    const i = this._$AH, r = t === l && i !== l || t.capture !== i.capture || t.once !== i.once || t.passive !== i.passive, a = t !== l && (i === l || r);
+    r && this.element.removeEventListener(this.name, this, i), a && this.element.addEventListener(this.name, this, t), this._$AH = t;
   }
-  handleEvent(e) {
-    typeof this._$AH == "function" ? this._$AH.call(this.options?.host ?? this.element, e) : this._$AH.handleEvent(e);
+  handleEvent(t) {
+    typeof this._$AH == "function" ? this._$AH.call(this.options?.host ?? this.element, t) : this._$AH.handleEvent(t);
   }
 }
-class et {
-  constructor(e, s, i) {
-    this.element = e, this.type = 6, this._$AN = void 0, this._$AM = s, this.options = i;
+class te {
+  constructor(t, s, i) {
+    this.element = t, this.type = 6, this._$AN = void 0, this._$AM = s, this.options = i;
   }
   get _$AU() {
     return this._$AM._$AU;
   }
-  _$AI(e) {
-    K(this, e);
+  _$AI(t) {
+    K(this, t);
   }
 }
-const tt = ge.litHtmlPolyfillSupport;
-tt?.(X, Y), (ge.litHtmlVersions ??= []).push("3.3.3");
-const st = (t, e, s) => {
-  const i = s?.renderBefore ?? e;
+const ee = gt.litHtmlPolyfillSupport;
+ee?.(X, Y), (gt.litHtmlVersions ??= []).push("3.3.3");
+const se = (e, t, s) => {
+  const i = s?.renderBefore ?? t;
   let r = i._$litPart$;
   if (r === void 0) {
     const a = s?.renderBefore ?? null;
-    i._$litPart$ = r = new Y(e.insertBefore(Z(), a), a, void 0, s ?? {});
+    i._$litPart$ = r = new Y(t.insertBefore(Z(), a), a, void 0, s ?? {});
   }
-  return r._$AI(t), r;
+  return r._$AI(e), r;
 };
 /**
  * @license
  * Copyright 2017 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
  */
-const ve = globalThis;
+const bt = globalThis;
 class w extends I {
   constructor() {
     super(...arguments), this.renderOptions = { host: this }, this._$Do = void 0;
   }
   createRenderRoot() {
-    const e = super.createRenderRoot();
-    return this.renderOptions.renderBefore ??= e.firstChild, e;
+    const t = super.createRenderRoot();
+    return this.renderOptions.renderBefore ??= t.firstChild, t;
   }
-  update(e) {
+  update(t) {
     const s = this.render();
-    this.hasUpdated || (this.renderOptions.isConnected = this.isConnected), super.update(e), this._$Do = st(s, this.renderRoot, this.renderOptions);
+    this.hasUpdated || (this.renderOptions.isConnected = this.isConnected), super.update(t), this._$Do = se(s, this.renderRoot, this.renderOptions);
   }
   connectedCallback() {
     super.connectedCallback(), this._$Do?.setConnected(!0);
@@ -515,144 +515,144 @@ class w extends I {
     return V;
   }
 }
-w._$litElement$ = !0, w.finalized = !0, ve.litElementHydrateSupport?.({ LitElement: w });
-const it = ve.litElementPolyfillSupport;
-it?.({ LitElement: w });
-(ve.litElementVersions ??= []).push("4.2.2");
+w._$litElement$ = !0, w.finalized = !0, bt.litElementHydrateSupport?.({ LitElement: w });
+const ie = bt.litElementPolyfillSupport;
+ie?.({ LitElement: w });
+(bt.litElementVersions ??= []).push("4.2.2");
 /**
  * @license
  * Copyright 2017 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
  */
-const k = (t) => (e, s) => {
+const S = (e) => (t, s) => {
   s !== void 0 ? s.addInitializer(() => {
-    customElements.define(t, e);
-  }) : customElements.define(t, e);
+    customElements.define(e, t);
+  }) : customElements.define(e, t);
 };
 /**
  * @license
  * Copyright 2017 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
  */
-const rt = { attribute: !0, type: String, converter: ne, reflect: !1, hasChanged: me }, at = (t = rt, e, s) => {
+const re = { attribute: !0, type: String, converter: nt, reflect: !1, hasChanged: mt }, ae = (e = re, t, s) => {
   const { kind: i, metadata: r } = s;
   let a = globalThis.litPropertyMetadata.get(r);
-  if (a === void 0 && globalThis.litPropertyMetadata.set(r, a = /* @__PURE__ */ new Map()), i === "setter" && ((t = Object.create(t)).wrapped = !0), a.set(s.name, t), i === "accessor") {
+  if (a === void 0 && globalThis.litPropertyMetadata.set(r, a = /* @__PURE__ */ new Map()), i === "setter" && ((e = Object.create(e)).wrapped = !0), a.set(s.name, e), i === "accessor") {
     const { name: n } = s;
-    return { set(d) {
-      const c = e.get.call(this);
-      e.set.call(this, d), this.requestUpdate(n, c, t, !0, d);
-    }, init(d) {
-      return d !== void 0 && this.C(n, void 0, t, d), d;
+    return { set(p) {
+      const c = t.get.call(this);
+      t.set.call(this, p), this.requestUpdate(n, c, e, !0, p);
+    }, init(p) {
+      return p !== void 0 && this.C(n, void 0, e, p), p;
     } };
   }
   if (i === "setter") {
     const { name: n } = s;
-    return function(d) {
+    return function(p) {
       const c = this[n];
-      e.call(this, d), this.requestUpdate(n, c, t, !0, d);
+      t.call(this, p), this.requestUpdate(n, c, e, !0, p);
     };
   }
   throw Error("Unsupported decorator location: " + i);
 };
-function p(t) {
-  return (e, s) => typeof s == "object" ? at(t, e, s) : ((i, r, a) => {
+function u(e) {
+  return (t, s) => typeof s == "object" ? ae(e, t, s) : ((i, r, a) => {
     const n = r.hasOwnProperty(a);
     return r.constructor.createProperty(a, i), n ? Object.getOwnPropertyDescriptor(r, a) : void 0;
-  })(t, e, s);
+  })(e, t, s);
 }
 /**
  * @license
  * Copyright 2017 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
  */
-function h(t) {
-  return p({ ...t, state: !0, attribute: !1 });
+function h(e) {
+  return u({ ...e, state: !0, attribute: !1 });
 }
-const y = "camwatch";
-class Oe {
-  constructor(e) {
-    this.hass = e;
+const f = "kustos_vision";
+class Ot {
+  constructor(t) {
+    this.hass = t;
   }
   getConfig() {
-    return this.hass.callWS({ type: `${y}/config/get` });
+    return this.hass.callWS({ type: `${f}/config/get` });
   }
   availableCameras() {
-    return this.hass.callWS({ type: `${y}/cameras/available` });
+    return this.hass.callWS({ type: `${f}/cameras/available` });
   }
-  suggest(e) {
+  suggest(t) {
     return this.hass.callWS({
-      type: `${y}/camera/suggest`,
-      entity_id: e
+      type: `${f}/camera/suggest`,
+      entity_id: t
     });
   }
-  setCamera(e) {
-    return this.hass.callWS({ type: `${y}/camera/set`, ...e });
+  setCamera(t) {
+    return this.hass.callWS({ type: `${f}/camera/set`, ...t });
   }
-  deleteCamera(e) {
-    return this.hass.callWS({ type: `${y}/camera/delete`, slug: e });
+  deleteCamera(t) {
+    return this.hass.callWS({ type: `${f}/camera/delete`, slug: t });
   }
-  setViews(e) {
-    return this.hass.callWS({ type: `${y}/views/set`, views: e });
+  setViews(t) {
+    return this.hass.callWS({ type: `${f}/views/set`, views: t });
   }
-  setStorage(e) {
-    return this.hass.callWS({ type: `${y}/storage/set`, ...e });
+  setStorage(t) {
+    return this.hass.callWS({ type: `${f}/storage/set`, ...t });
   }
-  trigger(e, s, i) {
+  trigger(t, s, i) {
     return this.hass.callWS({
-      type: `${y}/camera/trigger`,
-      slug: e,
+      type: `${f}/camera/trigger`,
+      slug: t,
       capability: s,
       ...i === void 0 ? {} : { value: i }
     });
   }
-  recordingDays(e) {
-    return this.hass.callWS({ type: `${y}/recordings/days`, camera: e });
+  recordingDays(t) {
+    return this.hass.callWS({ type: `${f}/recordings/days`, camera: t });
   }
-  timeline(e, s, i, r) {
+  timeline(t, s, i, r) {
     return this.hass.callWS({
-      type: `${y}/recordings/timeline`,
-      camera: e,
+      type: `${f}/recordings/timeline`,
+      camera: t,
       from: s,
       to: i,
       ...r ? { stream: r } : {}
     });
   }
-  setVision(e) {
-    return this.hass.callWS({ type: `${y}/vision/set`, ...e });
+  setVision(t) {
+    return this.hass.callWS({ type: `${f}/vision/set`, ...t });
   }
-  deleteVision(e) {
+  deleteVision(t) {
     return this.hass.callWS({
-      type: `${y}/vision/delete`,
-      camera_slug: e
+      type: `${f}/vision/delete`,
+      camera_slug: t
     });
   }
-  analyseNow(e) {
+  analyseNow(t) {
     return this.hass.callWS({
-      type: `${y}/vision/analyse`,
-      camera_slug: e
+      type: `${f}/vision/analyse`,
+      camera_slug: t
     });
   }
-  visionHistory(e) {
+  visionHistory(t) {
     return this.hass.callWS({
-      type: `${y}/vision/history`,
-      camera_slug: e
+      type: `${f}/vision/history`,
+      camera_slug: t
     });
   }
   aiTaskEntities() {
-    return this.hass.callWS({ type: `${y}/vision/backends` });
+    return this.hass.callWS({ type: `${f}/vision/backends` });
   }
   rebuildIndex() {
-    return this.hass.callWS({ type: `${y}/index/rebuild` });
+    return this.hass.callWS({ type: `${f}/index/rebuild` });
   }
 }
-function ie(t) {
-  if (t === null) return "unbekannt";
-  const e = ["B", "kB", "MB", "GB", "TB"];
-  let s = t, i = 0;
-  for (; s >= 1e3 && i < e.length - 1; )
+function it(e) {
+  if (e === null) return "unbekannt";
+  const t = ["B", "kB", "MB", "GB", "TB"];
+  let s = e, i = 0;
+  for (; s >= 1e3 && i < t.length - 1; )
     s /= 1e3, i += 1;
-  return `${s.toFixed(s < 10 && i > 0 ? 1 : 0)} ${e[i]}`;
+  return `${s.toFixed(s < 10 && i > 0 ? 1 : 0)} ${t[i]}`;
 }
 const Q = H`
   :host {
@@ -758,26 +758,26 @@ const Q = H`
     font-size: 0.85em;
   }
 `;
-var nt = Object.defineProperty, ot = Object.getOwnPropertyDescriptor, L = (t, e, s, i) => {
-  for (var r = i > 1 ? void 0 : i ? ot(e, s) : e, a = t.length - 1, n; a >= 0; a--)
-    (n = t[a]) && (r = (i ? n(e, s, r) : n(r)) || r);
-  return i && r && nt(e, s, r), r;
+var ne = Object.defineProperty, oe = Object.getOwnPropertyDescriptor, L = (e, t, s, i) => {
+  for (var r = i > 1 ? void 0 : i ? oe(t, s) : t, a = e.length - 1, n; a >= 0; a--)
+    (n = e[a]) && (r = (i ? n(t, s, r) : n(r)) || r);
+  return i && r && ne(t, s, r), r;
 };
 let T = class extends w {
   constructor() {
     super(...arguments), this.entityId = "", this.muted = !0, this.mode = "idle", this.message = "", this.visible = !1, this.starting = !1;
   }
   connectedCallback() {
-    super.connectedCallback(), this.observer = new IntersectionObserver((t) => {
-      const e = t.some((s) => s.isIntersecting);
-      e !== this.visible && (this.visible = e, e ? this.start() : this.stop());
+    super.connectedCallback(), this.observer = new IntersectionObserver((e) => {
+      const t = e.some((s) => s.isIntersecting);
+      t !== this.visible && (this.visible = t, t ? this.start() : this.stop());
     }), this.observer.observe(this);
   }
   disconnectedCallback() {
     super.disconnectedCallback(), this.observer?.disconnect(), this.observer = void 0, this.stop();
   }
-  updated(t) {
-    t.has("entityId") && this.visible && (this.stop(), this.start());
+  updated(e) {
+    e.has("entityId") && this.visible && (this.stop(), this.start());
   }
   get accessToken() {
     return this.hass?.states?.[this.entityId]?.attributes?.access_token;
@@ -786,14 +786,14 @@ let T = class extends w {
     if (!(this.starting || !this.entityId || !this.hass)) {
       this.starting = !0;
       try {
-        const e = (await this.hass.callWS({
+        const t = (await this.hass.callWS({
           type: "camera/capabilities",
           entity_id: this.entityId
         })).frontend_stream_types ?? [];
-        if (e.includes("web_rtc") && await this.startWebRtc() || e.includes("hls") && await this.startHls()) return;
+        if (t.includes("web_rtc") && await this.startWebRtc() || t.includes("hls") && await this.startHls()) return;
         this.startMjpeg();
-      } catch (t) {
-        this.fail(t);
+      } catch (e) {
+        this.fail(e);
       } finally {
         this.starting = !1;
       }
@@ -801,32 +801,32 @@ let T = class extends w {
   }
   stop() {
     this.unsubscribe?.(), this.unsubscribe = void 0, this.peer?.close(), this.peer = void 0;
-    const t = this.renderRoot.querySelector("video");
-    t && (t.srcObject = null, t.removeAttribute("src")), this.mode = "idle";
+    const e = this.renderRoot.querySelector("video");
+    e && (e.srcObject = null, e.removeAttribute("src")), this.mode = "idle";
   }
-  fail(t) {
-    this.mode = "error", this.message = t instanceof Error ? t.message : String(t);
+  fail(e) {
+    this.mode = "error", this.message = e instanceof Error ? e.message : String(e);
   }
   // --------------------------------------------------------------------
   // WebRTC
   // --------------------------------------------------------------------
   async startWebRtc() {
     try {
-      const t = await this.hass.callWS({
+      const e = await this.hass.callWS({
         type: "camera/webrtc/get_client_config",
         entity_id: this.entityId
-      }), e = new RTCPeerConnection(t.configuration);
-      this.peer = e, e.addTransceiver("video", { direction: "recvonly" }), e.addTransceiver("audio", { direction: "recvonly" });
+      }), t = new RTCPeerConnection(e.configuration);
+      this.peer = t, t.addTransceiver("video", { direction: "recvonly" }), t.addTransceiver("audio", { direction: "recvonly" });
       const s = new MediaStream();
-      e.addEventListener("track", (a) => {
+      t.addEventListener("track", (a) => {
         s.addTrack(a.track);
         const n = this.renderRoot.querySelector("video");
         n && (n.srcObject = s);
       });
-      const i = await e.createOffer();
-      await e.setLocalDescription(i);
+      const i = await t.createOffer();
+      await t.setLocalDescription(i);
       let r;
-      return e.addEventListener("icecandidate", (a) => {
+      return t.addEventListener("icecandidate", (a) => {
         !a.candidate || !r || this.hass.callWS({
           type: "camera/webrtc/candidate",
           entity_id: this.entityId,
@@ -840,10 +840,10 @@ let T = class extends w {
           offer: i.sdp
         },
         (a) => {
-          a.type === "session" ? r = a.session_id : a.type === "answer" ? e.setRemoteDescription({
+          a.type === "session" ? r = a.session_id : a.type === "answer" ? t.setRemoteDescription({
             type: "answer",
             sdp: a.answer
-          }) : a.type === "candidate" ? e.addIceCandidate(
+          }) : a.type === "candidate" ? t.addIceCandidate(
             a.candidate
           ) : a.type === "error" && this.fail(new Error(String(a.message)));
         }
@@ -852,8 +852,8 @@ let T = class extends w {
       return this.peer?.close(), this.peer = void 0, !1;
     }
   }
-  subscribe(t, e) {
-    return this.hass.connection.subscribeMessage(e, t);
+  subscribe(e, t) {
+    return this.hass.connection.subscribeMessage(t, e);
   }
   // --------------------------------------------------------------------
   // HLS and MJPEG
@@ -861,14 +861,14 @@ let T = class extends w {
   async startHls() {
     if (!document.createElement("video").canPlayType("application/vnd.apple.mpegurl")) return !1;
     try {
-      const { url: e } = await this.hass.callWS({
+      const { url: t } = await this.hass.callWS({
         type: "camera/stream",
         entity_id: this.entityId,
         format: "hls"
       });
       this.mode = "hls", await this.updateComplete;
       const s = this.renderRoot.querySelector("video");
-      return s && (s.src = this.hass.hassUrl(e), s.play().catch(() => {
+      return s && (s.src = this.hass.hassUrl(t), s.play().catch(() => {
       })), !0;
     } catch {
       return !1;
@@ -879,7 +879,7 @@ let T = class extends w {
   }
   // --------------------------------------------------------------------
   render() {
-    const t = this.accessToken;
+    const e = this.accessToken;
     switch (this.mode) {
       case "webrtc":
       case "hls":
@@ -888,14 +888,14 @@ let T = class extends w {
         return o`<img
           alt=""
           src=${this.hass.hassUrl(
-          `/api/camera_proxy_stream/${this.entityId}?token=${t}`
+          `/api/camera_proxy_stream/${this.entityId}?token=${e}`
         )}
         />`;
       case "still":
-        return t ? o`<img
+        return e ? o`<img
               alt=""
               src=${this.hass.hassUrl(
-          `/api/camera_proxy/${this.entityId}?token=${t}`
+          `/api/camera_proxy/${this.entityId}?token=${e}`
         )}
             />` : o`<div class="overlay">Kein Vorschaubild verfügbar</div>`;
       case "error":
@@ -933,13 +933,13 @@ T.styles = H`
     }
   `;
 L([
-  p({ attribute: !1 })
+  u({ attribute: !1 })
 ], T.prototype, "hass", 2);
 L([
-  p()
+  u()
 ], T.prototype, "entityId", 2);
 L([
-  p({ type: Boolean })
+  u({ type: Boolean })
 ], T.prototype, "muted", 2);
 L([
   h()
@@ -948,14 +948,14 @@ L([
   h()
 ], T.prototype, "message", 2);
 T = L([
-  k("camwatch-live-stream")
+  S("kustos-vision-live-stream")
 ], T);
-var lt = Object.defineProperty, ht = Object.getOwnPropertyDescriptor, W = (t, e, s, i) => {
-  for (var r = i > 1 ? void 0 : i ? ht(e, s) : e, a = t.length - 1, n; a >= 0; a--)
-    (n = t[a]) && (r = (i ? n(e, s, r) : n(r)) || r);
-  return i && r && lt(e, s, r), r;
+var le = Object.defineProperty, he = Object.getOwnPropertyDescriptor, W = (e, t, s, i) => {
+  for (var r = i > 1 ? void 0 : i ? he(t, s) : t, a = e.length - 1, n; a >= 0; a--)
+    (n = e[a]) && (r = (i ? n(t, s, r) : n(r)) || r);
+  return i && r && le(t, s, r), r;
 };
-const ct = [
+const ce = [
   ["ptz_up", "▲"],
   ["ptz_left", "◀"],
   ["ptz_right", "▶"],
@@ -966,51 +966,51 @@ let z = class extends w {
     super(...arguments), this.busy = "", this.error = "";
   }
   get liveEntity() {
-    const t = this.camera.streams;
-    return (t.find((e) => !e.record) ?? t[0])?.entity_id;
+    const e = this.camera.streams;
+    return (e.find((t) => !t.record) ?? e[0])?.entity_id;
   }
-  async run(t, e) {
-    this.busy = t, this.error = "";
+  async run(e, t) {
+    this.busy = e, this.error = "";
     try {
-      await this.api.trigger(this.camera.slug, t, e);
+      await this.api.trigger(this.camera.slug, e, t);
     } catch (s) {
       this.error = s instanceof Error ? s.message : String(s);
     } finally {
       this.busy = "";
     }
   }
-  bound(t) {
-    return t in this.camera.capabilities;
+  bound(e) {
+    return e in this.camera.capabilities;
   }
-  renderButton(t, e, s) {
-    return this.bound(t) ? o`<button
-      title=${t}
+  renderButton(e, t, s) {
+    return this.bound(e) ? o`<button
+      title=${e}
       ?disabled=${this.busy !== ""}
-      @click=${() => this.run(t, s)}
+      @click=${() => this.run(e, s)}
     >
-      ${e}
+      ${t}
     </button>` : l;
   }
   render() {
-    const t = this.liveEntity, e = this.camera.state, s = e.streams.filter((i) => i.running).length;
+    const e = this.liveEntity, t = this.camera.state, s = t.streams.filter((i) => i.running).length;
     return o`
       <header>
         <span
-          class="dot ${e.recording ? "recording" : ""}"
-          title=${e.recording ? `${s} Stream(s) werden aufgezeichnet` : e.paused ? "Aufzeichnung pausiert" : "Aufzeichnung laeuft nicht"}
+          class="dot ${t.recording ? "recording" : ""}"
+          title=${t.recording ? `${s} Stream(s) werden aufgezeichnet` : t.paused ? "Aufzeichnung pausiert" : "Aufzeichnung laeuft nicht"}
         ></span>
         <span>${this.camera.name}</span>
         <span class="spacer"></span>
-        ${e.paused ? o`<span class="meta">pausiert</span>` : l}
+        ${t.paused ? o`<span class="meta">pausiert</span>` : l}
       </header>
 
-      ${t ? o`<camwatch-live-stream
+      ${e ? o`<kustos-vision-live-stream
             .hass=${this.hass}
-            .entityId=${t}
-          ></camwatch-live-stream>` : o`<div class="meta" style="padding:12px">Kein Stream zugeordnet</div>`}
+            .entityId=${e}
+          ></kustos-vision-live-stream>` : o`<div class="meta" style="padding:12px">Kein Stream zugeordnet</div>`}
 
       <div class="controls">
-        ${ct.map(([i, r]) => this.renderButton(i, r))}
+        ${ce.map(([i, r]) => this.renderButton(i, r))}
         ${this.renderButton("light", "Licht an", !0)}
         ${this.renderButton("light", "Licht aus", !1)}
         ${this.renderButton("siren", "Sirene", !0)}
@@ -1081,13 +1081,13 @@ z.styles = H`
     }
   `;
 W([
-  p({ attribute: !1 })
+  u({ attribute: !1 })
 ], z.prototype, "hass", 2);
 W([
-  p({ attribute: !1 })
+  u({ attribute: !1 })
 ], z.prototype, "api", 2);
 W([
-  p({ attribute: !1 })
+  u({ attribute: !1 })
 ], z.prototype, "camera", 2);
 W([
   h()
@@ -1096,38 +1096,38 @@ W([
   h()
 ], z.prototype, "error", 2);
 z = W([
-  k("camwatch-camera-tile")
+  S("kustos-vision-camera-tile")
 ], z);
-var dt = Object.defineProperty, pt = Object.getOwnPropertyDescriptor, ee = (t, e, s, i) => {
-  for (var r = i > 1 ? void 0 : i ? pt(e, s) : e, a = t.length - 1, n; a >= 0; a--)
-    (n = t[a]) && (r = (i ? n(e, s, r) : n(r)) || r);
-  return i && r && dt(e, s, r), r;
+var de = Object.defineProperty, pe = Object.getOwnPropertyDescriptor, tt = (e, t, s, i) => {
+  for (var r = i > 1 ? void 0 : i ? pe(t, s) : t, a = e.length - 1, n; a >= 0; a--)
+    (n = e[a]) && (r = (i ? n(t, s, r) : n(r)) || r);
+  return i && r && de(t, s, r), r;
 };
 let N = class extends w {
   constructor() {
     super(...arguments), this.cameras = [];
   }
   get shown() {
-    const t = new Map(this.cameras.map((e) => [e.slug, e]));
-    return this.view.cameras.map((e) => t.get(e)).filter((e) => e !== void 0);
+    const e = new Map(this.cameras.map((t) => [t.slug, t]));
+    return this.view.cameras.map((t) => e.get(t)).filter((t) => t !== void 0);
   }
   render() {
-    const t = this.shown;
-    if (t.length === 0)
+    const e = this.shown;
+    if (e.length === 0)
       return o`<div class="empty">
         Dieser Ansicht ist noch keine Kamera zugeordnet.<br />
         Unter Einstellungen, Ansichten lässt sich das ändern.
       </div>`;
-    const e = this.view.columns > 0 ? `grid-template-columns: repeat(${this.view.columns}, 1fr)` : "";
+    const t = this.view.columns > 0 ? `grid-template-columns: repeat(${this.view.columns}, 1fr)` : "";
     return o`
-      <div class="grid" style=${e}>
-        ${t.map(
+      <div class="grid" style=${t}>
+        ${e.map(
       (s) => o`
-            <camwatch-camera-tile
+            <kustos-vision-camera-tile
               .hass=${this.hass}
               .api=${this.api}
               .camera=${s}
-            ></camwatch-camera-tile>
+            ></kustos-vision-camera-tile>
           `
     )}
       </div>
@@ -1153,34 +1153,44 @@ N.styles = H`
       line-height: 1.5;
     }
   `;
-ee([
-  p({ attribute: !1 })
+tt([
+  u({ attribute: !1 })
 ], N.prototype, "hass", 2);
-ee([
-  p({ attribute: !1 })
+tt([
+  u({ attribute: !1 })
 ], N.prototype, "api", 2);
-ee([
-  p({ attribute: !1 })
+tt([
+  u({ attribute: !1 })
 ], N.prototype, "view", 2);
-ee([
-  p({ attribute: !1 })
+tt([
+  u({ attribute: !1 })
 ], N.prototype, "cameras", 2);
-N = ee([
-  k("camwatch-live-view")
+N = tt([
+  S("kustos-vision-live-view")
 ], N);
-var ut = Object.defineProperty, mt = Object.getOwnPropertyDescriptor, te = (t, e, s, i) => {
-  for (var r = i > 1 ? void 0 : i ? mt(e, s) : e, a = t.length - 1, n; a >= 0; a--)
-    (n = t[a]) && (r = (i ? n(e, s, r) : n(r)) || r);
-  return i && r && ut(e, s, r), r;
+var ue = Object.defineProperty, me = Object.getOwnPropertyDescriptor, et = (e, t, s, i) => {
+  for (var r = i > 1 ? void 0 : i ? me(t, s) : t, a = e.length - 1, n; a >= 0; a--)
+    (n = e[a]) && (r = (i ? n(t, s, r) : n(r)) || r);
+  return i && r && ue(t, s, r), r;
 };
-const gt = 2, bt = "mp4a.40.2";
-function vt(t) {
-  for (let e = 0; e + 8 < t.length; e += 1)
-    if (t[e] === 97 && // a
-    t[e + 1] === 118 && // v
-    t[e + 2] === 99 && // c
-    t[e + 3] === 67) {
-      const s = t[e + 5], i = t[e + 6], r = t[e + 7];
+const ge = 2, ve = "mp4a.40.2";
+function be(e, t) {
+  const [s, i, r, a] = [0, 1, 2, 3].map((n) => t.charCodeAt(n));
+  for (let n = 0; n + 8 < e.length; n += 1)
+    if (e[n] === s && e[n + 1] === i && e[n + 2] === r && e[n + 3] === a)
+      return n;
+  return -1;
+}
+function fe(e) {
+  return be(e, "mp4a") !== -1;
+}
+function ye(e) {
+  for (let t = 0; t + 8 < e.length; t += 1)
+    if (e[t] === 97 && // a
+    e[t + 1] === 118 && // v
+    e[t + 2] === 99 && // c
+    e[t + 3] === 67) {
+      const s = e[t + 5], i = e[t + 6], r = e[t + 7];
       if (s === void 0 || r === void 0) return null;
       const a = (n) => n.toString(16).padStart(2, "0");
       return `avc1.${a(s)}${a(i)}${a(r)}`;
@@ -1189,37 +1199,37 @@ function vt(t) {
 }
 let B = class extends w {
   constructor() {
-    super(...arguments), this.segments = [], this.seekTo = 0, this.segmentUrlBase = "/api/camwatch/segment", this.message = "", this.queue = [], this.appended = /* @__PURE__ */ new Set(), this.origin = 0, this.loading = !1, this.generation = 0;
+    super(...arguments), this.segments = [], this.seekTo = 0, this.segmentUrlBase = "/api/kustos_vision/segment", this.message = "", this.withAudio = !0, this.queue = [], this.appended = /* @__PURE__ */ new Set(), this.origin = 0, this.loading = !1, this.generation = 0;
   }
   disconnectedCallback() {
     super.disconnectedCallback(), this.teardown();
   }
-  updated(t) {
-    t.has("segments") ? this.load() : t.has("seekTo") && this.buffer && this.jump(this.seekTo);
+  updated(e) {
+    e.has("segments") ? this.load() : e.has("seekTo") && this.buffer && this.jump(this.seekTo);
   }
   /** The video element's time that corresponds to a moment in real time. */
-  toMediaTime(t) {
-    return Math.max(0, t - this.origin);
+  toMediaTime(e) {
+    return Math.max(0, e - this.origin);
   }
-  jump(t) {
-    const e = this.renderRoot.querySelector("video");
-    if (!e) return;
-    const s = this.toMediaTime(t), i = e.buffered;
+  jump(e) {
+    const t = this.renderRoot.querySelector("video");
+    if (!t) return;
+    const s = this.toMediaTime(e), i = t.buffered;
     let r = !1;
     for (let a = 0; a < i.length; a += 1)
       s >= i.start(a) && s <= i.end(a) && (r = !0);
     if (r) {
-      e.currentTime = s;
+      t.currentTime = s;
       return;
     }
-    this.load(t);
+    this.load(e);
   }
   teardown() {
     this.generation += 1, this.objectUrl && URL.revokeObjectURL(this.objectUrl), this.objectUrl = void 0, this.buffer = void 0, this.media = void 0, this.queue = [], this.appended.clear(), this.loading = !1;
   }
-  async load(t) {
+  async load(e) {
     this.teardown();
-    const e = this.generation;
+    const t = this.generation;
     if (this.message = "", this.segments.length === 0) {
       this.message = "Für diesen Zeitraum ist nichts aufgezeichnet.";
       return;
@@ -1228,81 +1238,82 @@ let B = class extends w {
       this.message = "Dieser Browser unterstützt die Wiedergabe nicht.";
       return;
     }
-    const s = t ?? this.seekTo ?? this.segments[0].start, i = Math.max(
+    const s = e ?? this.seekTo ?? this.segments[0].start, i = Math.max(
       0,
-      this.segments.findIndex((u) => u.start + u.duration > s)
+      this.segments.findIndex((d) => d.start + d.duration > s)
     );
     this.queue = this.segments.slice(i), this.origin = this.queue[0]?.start ?? s;
     let r;
     try {
-      r = await this.detectCodec(this.queue[0]);
-    } catch (u) {
-      this.message = u instanceof Error ? u.message : String(u);
+      r = await this.inspect(this.queue[0]);
+    } catch (d) {
+      this.message = d instanceof Error ? d.message : String(d);
       return;
     }
-    if (e !== this.generation) return;
+    if (t !== this.generation) return;
     if (!r) {
-      this.message = "Das Format der Aufnahme konnte nicht bestimmt werden.";
+      this.message = "Diese Aufnahme ist nicht H.264. Die Wiedergabe im Panel unterstützt derzeit nur H.264; die Datei selbst ist unbeschädigt und lässt sich herunterladen.";
       return;
     }
-    const a = `video/mp4; codecs="${r}, ${bt}"`, n = `video/mp4; codecs="${r}"`, d = MediaSource.isTypeSupported(a) ? a : MediaSource.isTypeSupported(n) ? n : null;
-    if (!d) {
+    const a = `video/mp4; codecs="${r}"`, n = `video/mp4; codecs="${r}, ${ve}"`, p = this.withAudio ? n : a, c = MediaSource.isTypeSupported(p) ? p : MediaSource.isTypeSupported(a) ? a : null;
+    if (!c) {
       this.message = `Dieser Browser kann ${r} nicht abspielen.`;
       return;
     }
-    const c = new MediaSource();
-    this.media = c, this.objectUrl = URL.createObjectURL(c), await this.updateComplete;
+    const m = new MediaSource();
+    this.media = m, this.objectUrl = URL.createObjectURL(m), await this.updateComplete;
     const g = this.renderRoot.querySelector("video");
-    g && (g.src = this.objectUrl, c.addEventListener(
+    g && (g.src = this.objectUrl, m.addEventListener(
       "sourceopen",
       () => {
-        if (e === this.generation)
+        if (t === this.generation)
           try {
-            const u = c.addSourceBuffer(d);
-            u.mode = "segments", this.buffer = u, u.addEventListener("updateend", () => void this.pump()), this.pump();
-          } catch (u) {
-            this.message = u instanceof Error ? u.message : String(u);
+            const d = m.addSourceBuffer(c);
+            d.mode = "segments", this.buffer = d, d.addEventListener("updateend", () => void this.pump()), this.pump();
+          } catch (d) {
+            this.message = d instanceof Error ? d.message : String(d);
           }
       },
       { once: !0 }
     ), g.addEventListener("timeupdate", () => void this.pump()));
   }
-  async detectCodec(t) {
-    const e = await fetch(this.urlFor(t), {
+  async inspect(e) {
+    const t = await fetch(this.urlFor(e), {
       headers: { Range: "bytes=0-8191" }
     });
-    if (!e.ok && e.status !== 206)
+    if (!t.ok && t.status !== 206)
       throw new Error("Die Aufnahme konnte nicht geladen werden.");
-    return vt(new Uint8Array(await e.arrayBuffer()));
+    const s = new Uint8Array(await t.arrayBuffer());
+    return this.withAudio = fe(s), ye(s);
   }
-  urlFor(t) {
-    return `${this.segmentUrlBase}/${t.path}`;
+  urlFor(e) {
+    return `${this.segmentUrlBase}/${e.path}`;
   }
   /** Keep a little footage buffered ahead of the playhead. */
   async pump() {
-    const t = this.buffer, e = this.media;
-    if (!t || !e || t.updating || this.loading || e.readyState !== "open") return;
+    const e = this.buffer, t = this.media;
+    if (!e || !t || e.updating || this.loading || t.readyState !== "open") return;
     const s = this.renderRoot.querySelector("video"), i = this.queue.filter((n) => !this.appended.has(n.path));
     if (i.length === 0) {
-      if (e.readyState === "open")
+      if (t.readyState === "open")
         try {
-          e.endOfStream();
+          t.endOfStream();
         } catch {
         }
       return;
     }
-    if (s && (s.buffered.length > 0 ? s.buffered.end(s.buffered.length - 1) : 0) - s.currentTime > gt * (this.queue[0]?.duration ?? 0) && this.appended.size > 0)
+    if (s && (s.buffered.length > 0 ? s.buffered.end(s.buffered.length - 1) : 0) - s.currentTime > ge * (this.queue[0]?.duration ?? 0) && this.appended.size > 0)
       return;
     const r = i[0], a = this.generation;
     this.loading = !0;
     try {
       const n = await fetch(this.urlFor(r));
       if (!n.ok) throw new Error(`HTTP ${n.status}`);
-      const d = await n.arrayBuffer();
+      const p = await n.arrayBuffer();
       if (a !== this.generation || !this.buffer) return;
-      this.buffer.timestampOffset = r.start - this.origin, this.buffer.appendBuffer(d), this.appended.add(r.path);
+      this.buffer.timestampOffset = r.start - this.origin, this.buffer.appendBuffer(p), this.appended.add(r.path);
     } catch (n) {
-      this.appended.add(r.path), console.warn("camwatch: segment could not be appended", r.path, n);
+      this.appended.add(r.path), console.warn("kustos_vision: segment could not be appended", r.path, n);
     } finally {
       this.loading = !1;
     }
@@ -1340,68 +1351,68 @@ B.styles = H`
       pointer-events: none;
     }
   `;
-te([
-  p({ attribute: !1 })
+et([
+  u({ attribute: !1 })
 ], B.prototype, "segments", 2);
-te([
-  p({ type: Number })
+et([
+  u({ type: Number })
 ], B.prototype, "seekTo", 2);
-te([
-  p()
+et([
+  u()
 ], B.prototype, "segmentUrlBase", 2);
-te([
+et([
   h()
 ], B.prototype, "message", 2);
-B = te([
-  k("camwatch-player")
+B = et([
+  S("kustos-vision-player")
 ], B);
-var yt = Object.defineProperty, ft = Object.getOwnPropertyDescriptor, j = (t, e, s, i) => {
-  for (var r = i > 1 ? void 0 : i ? ft(e, s) : e, a = t.length - 1, n; a >= 0; a--)
-    (n = t[a]) && (r = (i ? n(e, s, r) : n(r)) || r);
-  return i && r && yt(e, s, r), r;
+var $e = Object.defineProperty, we = Object.getOwnPropertyDescriptor, j = (e, t, s, i) => {
+  for (var r = i > 1 ? void 0 : i ? we(t, s) : t, a = e.length - 1, n; a >= 0; a--)
+    (n = e[a]) && (r = (i ? n(t, s, r) : n(r)) || r);
+  return i && r && $e(t, s, r), r;
 };
-let S = class extends w {
+let x = class extends w {
   constructor() {
-    super(...arguments), this.from = 0, this.to = 0, this.blocks = [], this.segments = [], this.position = 0, this.thumbnailUrlBase = "/api/camwatch/thumbnail";
+    super(...arguments), this.from = 0, this.to = 0, this.blocks = [], this.segments = [], this.position = 0, this.thumbnailUrlBase = "/api/kustos_vision/thumbnail";
   }
   get span() {
     return Math.max(1, this.to - this.from);
   }
-  percent(t) {
-    return (t - this.from) / this.span * 100;
+  percent(e) {
+    return (e - this.from) / this.span * 100;
   }
-  timeAt(t) {
-    const s = t.currentTarget.getBoundingClientRect(), i = Math.min(1, Math.max(0, (t.clientX - s.left) / s.width));
+  timeAt(e) {
+    const s = e.currentTarget.getBoundingClientRect(), i = Math.min(1, Math.max(0, (e.clientX - s.left) / s.width));
     return this.from + i * this.span;
   }
-  onMove(t) {
-    const e = this.timeAt(t), s = this.segments.find(
-      (i) => e >= i.start && e < i.start + i.duration
+  onMove(e) {
+    const t = this.timeAt(e), s = this.segments.find(
+      (i) => t >= i.start && t < i.start + i.duration
     );
-    this.hover = { x: this.percent(e), time: e, segment: s };
+    this.hover = { x: this.percent(t), time: t, segment: s };
   }
-  onClick(t) {
-    const e = this.timeAt(t);
+  onClick(e) {
+    const t = this.timeAt(e);
     this.dispatchEvent(
-      new CustomEvent("seek", { detail: { time: e }, bubbles: !0, composed: !0 })
+      new CustomEvent("seek", { detail: { time: t }, bubbles: !0, composed: !0 })
     );
   }
-  formatTime(t) {
-    return new Date(t * 1e3).toLocaleTimeString(void 0, {
+  formatTime(e) {
+    return new Date(e * 1e3).toLocaleTimeString(void 0, {
       hour: "2-digit",
       minute: "2-digit",
       second: "2-digit"
     });
   }
   renderHours() {
-    const t = [], s = Math.ceil(this.from / 3600) * 3600;
-    for (let i = s; i <= this.to; i += 3600) t.push(i);
-    return t.length > 24 ? l : o`
-      ${t.map(
+    const e = [], s = Math.ceil(this.from / 3600) * 3600;
+    for (let i = s; i <= this.to; i += 3600) e.push(i);
+    return e.length > 24 ? l : o`
+      ${e.map(
       (i) => o`<div class="tick" style="left:${this.percent(i)}%"></div>`
     )}
       <div class="hours">
-        ${t.map(
+        ${e.map(
       (i) => o`<span class="hour" style="left:${this.percent(i)}%">
             ${new Date(i * 1e3).toLocaleTimeString(void 0, {
         hour: "2-digit",
@@ -1432,10 +1443,10 @@ let S = class extends w {
           @click=${this.onClick}
         >
           ${this.blocks.map(
-      (t) => o`<div
+      (e) => o`<div
               class="block"
-              title="${this.formatTime(t.start)} bis ${this.formatTime(t.end)}"
-              style="left:${this.percent(t.start)}%;width:${this.percent(t.end) - this.percent(t.start)}%"
+              title="${this.formatTime(e.start)} bis ${this.formatTime(e.end)}"
+              style="left:${this.percent(e.start)}%;width:${this.percent(e.end) - this.percent(e.start)}%"
             ></div>`
     )}
           ${this.position >= this.from && this.position <= this.to ? o`<div class="playhead" style="left:${this.percent(this.position)}%"></div>` : l}
@@ -1446,7 +1457,7 @@ let S = class extends w {
     `;
   }
 };
-S.styles = H`
+x.styles = H`
     :host {
       display: block;
       user-select: none;
@@ -1527,53 +1538,53 @@ S.styles = H`
     }
   `;
 j([
-  p({ type: Number })
-], S.prototype, "from", 2);
+  u({ type: Number })
+], x.prototype, "from", 2);
 j([
-  p({ type: Number })
-], S.prototype, "to", 2);
+  u({ type: Number })
+], x.prototype, "to", 2);
 j([
-  p({ attribute: !1 })
-], S.prototype, "blocks", 2);
+  u({ attribute: !1 })
+], x.prototype, "blocks", 2);
 j([
-  p({ attribute: !1 })
-], S.prototype, "segments", 2);
+  u({ attribute: !1 })
+], x.prototype, "segments", 2);
 j([
-  p({ type: Number })
-], S.prototype, "position", 2);
+  u({ type: Number })
+], x.prototype, "position", 2);
 j([
-  p()
-], S.prototype, "thumbnailUrlBase", 2);
+  u()
+], x.prototype, "thumbnailUrlBase", 2);
 j([
   h()
-], S.prototype, "hover", 2);
-S = j([
-  k("camwatch-timeline")
-], S);
-var $t = Object.defineProperty, wt = Object.getOwnPropertyDescriptor, x = (t, e, s, i) => {
-  for (var r = i > 1 ? void 0 : i ? wt(e, s) : e, a = t.length - 1, n; a >= 0; a--)
-    (n = t[a]) && (r = (i ? n(e, s, r) : n(r)) || r);
-  return i && r && $t(e, s, r), r;
+], x.prototype, "hover", 2);
+x = j([
+  S("kustos-vision-timeline")
+], x);
+var _e = Object.defineProperty, ke = Object.getOwnPropertyDescriptor, k = (e, t, s, i) => {
+  for (var r = i > 1 ? void 0 : i ? ke(t, s) : t, a = e.length - 1, n; a >= 0; a--)
+    (n = e[a]) && (r = (i ? n(t, s, r) : n(r)) || r);
+  return i && r && _e(t, s, r), r;
 };
 let $ = class extends w {
   constructor() {
     super(...arguments), this.cameras = [], this.camera = "", this.stream = "", this.day = "", this.days = [], this.blocks = [], this.segments = [], this.position = 0, this.seekTo = 0, this.busy = !1, this.error = "";
   }
-  updated(t) {
-    t.has("cameras") && !this.camera && this.cameras.length > 0 && this.selectCamera(this.cameras[0].slug);
+  updated(e) {
+    e.has("cameras") && !this.camera && this.cameras.length > 0 && this.selectCamera(this.cameras[0].slug);
   }
   get bounds() {
     if (!this.day) return [0, 0];
-    const t = /* @__PURE__ */ new Date(`${this.day}T00:00:00`), e = new Date(t);
-    return e.setDate(e.getDate() + 1), [t.getTime() / 1e3, e.getTime() / 1e3];
+    const e = /* @__PURE__ */ new Date(`${this.day}T00:00:00`), t = new Date(e);
+    return t.setDate(t.getDate() + 1), [e.getTime() / 1e3, t.getTime() / 1e3];
   }
-  async selectCamera(t) {
-    this.camera = t, this.stream = "", this.error = "", this.busy = !0;
+  async selectCamera(e) {
+    this.camera = e, this.stream = "", this.error = "", this.busy = !0;
     try {
-      const { days: e } = await this.api.recordingDays(t);
-      this.days = e, this.day = e[e.length - 1] ?? "", await this.loadDay();
-    } catch (e) {
-      this.error = e instanceof Error ? e.message : String(e);
+      const { days: t } = await this.api.recordingDays(e);
+      this.days = t, this.day = t[t.length - 1] ?? "", await this.loadDay();
+    } catch (t) {
+      this.error = t instanceof Error ? t.message : String(t);
     } finally {
       this.busy = !1;
     }
@@ -1583,16 +1594,16 @@ let $ = class extends w {
       this.blocks = [], this.segments = [];
       return;
     }
-    const [t, e] = this.bounds;
+    const [e, t] = this.bounds;
     this.busy = !0, this.error = "";
     try {
       const s = await this.api.timeline(
         this.camera,
-        t,
         e,
+        t,
         this.stream || void 0
       );
-      this.blocks = s.blocks, this.segments = s.segments, this.position = s.segments[0]?.start ?? t, this.seekTo = this.position;
+      this.blocks = s.blocks, this.segments = s.segments, this.position = s.segments[0]?.start ?? e, this.seekTo = this.position;
     } catch (s) {
       this.error = s instanceof Error ? s.message : String(s);
     } finally {
@@ -1600,23 +1611,23 @@ let $ = class extends w {
     }
   }
   get streamKeys() {
-    const t = this.cameras.find((e) => e.slug === this.camera);
-    return t ? t.streams.map((e) => e.key) : [];
+    const e = this.cameras.find((t) => t.slug === this.camera);
+    return e ? e.streams.map((t) => t.key) : [];
   }
   exportUrl() {
-    const [t, e] = this.bounds, s = new URLSearchParams({
+    const [e, t] = this.bounds, s = new URLSearchParams({
       camera: this.camera,
-      from: String(t),
-      to: String(e)
+      from: String(e),
+      to: String(t)
     });
-    return this.stream && s.set("stream", this.stream), `/api/camwatch/export?${s.toString()}`;
+    return this.stream && s.set("stream", this.stream), `/api/kustos_vision/export?${s.toString()}`;
   }
   render() {
     if (this.cameras.length === 0)
       return o`<div style="padding:32px" class="muted">
         Noch keine Kamera eingerichtet.
       </div>`;
-    const t = this.streamKeys;
+    const e = this.streamKeys;
     return o`
       <div style="padding:16px">
         <div class="card">
@@ -1624,11 +1635,11 @@ let $ = class extends w {
             <div class="grow">
               <label>Kamera</label>
               <select
-                @change=${(e) => this.selectCamera(e.target.value)}
+                @change=${(t) => this.selectCamera(t.target.value)}
               >
                 ${this.cameras.map(
-      (e) => o`<option value=${e.slug} ?selected=${e.slug === this.camera}>
-                    ${e.name}
+      (t) => o`<option value=${t.slug} ?selected=${t.slug === this.camera}>
+                    ${t.name}
                   </option>`
     )}
               </select>
@@ -1636,28 +1647,28 @@ let $ = class extends w {
             <div class="grow">
               <label>Tag</label>
               <select
-                @change=${(e) => {
-      this.day = e.target.value, this.loadDay();
+                @change=${(t) => {
+      this.day = t.target.value, this.loadDay();
     }}
               >
                 ${this.days.length === 0 ? o`<option>keine Aufnahmen</option>` : this.days.map(
-      (e) => o`<option value=${e} ?selected=${e === this.day}>
-                        ${e}
+      (t) => o`<option value=${t} ?selected=${t === this.day}>
+                        ${t}
                       </option>`
     )}
               </select>
             </div>
-            ${t.length > 1 ? o`<div class="grow">
+            ${e.length > 1 ? o`<div class="grow">
                   <label>Stream</label>
                   <select
-                    @change=${(e) => {
-      this.stream = e.target.value, this.loadDay();
+                    @change=${(t) => {
+      this.stream = t.target.value, this.loadDay();
     }}
                   >
                     <option value="">alle</option>
-                    ${t.map(
-      (e) => o`<option value=${e} ?selected=${e === this.stream}>
-                        ${e}
+                    ${e.map(
+      (t) => o`<option value=${t} ?selected=${t === this.stream}>
+                        ${t}
                       </option>`
     )}
                   </select>
@@ -1666,22 +1677,22 @@ let $ = class extends w {
           ${this.error ? o`<p class="error">${this.error}</p>` : l}
         </div>
 
-        <camwatch-player
+        <kustos-vision-player
           .segments=${this.segments}
           .seekTo=${this.seekTo}
-        ></camwatch-player>
+        ></kustos-vision-player>
 
         <div style="margin-top:12px">
-          <camwatch-timeline
+          <kustos-vision-timeline
             .from=${this.bounds[0]}
             .to=${this.bounds[1]}
             .blocks=${this.blocks}
             .segments=${this.segments}
             .position=${this.position}
-            @seek=${(e) => {
-      this.position = e.detail.time, this.seekTo = e.detail.time;
+            @seek=${(t) => {
+      this.position = t.detail.time, this.seekTo = t.detail.time;
     }}
-          ></camwatch-timeline>
+          ></kustos-vision-timeline>
         </div>
 
         ${this.segments.length > 0 ? o`<div class="row" style="margin-top:16px">
@@ -1699,94 +1710,94 @@ let $ = class extends w {
   }
 };
 $.styles = Q;
-x([
-  p({ attribute: !1 })
+k([
+  u({ attribute: !1 })
 ], $.prototype, "api", 2);
-x([
-  p({ attribute: !1 })
+k([
+  u({ attribute: !1 })
 ], $.prototype, "cameras", 2);
-x([
+k([
   h()
 ], $.prototype, "camera", 2);
-x([
+k([
   h()
 ], $.prototype, "stream", 2);
-x([
+k([
   h()
 ], $.prototype, "day", 2);
-x([
+k([
   h()
 ], $.prototype, "days", 2);
-x([
+k([
   h()
 ], $.prototype, "blocks", 2);
-x([
+k([
   h()
 ], $.prototype, "segments", 2);
-x([
+k([
   h()
 ], $.prototype, "position", 2);
-x([
+k([
   h()
 ], $.prototype, "seekTo", 2);
-x([
+k([
   h()
 ], $.prototype, "busy", 2);
-x([
+k([
   h()
 ], $.prototype, "error", 2);
-$ = x([
-  k("camwatch-recordings")
+$ = k([
+  S("kustos-vision-recordings")
 ], $);
-var _t = Object.defineProperty, xt = Object.getOwnPropertyDescriptor, _ = (t, e, s, i) => {
-  for (var r = i > 1 ? void 0 : i ? xt(e, s) : e, a = t.length - 1, n; a >= 0; a--)
-    (n = t[a]) && (r = (i ? n(e, s, r) : n(r)) || r);
-  return i && r && _t(e, s, r), r;
+var Ae = Object.defineProperty, xe = Object.getOwnPropertyDescriptor, _ = (e, t, s, i) => {
+  for (var r = i > 1 ? void 0 : i ? xe(t, s) : t, a = e.length - 1, n; a >= 0; a--)
+    (n = e[a]) && (r = (i ? n(t, s, r) : n(r)) || r);
+  return i && r && Ae(t, s, r), r;
 };
-function At(t) {
-  const e = t.toLowerCase().replace(/ä/g, "ae").replace(/ö/g, "oe").replace(/ü/g, "ue").replace(/ß/g, "ss").replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
-  return /^[a-z0-9]/.test(e) ? e : `kamera_${e}`;
+function Se(e) {
+  const t = e.toLowerCase().replace(/ä/g, "ae").replace(/ö/g, "oe").replace(/ü/g, "ue").replace(/ß/g, "ss").replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+  return /^[a-z0-9]/.test(t) ? t : `kamera_${t}`;
 }
-let f = class extends w {
+let y = class extends w {
   constructor() {
     super(...arguments), this.capabilityKeys = [], this.available = [], this.slug = "", this.name = "", this.streams = [], this.capabilities = {}, this.retentionDays = null, this.enabled = !0, this.candidates = [], this.busy = !1, this.error = "";
   }
   connectedCallback() {
-    super.connectedCallback(), this.camera && (this.slug = this.camera.slug, this.name = this.camera.name, this.streams = this.camera.streams.map((t) => ({ ...t })), this.capabilities = structuredClone(this.camera.capabilities), this.retentionDays = this.camera.retention_days, this.enabled = this.camera.enabled);
+    super.connectedCallback(), this.camera && (this.slug = this.camera.slug, this.name = this.camera.name, this.streams = this.camera.streams.map((e) => ({ ...e })), this.capabilities = structuredClone(this.camera.capabilities), this.retentionDays = this.camera.retention_days, this.enabled = this.camera.enabled);
   }
-  async pick(t) {
-    if (t) {
+  async pick(e) {
+    if (e) {
       this.busy = !0, this.error = "";
       try {
-        const e = await this.api.suggest(t);
-        this.name = e.name, this.slug = At(e.name), this.streams = e.streams.map((s) => ({
+        const t = await this.api.suggest(e);
+        this.name = t.name, this.slug = Se(t.name), this.streams = t.streams.map((s) => ({
           key: s.key,
           entity_id: s.entity_id,
           // Only one stream is recorded by default. Recording every stream of
           // every camera on the first save would be a surprising amount of disk.
-          record: s.key === "sd" || e.streams.length === 1,
+          record: s.key === "sd" || t.streams.length === 1,
           audio: "transcode"
         })), this.capabilities = Object.fromEntries(
-          Object.entries(e.capabilities).map(([s, i]) => [
+          Object.entries(t.capabilities).map(([s, i]) => [
             s,
             { entity_id: i }
           ])
-        ), this.candidates = e.candidates;
-      } catch (e) {
-        this.error = e instanceof Error ? e.message : String(e);
+        ), this.candidates = t.candidates;
+      } catch (t) {
+        this.error = t instanceof Error ? t.message : String(t);
       } finally {
         this.busy = !1;
       }
     }
   }
-  updateStream(t, e) {
+  updateStream(e, t) {
     this.streams = this.streams.map(
-      (s, i) => i === t ? { ...s, ...e } : s
+      (s, i) => i === e ? { ...s, ...t } : s
     );
   }
-  setCapability(t, e) {
+  setCapability(e, t) {
     const s = { ...this.capabilities };
-    e ? s[t] = { entity_id: e } : delete s[t], this.capabilities = s;
+    t ? s[e] = { entity_id: t } : delete s[e], this.capabilities = s;
   }
   async save() {
     this.busy = !0, this.error = "";
@@ -1800,8 +1811,8 @@ let f = class extends w {
         enabled: this.enabled,
         area_id: this.camera?.area_id ?? null
       }), this.dispatchEvent(new CustomEvent("saved", { bubbles: !0, composed: !0 }));
-    } catch (t) {
-      this.error = t instanceof Error ? t.message : String(t);
+    } catch (e) {
+      this.error = e instanceof Error ? e.message : String(e);
     } finally {
       this.busy = !1;
     }
@@ -1810,23 +1821,23 @@ let f = class extends w {
     return this.camera ? l : o`
       <label>Kamera in Home Assistant</label>
       <select
-        @change=${(t) => this.pick(t.target.value)}
+        @change=${(e) => this.pick(e.target.value)}
       >
         <option value="">Bitte wählen …</option>
         ${this.available.map(
-      (t) => o`<option value=${t.entity_id}>
-            ${t.name ?? t.entity_id}${t.available ? "" : " (nicht verfügbar)"}
+      (e) => o`<option value=${e.entity_id}>
+            ${e.name ?? e.entity_id}${e.available ? "" : " (nicht verfügbar)"}
           </option>`
     )}
       </select>
       <p class="hint">
-        camwatch schlägt danach Streams und Bedienelemente vor, die zum selben
+        kustos_vision schlägt danach Streams und Bedienelemente vor, die zum selben
         Gerät gehören. Alles davon lässt sich ändern.
       </p>
     `;
   }
   render() {
-    const t = this.candidates.length ? this.candidates : Object.values(this.capabilities).filter((e) => e.entity_id).map((e) => ({ entity_id: e.entity_id, name: e.entity_id }));
+    const e = this.candidates.length ? this.candidates : Object.values(this.capabilities).filter((t) => t.entity_id).map((t) => ({ entity_id: t.entity_id, name: t.entity_id }));
     return o`
       <div class="card">
         <h2>${this.camera ? `${this.camera.name} bearbeiten` : "Kamera hinzufügen"}</h2>
@@ -1837,7 +1848,7 @@ let f = class extends w {
             <label>Name</label>
             <input
               .value=${this.name}
-              @input=${(e) => this.name = e.target.value}
+              @input=${(t) => this.name = t.target.value}
             />
           </div>
           <div class="grow">
@@ -1845,7 +1856,7 @@ let f = class extends w {
             <input
               .value=${this.slug}
               ?disabled=${this.camera !== void 0}
-              @input=${(e) => this.slug = e.target.value}
+              @input=${(t) => this.slug = t.target.value}
             />
           </div>
         </div>
@@ -1859,21 +1870,21 @@ let f = class extends w {
                 <th>Ton</th>
               </tr>
               ${this.streams.map(
-      (e, s) => o`
+      (t, s) => o`
                   <tr>
                     <td>
                       <input
-                        .value=${e.key}
+                        .value=${t.key}
                         @input=${(i) => this.updateStream(s, {
         key: i.target.value
       })}
                       />
                     </td>
-                    <td class="muted">${e.entity_id}</td>
+                    <td class="muted">${t.entity_id}</td>
                     <td>
                       <input
                         type="checkbox"
-                        .checked=${e.record}
+                        .checked=${t.record}
                         @change=${(i) => this.updateStream(s, {
         record: i.target.checked
       })}
@@ -1885,13 +1896,13 @@ let f = class extends w {
         audio: i.target.value
       })}
                       >
-                        <option value="transcode" ?selected=${e.audio === "transcode"}>
+                        <option value="transcode" ?selected=${t.audio === "transcode"}>
                           umwandeln
                         </option>
-                        <option value="copy" ?selected=${e.audio === "copy"}>
+                        <option value="copy" ?selected=${t.audio === "copy"}>
                           kopieren
                         </option>
-                        <option value="none" ?selected=${e.audio === "none"}>
+                        <option value="none" ?selected=${t.audio === "none"}>
                           ohne
                         </option>
                       </select>
@@ -1913,8 +1924,8 @@ let f = class extends w {
               type="number"
               min="1"
               .value=${this.retentionDays === null ? "" : String(this.retentionDays)}
-              @input=${(e) => {
-      const s = e.target.value;
+              @input=${(t) => {
+      const s = t.target.value;
       this.retentionDays = s === "" ? null : Number(s);
     }}
             />
@@ -1924,7 +1935,7 @@ let f = class extends w {
             <input
               type="checkbox"
               .checked=${this.enabled}
-              @change=${(e) => this.enabled = e.target.checked}
+              @change=${(t) => this.enabled = t.target.checked}
             />
           </div>
         </div>
@@ -1936,16 +1947,16 @@ let f = class extends w {
         </p>
         <table>
           ${this.capabilityKeys.map(
-      (e) => o`
+      (t) => o`
               <tr>
-                <th>${e}</th>
+                <th>${t}</th>
                 <td>
-                  <select @change=${(s) => this.setCapability(e, s.target.value)}>
+                  <select @change=${(s) => this.setCapability(t, s.target.value)}>
                     <option value="">nicht zugeordnet</option>
-                    ${t.map(
+                    ${e.map(
         (s) => o`<option
                         value=${s.entity_id}
-                        ?selected=${this.capabilities[e]?.entity_id === s.entity_id}
+                        ?selected=${this.capabilities[t]?.entity_id === s.entity_id}
                       >
                         ${s.name}
                       </option>`
@@ -1976,70 +1987,70 @@ let f = class extends w {
     `;
   }
 };
-f.styles = Q;
+y.styles = Q;
 _([
-  p({ attribute: !1 })
-], f.prototype, "api", 2);
+  u({ attribute: !1 })
+], y.prototype, "api", 2);
 _([
-  p({ attribute: !1 })
-], f.prototype, "camera", 2);
+  u({ attribute: !1 })
+], y.prototype, "camera", 2);
 _([
-  p({ attribute: !1 })
-], f.prototype, "capabilityKeys", 2);
+  u({ attribute: !1 })
+], y.prototype, "capabilityKeys", 2);
 _([
-  p({ attribute: !1 })
-], f.prototype, "available", 2);
-_([
-  h()
-], f.prototype, "slug", 2);
+  u({ attribute: !1 })
+], y.prototype, "available", 2);
 _([
   h()
-], f.prototype, "name", 2);
+], y.prototype, "slug", 2);
 _([
   h()
-], f.prototype, "streams", 2);
+], y.prototype, "name", 2);
 _([
   h()
-], f.prototype, "capabilities", 2);
+], y.prototype, "streams", 2);
 _([
   h()
-], f.prototype, "retentionDays", 2);
+], y.prototype, "capabilities", 2);
 _([
   h()
-], f.prototype, "enabled", 2);
+], y.prototype, "retentionDays", 2);
 _([
   h()
-], f.prototype, "candidates", 2);
+], y.prototype, "enabled", 2);
 _([
   h()
-], f.prototype, "busy", 2);
+], y.prototype, "candidates", 2);
 _([
   h()
-], f.prototype, "error", 2);
-f = _([
-  k("camwatch-camera-editor")
-], f);
-var St = Object.defineProperty, kt = Object.getOwnPropertyDescriptor, v = (t, e, s, i) => {
-  for (var r = i > 1 ? void 0 : i ? kt(e, s) : e, a = t.length - 1, n; a >= 0; a--)
-    (n = t[a]) && (r = (i ? n(e, s, r) : n(r)) || r);
-  return i && r && St(e, s, r), r;
+], y.prototype, "busy", 2);
+_([
+  h()
+], y.prototype, "error", 2);
+y = _([
+  S("kustos-vision-camera-editor")
+], y);
+var Ee = Object.defineProperty, Ce = Object.getOwnPropertyDescriptor, b = (e, t, s, i) => {
+  for (var r = i > 1 ? void 0 : i ? Ce(t, s) : t, a = e.length - 1, n; a >= 0; a--)
+    (n = e[a]) && (r = (i ? n(t, s, r) : n(r)) || r);
+  return i && r && Ee(t, s, r), r;
 };
-const Et = [
+const Oe = [
   ["boolean", "Ja/Nein"],
   ["text", "Text"],
   ["number", "Anzahl"],
   ["select", "Auswahl"]
 ];
-let b = class extends w {
+let v = class extends w {
   constructor() {
     super(...arguments), this.backend = { kind: "openai" }, this.observations = [], this.triggers = [], this.context = "", this.cooldown = 60, this.budget = 100, this.condition = "", this.enabled = !0, this.aiTasks = [], this.history = [], this.busy = !1, this.error = "";
   }
   async connectedCallback() {
     if (super.connectedCallback(), this.profile)
-      this.backend = { ...this.profile.backend }, this.observations = this.profile.observations.map((t) => ({ ...t })), this.triggers = [...this.profile.triggers], this.context = this.profile.context, this.cooldown = this.profile.cooldown_seconds, this.budget = this.profile.daily_budget, this.condition = this.profile.condition_entity ?? "", this.enabled = this.profile.enabled, this.loadHistory();
+      this.backend = { ...this.profile.backend }, this.observations = this.profile.observations.map((e) => ({ ...e })), this.triggers = [...this.profile.triggers], this.context = this.profile.context, this.cooldown = this.profile.cooldown_seconds, this.budget = this.profile.daily_budget, this.condition = this.profile.condition_entity ?? "", this.enabled = this.profile.enabled, this.loadHistory();
     else {
-      const t = this.camera.capabilities.motion_trigger?.entity_id;
-      t && (this.triggers = [t]);
+      const e = this.camera.capabilities.motion_trigger?.entity_id;
+      e && (this.triggers = [e]);
     }
     try {
       this.aiTasks = (await this.api.aiTaskEntities()).ai_task;
@@ -2054,18 +2065,18 @@ let b = class extends w {
       this.history = [];
     }
   }
-  patchObservation(t, e) {
+  patchObservation(e, t) {
     this.observations = this.observations.map(
-      (s, i) => i === t ? { ...s, ...e } : s
+      (s, i) => i === e ? { ...s, ...t } : s
     );
   }
   addObservation() {
-    let t = this.observations.length + 1;
-    const e = new Set(this.observations.map((s) => s.key));
-    for (; e.has(`frage_${t}`); ) t += 1;
+    let e = this.observations.length + 1;
+    const t = new Set(this.observations.map((s) => s.key));
+    for (; t.has(`frage_${e}`); ) e += 1;
     this.observations = [
       ...this.observations,
-      { key: `frage_${t}`, type: "boolean", question: "" }
+      { key: `frage_${e}`, type: "boolean", question: "" }
     ];
   }
   async save() {
@@ -2075,15 +2086,15 @@ let b = class extends w {
         camera_slug: this.camera.slug,
         backend: this.backend,
         observations: this.observations,
-        triggers: this.triggers.filter((t) => t),
+        triggers: this.triggers.filter((e) => e),
         context: this.context,
         cooldown_seconds: this.cooldown,
         daily_budget: this.budget,
         condition_entity: this.condition || null,
         enabled: this.enabled
       }), this.dispatchEvent(new CustomEvent("saved", { bubbles: !0, composed: !0 }));
-    } catch (t) {
-      this.error = t instanceof Error ? t.message : String(t);
+    } catch (e) {
+      this.error = e instanceof Error ? e.message : String(e);
     } finally {
       this.busy = !1;
     }
@@ -2091,46 +2102,46 @@ let b = class extends w {
   async analyseNow() {
     this.busy = !0, this.error = "", this.lastRun = void 0;
     try {
-      const t = await this.api.analyseNow(this.camera.slug);
-      t.ran ? (this.lastRun = { values: t.values, raw: t.raw }, Object.keys(t.problems).length > 0 && (this.error = `Nicht verwertbar: ${Object.entries(t.problems).map(([e, s]) => `${e} (${s})`).join(", ")}`)) : this.error = "Das Tagesbudget ist aufgebraucht oder es läuft bereits eine Analyse.", await this.loadHistory();
-    } catch (t) {
-      this.error = t instanceof Error ? t.message : String(t);
+      const e = await this.api.analyseNow(this.camera.slug);
+      e.ran ? (this.lastRun = { values: e.values, raw: e.raw }, Object.keys(e.problems).length > 0 && (this.error = `Nicht verwertbar: ${Object.entries(e.problems).map(([t, s]) => `${t} (${s})`).join(", ")}`)) : this.error = "Das Tagesbudget ist aufgebraucht oder es läuft bereits eine Analyse.", await this.loadHistory();
+    } catch (e) {
+      this.error = e instanceof Error ? e.message : String(e);
     } finally {
       this.busy = !1;
     }
   }
   renderBackend() {
-    const t = this.backend.kind === "ai_task";
+    const e = this.backend.kind === "ai_task";
     return o`
       <h3>Modell</h3>
       <label>Anbindung</label>
       <select
-        @change=${(e) => {
-      const s = e.target.value;
+        @change=${(t) => {
+      const s = t.target.value;
       this.backend = { ...this.backend, kind: s };
     }}
       >
-        <option value="openai" ?selected=${!t}>
+        <option value="openai" ?selected=${!e}>
           OpenAI-kompatibler Endpunkt
         </option>
-        <option value="ai_task" ?selected=${t}>Home Assistant AI Task</option>
+        <option value="ai_task" ?selected=${e}>Home Assistant AI Task</option>
       </select>
 
-      ${t ? o`
+      ${e ? o`
             <label>AI-Task-Entity</label>
             <select
-              @change=${(e) => this.backend = {
+              @change=${(t) => this.backend = {
       ...this.backend,
-      entity_id: e.target.value
+      entity_id: t.target.value
     }}
             >
               <option value="">Bitte wählen …</option>
               ${this.aiTasks.map(
-      (e) => o`<option
-                  value=${e.entity_id}
-                  ?selected=${this.backend.entity_id === e.entity_id}
+      (t) => o`<option
+                  value=${t.entity_id}
+                  ?selected=${this.backend.entity_id === t.entity_id}
                 >
-                  ${e.name}${e.available ? "" : " (nicht verfügbar)"}
+                  ${t.name}${t.available ? "" : " (nicht verfügbar)"}
                 </option>`
     )}
             </select>
@@ -2145,9 +2156,9 @@ let b = class extends w {
                 <input
                   placeholder="http://192.168.1.10:8080/v1"
                   .value=${this.backend.url ?? ""}
-                  @change=${(e) => this.backend = {
+                  @change=${(t) => this.backend = {
       ...this.backend,
-      url: e.target.value
+      url: t.target.value
     }}
                 />
               </div>
@@ -2155,9 +2166,9 @@ let b = class extends w {
                 <label>Modell</label>
                 <input
                   .value=${this.backend.model ?? ""}
-                  @change=${(e) => this.backend = {
+                  @change=${(t) => this.backend = {
       ...this.backend,
-      model: e.target.value
+      model: t.target.value
     }}
                 />
               </div>
@@ -2166,9 +2177,9 @@ let b = class extends w {
             <input
               type="password"
               .value=${this.backend.api_key ?? ""}
-              @change=${(e) => this.backend = {
+              @change=${(t) => this.backend = {
       ...this.backend,
-      api_key: e.target.value || void 0
+      api_key: t.target.value || void 0
     }}
             />
             <p class="hint">
@@ -2178,7 +2189,7 @@ let b = class extends w {
           `}
     `;
   }
-  renderObservation(t, e) {
+  renderObservation(e, t) {
     return o`
       <div style="border-bottom:1px solid var(--divider-color,#eee);padding:12px 0">
         <div class="row">
@@ -2186,8 +2197,8 @@ let b = class extends w {
             <label>Frage an das Modell</label>
             <input
               placeholder="Liegt ein Paket vor der Haustür?"
-              .value=${t.question}
-              @change=${(s) => this.patchObservation(e, {
+              .value=${e.question}
+              @change=${(s) => this.patchObservation(t, {
       question: s.target.value
     })}
             />
@@ -2195,14 +2206,14 @@ let b = class extends w {
           <div>
             <label>Antworttyp</label>
             <select
-              @change=${(s) => this.patchObservation(e, {
+              @change=${(s) => this.patchObservation(t, {
       type: s.target.value
     })}
             >
-              ${Et.map(
+              ${Oe.map(
       ([s, i]) => o`<option
                   value=${s}
-                  ?selected=${t.type === s}
+                  ?selected=${e.type === s}
                 >
                   ${i}
                 </option>`
@@ -2212,28 +2223,28 @@ let b = class extends w {
           <div>
             <label>Kennung</label>
             <input
-              .value=${t.key}
-              @change=${(s) => this.patchObservation(e, {
+              .value=${e.key}
+              @change=${(s) => this.patchObservation(t, {
       key: s.target.value
     })}
             />
           </div>
         </div>
 
-        ${t.type === "select" ? o`<label>Mögliche Antworten, durch Komma getrennt</label>
+        ${e.type === "select" ? o`<label>Mögliche Antworten, durch Komma getrennt</label>
               <input
-                .value=${(t.options ?? []).join(", ")}
-                @change=${(s) => this.patchObservation(e, {
+                .value=${(e.options ?? []).join(", ")}
+                @change=${(s) => this.patchObservation(t, {
       options: s.target.value.split(",").map((i) => i.trim()).filter((i) => i)
     })}
               />` : l}
-        ${t.type === "number" ? o`<div class="row">
+        ${e.type === "number" ? o`<div class="row">
               <div class="grow">
                 <label>Kleinster Wert</label>
                 <input
                   type="number"
-                  .value=${String(t.minimum ?? 0)}
-                  @change=${(s) => this.patchObservation(e, {
+                  .value=${String(e.minimum ?? 0)}
+                  @change=${(s) => this.patchObservation(t, {
       minimum: Number(s.target.value)
     })}
                 />
@@ -2242,8 +2253,8 @@ let b = class extends w {
                 <label>Größter Wert</label>
                 <input
                   type="number"
-                  .value=${String(t.maximum ?? 100)}
-                  @change=${(s) => this.patchObservation(e, {
+                  .value=${String(e.maximum ?? 100)}
+                  @change=${(s) => this.patchObservation(t, {
       maximum: Number(s.target.value)
     })}
                 />
@@ -2251,13 +2262,13 @@ let b = class extends w {
             </div>` : l}
 
         <div class="row" style="margin-top:8px">
-          ${this.lastRun && t.key in this.lastRun.values ? o`<span class="muted">
-                Letzte Antwort: <strong>${String(this.lastRun.values[t.key])}</strong>
+          ${this.lastRun && e.key in this.lastRun.values ? o`<span class="muted">
+                Letzte Antwort: <strong>${String(this.lastRun.values[e.key])}</strong>
               </span>` : l}
           <span class="grow"></span>
           <button
             class="danger"
-            @click=${() => this.observations = this.observations.filter((s, i) => i !== e)}
+            @click=${() => this.observations = this.observations.filter((s, i) => i !== t)}
           >
             Frage entfernen
           </button>
@@ -2280,14 +2291,14 @@ let b = class extends w {
           <th>Dauer</th>
         </tr>
         ${this.history.slice(0, 8).map(
-      (t) => o`
+      (e) => o`
             <tr>
-              <td class="muted">${new Date(t.at).toLocaleString()}</td>
-              <td class="muted">${t.trigger}</td>
-              <td class=${t.error ? "error" : ""}>
-                ${t.error ?? Object.entries(t.values).map(([e, s]) => `${e}: ${s}`).join(", ")}
+              <td class="muted">${new Date(e.at).toLocaleString()}</td>
+              <td class="muted">${e.trigger}</td>
+              <td class=${e.error ? "error" : ""}>
+                ${e.error ?? Object.entries(e.values).map(([t, s]) => `${t}: ${s}`).join(", ")}
               </td>
-              <td class="muted">${t.duration === null ? "-" : `${t.duration} s`}</td>
+              <td class="muted">${e.duration === null ? "-" : `${e.duration} s`}</td>
             </tr>
           `
     )}
@@ -2295,7 +2306,7 @@ let b = class extends w {
     `;
   }
   render() {
-    const t = this.profile?.state;
+    const e = this.profile?.state;
     return o`
       <div class="card">
         <h2>Bilderkennung für ${this.camera.name}</h2>
@@ -2307,7 +2318,7 @@ let b = class extends w {
         ${this.renderBackend()}
 
         <h3>Fragen</h3>
-        ${this.observations.length === 0 ? o`<p class="hint">Noch keine Frage angelegt.</p>` : this.observations.map((e, s) => this.renderObservation(e, s))}
+        ${this.observations.length === 0 ? o`<p class="hint">Noch keine Frage angelegt.</p>` : this.observations.map((t, s) => this.renderObservation(t, s))}
         <div class="row" style="margin-top:12px">
           <button class="secondary" @click=${this.addObservation}>
             Frage hinzufügen
@@ -2319,7 +2330,7 @@ let b = class extends w {
         <input
           placeholder="binary_sensor.kamera_person_detection"
           .value=${this.triggers.join(", ")}
-          @change=${(e) => this.triggers = e.target.value.split(",").map((s) => s.trim()).filter((s) => s)}
+          @change=${(t) => this.triggers = t.target.value.split(",").map((s) => s.trim()).filter((s) => s)}
         />
         <p class="hint">
           Am besten die Personenerkennung der Kamera. Reine Bewegungsmelder
@@ -2331,7 +2342,7 @@ let b = class extends w {
         <input
           placeholder="Die Kamera zeigt den Gehweg vor dem Haus."
           .value=${this.context}
-          @change=${(e) => this.context = e.target.value}
+          @change=${(t) => this.context = t.target.value}
         />
 
         <h3>Grenzen</h3>
@@ -2342,7 +2353,7 @@ let b = class extends w {
               type="number"
               min="0"
               .value=${String(this.cooldown)}
-              @change=${(e) => this.cooldown = Number(e.target.value)}
+              @change=${(t) => this.cooldown = Number(t.target.value)}
             />
           </div>
           <div class="grow">
@@ -2351,7 +2362,7 @@ let b = class extends w {
               type="number"
               min="1"
               .value=${String(this.budget)}
-              @change=${(e) => this.budget = Number(e.target.value)}
+              @change=${(t) => this.budget = Number(t.target.value)}
             />
           </div>
           <div class="grow">
@@ -2359,12 +2370,12 @@ let b = class extends w {
             <input
               placeholder="alarm_control_panel.zuhause"
               .value=${this.condition}
-              @change=${(e) => this.condition = e.target.value}
+              @change=${(t) => this.condition = t.target.value}
             />
           </div>
         </div>
-        ${t ? o`<p class="hint">
-              Heute ${t.analyses_today} von ${this.budget} Analysen genutzt.
+        ${e ? o`<p class="hint">
+              Heute ${e.analyses_today} von ${this.budget} Analysen genutzt.
             </p>` : l}
 
         <div class="row" style="margin-top:8px">
@@ -2372,7 +2383,7 @@ let b = class extends w {
             <input
               type="checkbox"
               .checked=${this.enabled}
-              @change=${(e) => this.enabled = e.target.checked}
+              @change=${(t) => this.enabled = t.target.checked}
             />
             Aktiv
           </label>
@@ -2420,70 +2431,70 @@ ${JSON.stringify(this.lastRun.raw, null, 2)}</pre
     `;
   }
 };
-b.styles = Q;
-v([
-  p({ attribute: !1 })
-], b.prototype, "api", 2);
-v([
-  p({ attribute: !1 })
-], b.prototype, "camera", 2);
-v([
-  p({ attribute: !1 })
-], b.prototype, "profile", 2);
-v([
+v.styles = Q;
+b([
+  u({ attribute: !1 })
+], v.prototype, "api", 2);
+b([
+  u({ attribute: !1 })
+], v.prototype, "camera", 2);
+b([
+  u({ attribute: !1 })
+], v.prototype, "profile", 2);
+b([
   h()
-], b.prototype, "backend", 2);
-v([
+], v.prototype, "backend", 2);
+b([
   h()
-], b.prototype, "observations", 2);
-v([
+], v.prototype, "observations", 2);
+b([
   h()
-], b.prototype, "triggers", 2);
-v([
+], v.prototype, "triggers", 2);
+b([
   h()
-], b.prototype, "context", 2);
-v([
+], v.prototype, "context", 2);
+b([
   h()
-], b.prototype, "cooldown", 2);
-v([
+], v.prototype, "cooldown", 2);
+b([
   h()
-], b.prototype, "budget", 2);
-v([
+], v.prototype, "budget", 2);
+b([
   h()
-], b.prototype, "condition", 2);
-v([
+], v.prototype, "condition", 2);
+b([
   h()
-], b.prototype, "enabled", 2);
-v([
+], v.prototype, "enabled", 2);
+b([
   h()
-], b.prototype, "aiTasks", 2);
-v([
+], v.prototype, "aiTasks", 2);
+b([
   h()
-], b.prototype, "history", 2);
-v([
+], v.prototype, "history", 2);
+b([
   h()
-], b.prototype, "lastRun", 2);
-v([
+], v.prototype, "lastRun", 2);
+b([
   h()
-], b.prototype, "busy", 2);
-v([
+], v.prototype, "busy", 2);
+b([
   h()
-], b.prototype, "error", 2);
-b = v([
-  k("camwatch-vision-editor")
-], b);
-var Ct = Object.defineProperty, Ot = Object.getOwnPropertyDescriptor, E = (t, e, s, i) => {
-  for (var r = i > 1 ? void 0 : i ? Ot(e, s) : e, a = t.length - 1, n; a >= 0; a--)
-    (n = t[a]) && (r = (i ? n(e, s, r) : n(r)) || r);
-  return i && r && Ct(e, s, r), r;
+], v.prototype, "error", 2);
+v = b([
+  S("kustos-vision-vision-editor")
+], v);
+var Pe = Object.defineProperty, Te = Object.getOwnPropertyDescriptor, E = (e, t, s, i) => {
+  for (var r = i > 1 ? void 0 : i ? Te(t, s) : t, a = e.length - 1, n; a >= 0; a--)
+    (n = e[a]) && (r = (i ? n(t, s, r) : n(r)) || r);
+  return i && r && Pe(t, s, r), r;
 };
-const Pt = [
+const ze = [
   ["cameras", "Kameras"],
   ["vision", "Bilderkennung"],
   ["storage", "Speicher"],
   ["views", "Ansichten"],
   ["system", "System"]
-], Pe = 1e3 * 1e3 * 1e3;
+], Pt = 1e3 * 1e3 * 1e3;
 let A = class extends w {
   constructor() {
     super(...arguments), this.section = "cameras", this.adding = !1, this.available = [], this.busy = !1, this.error = "";
@@ -2491,12 +2502,12 @@ let A = class extends w {
   async refresh() {
     this.dispatchEvent(new CustomEvent("changed", { bubbles: !0, composed: !0 }));
   }
-  async run(t) {
+  async run(e) {
     this.busy = !0, this.error = "";
     try {
-      await t(), await this.refresh();
-    } catch (e) {
-      this.error = e instanceof Error ? e.message : String(e);
+      await e(), await this.refresh();
+    } catch (t) {
+      this.error = t instanceof Error ? t.message : String(t);
     } finally {
       this.busy = !1;
     }
@@ -2505,15 +2516,15 @@ let A = class extends w {
     this.error = "";
     try {
       this.available = (await this.api.availableCameras()).cameras, this.adding = !0;
-    } catch (t) {
-      this.error = t instanceof Error ? t.message : String(t);
+    } catch (e) {
+      this.error = e instanceof Error ? e.message : String(e);
     }
   }
   // ------------------------------------------------------------------
   // Cameras
   // ------------------------------------------------------------------
   renderCameras() {
-    return this.adding || this.editing ? o`<camwatch-camera-editor
+    return this.adding || this.editing ? o`<kustos-vision-camera-editor
         .api=${this.api}
         .camera=${this.editing}
         .capabilityKeys=${this.snapshot.capability_keys}
@@ -2524,11 +2535,11 @@ let A = class extends w {
         @cancelled=${() => {
       this.adding = !1, this.editing = void 0;
     }}
-      ></camwatch-camera-editor>` : o`
+      ></kustos-vision-camera-editor>` : o`
       <div class="card">
         <h2>Kameras</h2>
         ${this.snapshot.cameras.length === 0 ? o`<p class="hint">
-              Noch keine Kamera eingerichtet. camwatch schlägt beim Hinzufügen
+              Noch keine Kamera eingerichtet. kustos_vision schlägt beim Hinzufügen
               vor, welche Streams und Bedienelemente zum Gerät gehören.
             </p>` : o`<table>
               <tr>
@@ -2539,7 +2550,7 @@ let A = class extends w {
                 <th>Status</th>
                 <th></th>
               </tr>
-              ${this.snapshot.cameras.map((t) => this.renderCameraRow(t))}
+              ${this.snapshot.cameras.map((e) => this.renderCameraRow(e))}
             </table>`}
         <div class="row" style="margin-top:16px">
           <button ?disabled=${this.busy} @click=${this.startAdding}>
@@ -2549,18 +2560,18 @@ let A = class extends w {
       </div>
     `;
   }
-  renderCameraRow(t) {
-    const e = t.streams.filter((i) => i.record).length, s = t.state.streams.filter((i) => !i.running);
+  renderCameraRow(e) {
+    const t = e.streams.filter((i) => i.record).length, s = e.state.streams.filter((i) => !i.running);
     return o`
       <tr>
-        <td>${t.name}</td>
-        <td class="muted">${e} von ${t.streams.length}</td>
+        <td>${e.name}</td>
+        <td class="muted">${t} von ${e.streams.length}</td>
         <td class="muted">
-          ${t.retention_days === null ? "unbegrenzt" : `${t.retention_days} Tage`}
+          ${e.retention_days === null ? "unbegrenzt" : `${e.retention_days} Tage`}
         </td>
-        <td class="muted">${ie(t.state.used_bytes)}</td>
+        <td class="muted">${it(e.state.used_bytes)}</td>
         <td>
-          ${t.enabled ? t.state.recording ? o`<span>zeichnet auf</span>` : o`<span class="error"
+          ${e.enabled ? e.state.recording ? o`<span>zeichnet auf</span>` : o`<span class="error"
                   >steht${s[0]?.last_error ? o` (${s[0].last_error})` : l}</span
                 >` : o`<span class="muted">deaktiviert</span>`}
         </td>
@@ -2569,7 +2580,7 @@ let A = class extends w {
             <button
               class="secondary"
               @click=${async () => {
-      this.available = (await this.api.availableCameras()).cameras, this.editing = t;
+      this.available = (await this.api.availableCameras()).cameras, this.editing = e;
     }}
             >
               Bearbeiten
@@ -2577,7 +2588,7 @@ let A = class extends w {
             <button
               class="danger"
               ?disabled=${this.busy}
-              @click=${() => this.confirmDelete(t)}
+              @click=${() => this.confirmDelete(e)}
             >
               Entfernen
             </button>
@@ -2586,32 +2597,32 @@ let A = class extends w {
       </tr>
     `;
   }
-  confirmDelete(t) {
+  confirmDelete(e) {
     confirm(
-      `${t.name} entfernen? Die bereits vorhandenen Aufnahmen bleiben erhalten.`
-    ) && this.run(() => this.api.deleteCamera(t.slug));
+      `${e.name} entfernen? Die bereits vorhandenen Aufnahmen bleiben erhalten.`
+    ) && this.run(() => this.api.deleteCamera(e.slug));
   }
   // ------------------------------------------------------------------
   // Vision
   // ------------------------------------------------------------------
   renderVision() {
-    return this.visionFor ? o`<camwatch-vision-editor
+    return this.visionFor ? o`<kustos-vision-vision-editor
         .api=${this.api}
         .camera=${this.visionFor}
         .profile=${this.snapshot.vision.find(
-      (t) => t.camera_slug === this.visionFor.slug
+      (e) => e.camera_slug === this.visionFor.slug
     )}
         @saved=${() => {
       this.visionFor = void 0, this.refresh();
     }}
         @cancelled=${() => this.visionFor = void 0}
-      ></camwatch-vision-editor>` : o`
+      ></kustos-vision-vision-editor>` : o`
       <div class="card">
         <h2>Bilderkennung</h2>
         <p class="hint">
           Ein Standbild wird an ein Modell Ihrer Wahl geschickt, sobald ein
           Auslöser meldet. Aus jeder Frage wird ein Sensor, den Automationen
-          und Dashboards wie jeden anderen nutzen können. camwatch selbst
+          und Dashboards wie jeden anderen nutzen können. kustos_vision selbst
           erkennt nichts; die Arbeit macht das Modell.
         </p>
         ${this.snapshot.cameras.length === 0 ? o`<p class="hint">Erst eine Kamera einrichten.</p>` : o`<table>
@@ -2622,28 +2633,28 @@ let A = class extends w {
                 <th>Zustand</th>
                 <th></th>
               </tr>
-              ${this.snapshot.cameras.map((t) => this.renderVisionRow(t))}
+              ${this.snapshot.cameras.map((e) => this.renderVisionRow(e))}
             </table>`}
       </div>
     `;
   }
-  renderVisionRow(t) {
-    const e = this.snapshot.vision.find((s) => s.camera_slug === t.slug);
+  renderVisionRow(e) {
+    const t = this.snapshot.vision.find((s) => s.camera_slug === e.slug);
     return o`
       <tr>
-        <td>${t.name}</td>
-        <td class="muted">${e ? e.observations.length : "-"}</td>
+        <td>${e.name}</td>
+        <td class="muted">${t ? t.observations.length : "-"}</td>
         <td class="muted">
-          ${e ? `${e.state.analyses_today} / ${e.daily_budget}` : "-"}
+          ${t ? `${t.state.analyses_today} / ${t.daily_budget}` : "-"}
         </td>
         <td>
-          ${e ? e.state.last_error ? o`<span class="error">${e.state.last_error}</span>` : e.enabled ? e.state.last_run ? o`<span class="muted"
-                      >zuletzt ${new Date(e.state.last_run).toLocaleString()}</span
+          ${t ? t.state.last_error ? o`<span class="error">${t.state.last_error}</span>` : t.enabled ? t.state.last_run ? o`<span class="muted"
+                      >zuletzt ${new Date(t.state.last_run).toLocaleString()}</span
                     >` : o`<span class="muted">noch keine Analyse</span>` : o`<span class="muted">aus</span>` : o`<span class="muted">nicht eingerichtet</span>`}
         </td>
         <td>
-          <button class="secondary" @click=${() => this.visionFor = t}>
-            ${e ? "Bearbeiten" : "Einrichten"}
+          <button class="secondary" @click=${() => this.visionFor = e}>
+            ${t ? "Bearbeiten" : "Einrichten"}
           </button>
         </td>
       </tr>
@@ -2653,22 +2664,22 @@ let A = class extends w {
   // Storage
   // ------------------------------------------------------------------
   renderStorage() {
-    const { storage: t, totals: e } = this.snapshot, s = t.max_total_bytes === null ? "" : String(t.max_total_bytes / Pe);
+    const { storage: e, totals: t } = this.snapshot, s = e.max_total_bytes === null ? "" : String(e.max_total_bytes / Pt);
     return o`
       <div class="card">
         <h2>Speicher</h2>
         <table>
           <tr>
             <th>Ort</th>
-            <td class="muted">${t.base_path}</td>
+            <td class="muted">${e.base_path}</td>
           </tr>
           <tr>
             <th>Belegt</th>
-            <td>${ie(e.used_bytes)}</td>
+            <td>${it(t.used_bytes)}</td>
           </tr>
           <tr>
             <th>Frei am Ort</th>
-            <td>${ie(e.free_bytes)}</td>
+            <td>${it(t.free_bytes)}</td>
           </tr>
         </table>
         <p class="hint">
@@ -2676,8 +2687,8 @@ let A = class extends w {
           ändern: ein Wechsel würde die vorhandenen Aufnahmen zurücklassen.
         </p>
 
-        ${e.over_budget_bytes > 0 ? o`<p class="error">
-              ${ie(e.over_budget_bytes)} über dem Budget, und mehr
+        ${t.over_budget_bytes > 0 ? o`<p class="error">
+              ${it(t.over_budget_bytes)} über dem Budget, und mehr
               lässt sich nicht löschen. Das Budget ist kleiner als das, was die
               Kameras zwischen zwei Aufräumläufen schreiben.
             </p>` : l}
@@ -2690,7 +2701,7 @@ let A = class extends w {
               id="segment"
               type="number"
               min="1"
-              .value=${String(t.segment_seconds)}
+              .value=${String(e.segment_seconds)}
             />
           </div>
           <div class="grow">
@@ -2708,13 +2719,13 @@ let A = class extends w {
     `;
   }
   saveStorage() {
-    const t = this.renderRoot, e = Number(
-      t.querySelector("#segment").value
-    ), s = t.querySelector("#budget").value;
+    const e = this.renderRoot, t = Number(
+      e.querySelector("#segment").value
+    ), s = e.querySelector("#budget").value;
     this.run(
       () => this.api.setStorage({
-        segment_seconds: e,
-        max_total_bytes: s === "" ? null : Math.round(Number(s) * Pe)
+        segment_seconds: t,
+        max_total_bytes: s === "" ? null : Math.round(Number(s) * Pt)
       })
     );
   }
@@ -2722,7 +2733,7 @@ let A = class extends w {
   // Views
   // ------------------------------------------------------------------
   renderViews() {
-    const t = this.snapshot.views;
+    const e = this.snapshot.views;
     return o`
       <div class="card">
         <h2>Ansichten</h2>
@@ -2730,7 +2741,7 @@ let A = class extends w {
           Jede Ansicht wird zu einem eigenen Reiter mit den Kameras, die ihr
           zugeordnet sind.
         </p>
-        ${t.length === 0 ? o`<p class="hint">Noch keine Ansicht angelegt.</p>` : t.map((e, s) => this.renderViewRow(e, s))}
+        ${e.length === 0 ? o`<p class="hint">Noch keine Ansicht angelegt.</p>` : e.map((t, s) => this.renderViewRow(t, s))}
         <div class="row" style="margin-top:16px">
           <button ?disabled=${this.busy} @click=${this.addView}>
             Ansicht hinzufügen
@@ -2739,15 +2750,15 @@ let A = class extends w {
       </div>
     `;
   }
-  renderViewRow(t, e) {
+  renderViewRow(e, t) {
     return o`
       <div style="border-bottom:1px solid var(--divider-color,#eee);padding:12px 0">
         <div class="row">
           <div class="grow">
             <label>Name</label>
             <input
-              .value=${t.name}
-              @change=${(s) => this.patchView(e, { name: s.target.value })}
+              .value=${e.name}
+              @change=${(s) => this.patchView(t, { name: s.target.value })}
             />
           </div>
           <div class="grow">
@@ -2755,8 +2766,8 @@ let A = class extends w {
             <input
               type="number"
               min="0"
-              .value=${String(t.columns)}
-              @change=${(s) => this.patchView(e, {
+              .value=${String(e.columns)}
+              @change=${(s) => this.patchView(t, {
       columns: Number(s.target.value)
     })}
             />
@@ -2769,9 +2780,9 @@ let A = class extends w {
               <label style="margin:0">
                 <input
                   type="checkbox"
-                  .checked=${t.cameras.includes(s.slug)}
+                  .checked=${e.cameras.includes(s.slug)}
                   @change=${(i) => this.toggleCamera(
-        e,
+        t,
         s.slug,
         i.target.checked
       )}
@@ -2784,53 +2795,53 @@ let A = class extends w {
         <div class="row" style="margin-top:8px">
           <button
             class="secondary"
-            ?disabled=${e === 0}
-            @click=${() => this.moveView(e, -1)}
+            ?disabled=${t === 0}
+            @click=${() => this.moveView(t, -1)}
           >
             nach oben
           </button>
           <button
             class="secondary"
-            ?disabled=${e === this.snapshot.views.length - 1}
-            @click=${() => this.moveView(e, 1)}
+            ?disabled=${t === this.snapshot.views.length - 1}
+            @click=${() => this.moveView(t, 1)}
           >
             nach unten
           </button>
-          <button class="danger" @click=${() => this.removeView(e)}>
+          <button class="danger" @click=${() => this.removeView(t)}>
             Entfernen
           </button>
         </div>
       </div>
     `;
   }
-  saveViews(t) {
-    this.run(() => this.api.setViews(t));
+  saveViews(e) {
+    this.run(() => this.api.setViews(e));
   }
-  patchView(t, e) {
+  patchView(e, t) {
     this.saveViews(
-      this.snapshot.views.map((s, i) => i === t ? { ...s, ...e } : s)
+      this.snapshot.views.map((s, i) => i === e ? { ...s, ...t } : s)
     );
   }
-  toggleCamera(t, e, s) {
-    const i = this.snapshot.views[t], r = s ? [...i.cameras, e] : i.cameras.filter((a) => a !== e);
-    this.patchView(t, { cameras: r });
+  toggleCamera(e, t, s) {
+    const i = this.snapshot.views[e], r = s ? [...i.cameras, t] : i.cameras.filter((a) => a !== t);
+    this.patchView(e, { cameras: r });
   }
-  moveView(t, e) {
-    const s = [...this.snapshot.views], [i] = s.splice(t, 1);
-    s.splice(t + e, 0, i), this.saveViews(s);
+  moveView(e, t) {
+    const s = [...this.snapshot.views], [i] = s.splice(e, 1);
+    s.splice(e + t, 0, i), this.saveViews(s);
   }
-  removeView(t) {
-    this.saveViews(this.snapshot.views.filter((e, s) => s !== t));
+  removeView(e) {
+    this.saveViews(this.snapshot.views.filter((t, s) => s !== e));
   }
   addView() {
-    const t = new Set(this.snapshot.views.map((s) => s.id));
-    let e = this.snapshot.views.length + 1;
-    for (; t.has(`ansicht_${e}`); ) e += 1;
+    const e = new Set(this.snapshot.views.map((s) => s.id));
+    let t = this.snapshot.views.length + 1;
+    for (; e.has(`ansicht_${t}`); ) t += 1;
     this.saveViews([
       ...this.snapshot.views,
       {
-        id: `ansicht_${e}`,
-        name: `Ansicht ${e}`,
+        id: `ansicht_${t}`,
+        name: `Ansicht ${t}`,
         cameras: [],
         icon: "mdi:cctv",
         columns: 0
@@ -2841,7 +2852,7 @@ let A = class extends w {
   // System
   // ------------------------------------------------------------------
   renderSystem() {
-    const { maintenance: t, cameras: e } = this.snapshot;
+    const { maintenance: e, cameras: t } = this.snapshot;
     return o`
       <div class="card">
         <h2>System</h2>
@@ -2849,25 +2860,25 @@ let A = class extends w {
           <tr>
             <th>Letzter Aufräumlauf</th>
             <td class="muted">
-              ${t.indexed} indiziert, ${t.thumbnails} Vorschaubilder,
-              ${t.deleted} gelöscht
+              ${e.indexed} indiziert, ${e.thumbnails} Vorschaubilder,
+              ${e.deleted} gelöscht
             </td>
           </tr>
-          ${t.error ? o`<tr>
+          ${e.error ? o`<tr>
                 <th>Fehler</th>
-                <td class="error">${t.error}</td>
+                <td class="error">${e.error}</td>
               </tr>` : l}
         </table>
 
         <h3>Streams</h3>
-        ${e.length === 0 ? o`<p class="hint">Keine Kameras eingerichtet.</p>` : o`<table>
+        ${t.length === 0 ? o`<p class="hint">Keine Kameras eingerichtet.</p>` : o`<table>
               <tr>
                 <th>Stream</th>
                 <th>Läuft</th>
                 <th>Neustarts</th>
                 <th>Zuletzt gemeldet</th>
               </tr>
-              ${e.flatMap(
+              ${t.flatMap(
       (s) => s.state.streams.map(
         (i) => o`
                     <tr>
@@ -2902,15 +2913,15 @@ let A = class extends w {
     return o`
       <div style="padding:16px">
         <div class="row" style="margin-bottom:16px">
-          ${Pt.map(
-      ([t, e]) => o`
+          ${ze.map(
+      ([e, t]) => o`
               <button
-                class=${this.section === t ? "" : "secondary"}
+                class=${this.section === e ? "" : "secondary"}
                 @click=${() => {
-        this.section = t, this.adding = !1, this.editing = void 0, this.visionFor = void 0;
+        this.section = e, this.adding = !1, this.editing = void 0, this.visionFor = void 0;
       }}
               >
-                ${e}
+                ${t}
               </button>
             `
     )}
@@ -2923,10 +2934,10 @@ let A = class extends w {
 };
 A.styles = Q;
 E([
-  p({ attribute: !1 })
+  u({ attribute: !1 })
 ], A.prototype, "api", 2);
 E([
-  p({ attribute: !1 })
+  u({ attribute: !1 })
 ], A.prototype, "snapshot", 2);
 E([
   h()
@@ -2950,14 +2961,14 @@ E([
   h()
 ], A.prototype, "error", 2);
 A = E([
-  k("camwatch-settings")
+  S("kustos-vision-settings")
 ], A);
-var Tt = Object.defineProperty, zt = Object.getOwnPropertyDescriptor, q = (t, e, s, i) => {
-  for (var r = i > 1 ? void 0 : i ? zt(e, s) : e, a = t.length - 1, n; a >= 0; a--)
-    (n = t[a]) && (r = (i ? n(e, s, r) : n(r)) || r);
-  return i && r && Tt(e, s, r), r;
+var De = Object.defineProperty, je = Object.getOwnPropertyDescriptor, q = (e, t, s, i) => {
+  for (var r = i > 1 ? void 0 : i ? je(t, s) : t, a = e.length - 1, n; a >= 0; a--)
+    (n = e[a]) && (r = (i ? n(t, s, r) : n(r)) || r);
+  return i && r && De(t, s, r), r;
 };
-const de = "__recordings", re = "__settings";
+const dt = "__recordings", rt = "__settings";
 let D = class extends w {
   constructor() {
     super(...arguments), this.narrow = !1, this.active = "", this.error = "";
@@ -2965,32 +2976,32 @@ let D = class extends w {
   connectedCallback() {
     super.connectedCallback(), this.load();
   }
-  updated(t) {
-    t.has("hass") && this.hass && !this.api && (this.api = new Oe(this.hass), this.load());
+  updated(e) {
+    e.has("hass") && this.hass && !this.api && (this.api = new Ot(this.hass), this.load());
   }
   async load() {
     if (this.hass) {
-      this.api ??= new Oe(this.hass);
+      this.api ??= new Ot(this.hass);
       try {
-        this.snapshot = await this.api.getConfig(), this.error = "", this.active || (this.active = this.snapshot.views[0]?.id ?? re);
-      } catch (t) {
-        const e = t instanceof Error ? t.message : String(t);
-        this.error = e;
+        this.snapshot = await this.api.getConfig(), this.error = "", this.active || (this.active = this.snapshot.views[0]?.id ?? rt);
+      } catch (e) {
+        const t = e instanceof Error ? e.message : String(e);
+        this.error = t;
       }
     }
   }
   render() {
     if (this.error)
       return o`<div class="notice">
-        camwatch ist nicht eingerichtet oder nicht erreichbar.<br />
+        kustos_vision ist nicht eingerichtet oder nicht erreichbar.<br />
         <span class="muted">${this.error}</span>
       </div>`;
     if (!this.snapshot || !this.api)
       return o`<div class="notice">Wird geladen …</div>`;
-    const t = this.snapshot, e = t.views.find((s) => s.id === this.active);
+    const e = this.snapshot, t = e.views.find((s) => s.id === this.active);
     return o`
       <div class="tabs">
-        ${t.views.map(
+        ${e.views.map(
       (s) => o`
             <button
               class=${s.id === this.active ? "active" : ""}
@@ -3001,33 +3012,33 @@ let D = class extends w {
           `
     )}
         <button
-          class=${this.active === de ? "active" : ""}
-          @click=${() => this.active = de}
+          class=${this.active === dt ? "active" : ""}
+          @click=${() => this.active = dt}
         >
           Aufnahmen
         </button>
         <button
-          class=${this.active === re ? "active" : ""}
-          @click=${() => this.active = re}
+          class=${this.active === rt ? "active" : ""}
+          @click=${() => this.active = rt}
         >
           Einstellungen
         </button>
       </div>
 
       <div class="body">
-        ${this.active === de ? o`<camwatch-recordings
+        ${this.active === dt ? o`<kustos-vision-recordings
               .api=${this.api}
-              .cameras=${t.cameras}
-            ></camwatch-recordings>` : this.active === re ? o`<camwatch-settings
+              .cameras=${e.cameras}
+            ></kustos-vision-recordings>` : this.active === rt ? o`<kustos-vision-settings
               .api=${this.api}
-              .snapshot=${t}
+              .snapshot=${e}
               @changed=${() => this.load()}
-            ></camwatch-settings>` : e ? o`<camwatch-live-view
+            ></kustos-vision-settings>` : t ? o`<kustos-vision-live-view
                 .hass=${this.hass}
                 .api=${this.api}
-                .view=${e}
-                .cameras=${t.cameras}
-              ></camwatch-live-view>` : o`<div class="notice">
+                .view=${t}
+                .cameras=${e.cameras}
+              ></kustos-vision-live-view>` : o`<div class="notice">
                 Noch keine Ansicht angelegt.<br />
                 Unter Einstellungen, Ansichten lässt sich eine erstellen.
               </div>${l}`}
@@ -3075,10 +3086,10 @@ D.styles = [
     `
 ];
 q([
-  p({ attribute: !1 })
+  u({ attribute: !1 })
 ], D.prototype, "hass", 2);
 q([
-  p({ type: Boolean, reflect: !0 })
+  u({ type: Boolean, reflect: !0 })
 ], D.prototype, "narrow", 2);
 q([
   h()
@@ -3090,7 +3101,7 @@ q([
   h()
 ], D.prototype, "error", 2);
 D = q([
-  k("camwatch-panel")
+  S("kustos-vision-panel")
 ], D);
 export {
   D as CamwatchPanel

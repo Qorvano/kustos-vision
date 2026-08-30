@@ -90,14 +90,14 @@ class MaintenanceRunner:
         second one delete the files it is still indexing.
         """
         if self._lock.locked():
-            _LOGGER.debug("camwatch: housekeeping still running, skipping this turn")
+            _LOGGER.debug("kustos_vision: housekeeping still running, skipping this turn")
             return self.last_result
 
         async with self._lock:
             try:
                 self.last_result = await self._async_run_once(config, ensure_dirs or [])
             except Exception as err:
-                _LOGGER.exception("camwatch: housekeeping failed")
+                _LOGGER.exception("kustos_vision: housekeeping failed")
                 self.last_result = MaintenanceResult(error=str(err))
             return self.last_result
 
@@ -184,13 +184,13 @@ class MaintenanceRunner:
                 stderr=asyncio.subprocess.DEVNULL,
             )
         except OSError as err:
-            _LOGGER.warning("camwatch: could not start ffmpeg for a preview: %s", err)
+            _LOGGER.warning("kustos_vision: could not start ffmpeg for a preview: %s", err)
             return False
 
         try:
             code = await asyncio.wait_for(process.wait(), THUMBNAIL_TIMEOUT_SECONDS)
         except TimeoutError:
-            _LOGGER.warning("camwatch: preview for %s timed out", segment.name)
+            _LOGGER.warning("kustos_vision: preview for %s timed out", segment.name)
             with contextlib.suppress(ProcessLookupError):
                 process.kill()
             with contextlib.suppress(Exception):
@@ -218,7 +218,7 @@ class MaintenanceRunner:
         if not plan:
             if plan.shortfall_bytes:
                 _LOGGER.warning(
-                    "camwatch: storage is %s bytes over the configured budget and "
+                    "kustos_vision: storage is %s bytes over the configured budget and "
                     "nothing further can be deleted",
                     plan.shortfall_bytes,
                 )
@@ -227,7 +227,7 @@ class MaintenanceRunner:
         removed = await self._run(self._delete_files, base, plan)
         await self._run(self._index.forget, removed)
         _LOGGER.debug(
-            "camwatch: retention removed %s segments, freeing %s bytes",
+            "kustos_vision: retention removed %s segments, freeing %s bytes",
             len(removed),
             plan.freed_bytes,
         )
@@ -247,7 +247,7 @@ class MaintenanceRunner:
             try:
                 path.unlink(missing_ok=True)
             except OSError as err:
-                _LOGGER.warning("camwatch: could not delete %s: %s", path, err)
+                _LOGGER.warning("kustos_vision: could not delete %s: %s", path, err)
                 continue
             with contextlib.suppress(OSError):
                 thumbnail_for(path).unlink(missing_ok=True)
