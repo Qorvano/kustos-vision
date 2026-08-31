@@ -15,7 +15,15 @@ const version = JSON.parse(
 // separate CSS. The output lands inside the integration because HACS ships
 // whatever is committed and never runs a build.
 export default defineConfig({
-  define: { __KUSTOS_VISION_VERSION__: JSON.stringify(version) },
+  define: {
+    __KUSTOS_VISION_VERSION__: JSON.stringify(version),
+    // A greppable literal for the server: api.py reads the built bundle and
+    // extracts this marker, so the stale-tab banner compares the running
+    // bundle against the bundle on disk instead of against the integration
+    // version, which moves on Python-only releases without any frontend
+    // change (measured on 0.6.3: every tab nagged to reload forever).
+    __KUSTOS_VISION_BUILD_TAG__: JSON.stringify(`kustos-vision-built:${version}`),
+  },
   build: {
     outDir: "../custom_components/kustos_vision/frontend/dist",
     // The build writes exactly one file under a fixed name, so wiping the

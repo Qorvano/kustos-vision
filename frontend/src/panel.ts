@@ -12,13 +12,18 @@ import { LitElement, css, html, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import { CamwatchApi, errorText } from "./api";
 import { shared } from "./styles";
-import { BUILT_VERSION, type HomeAssistant, type Snapshot } from "./types";
+import { BUILD_TAG, BUILT_VERSION, type HomeAssistant, type Snapshot } from "./types";
 import "./views/live";
 import "./views/recordings";
 import "./views/settings";
 
 const RECORDINGS_TAB = "__recordings";
 const SETTINGS_TAB = "__settings";
+
+// A side effect on purpose: without a use, the build tag would be
+// tree-shaken out of the bundle, and the server extracts exactly this
+// literal from the file to tell the panel which bundle it is serving.
+(globalThis as { kustosVisionBuild?: string }).kustosVisionBuild = BUILD_TAG;
 
 @customElement("kustos-vision-panel")
 export class CamwatchPanel extends LitElement {
@@ -205,7 +210,6 @@ export class CamwatchPanel extends LitElement {
   }
 
   private renderStaleNotice(snapshot: Snapshot) {
-    const installed = snapshot.build?.version;
     if (snapshot.build?.restart_pending) {
       return html`<div class="stale">
         <span>
@@ -214,11 +218,17 @@ export class CamwatchPanel extends LitElement {
         </span>
       </div>`;
     }
-    if (installed && BUILT_VERSION && installed !== BUILT_VERSION) {
+    // Compared against the bundle on disk, never against the integration
+    // version: a Python-only release moves the version while the bundle
+    // legitimately stays the same, and that comparison nagged every tab to
+    // reload forever (measured on 0.6.3).
+    const served = snapshot.build?.bundle_version;
+    if (served && BUILT_VERSION && served !== BUILT_VERSION) {
       return html`<div class="stale">
         <span>
-          Diese Seite zeigt noch Version ${BUILT_VERSION}, installiert ist
-          ${installed}. Der Browser hält eine ältere Oberfläche fest.
+          Diese Seite zeigt noch die Oberfläche aus Version ${BUILT_VERSION},
+          ausgeliefert wird ${served}. Der Browser hält eine ältere
+          Oberfläche fest.
         </span>
         <button @click=${() => location.reload()}>Neu laden</button>
       </div>`;

@@ -1273,3 +1273,44 @@ async def test_a_rebuilt_bundle_is_reported_until_the_next_start(
     result = await client.receive_json()
 
     assert result["result"]["build"]["restart_pending"] is True
+
+
+async def test_the_snapshot_reports_the_served_bundles_version(
+    hass: HomeAssistant, hass_ws_client, setup_kustos_vision
+) -> None:
+    """Regression for 0.6.3: the stale-tab banner compared the bundle against
+    the integration version, so a Python-only release made every tab nag to
+    reload forever, and reloading could never help because the served bundle
+    WAS the newest. The snapshot now carries the served bundle's own built
+    version for the panel to compare against."""
+    await setup_kustos_vision([])
+    client = await hass_ws_client(hass)
+
+    from custom_components.kustos_vision import panel as panel_module
+
+    panel_module.store_bundle_version(hass, "0.6.2")
+    await client.send_json_auto_id({"type": f"{DOMAIN}/config/get"})
+    result = await client.receive_json()
+
+    assert result["result"]["build"]["bundle_version"] == "0.6.2"
+
+
+def test_the_built_version_is_read_from_the_bundles_tag(
+    tmp_path, monkeypatch
+) -> None:
+    """The extraction itself: the build injects a greppable literal, see
+    frontend/vite.config.ts, and a bundle without one yields None instead of
+    a guess."""
+    from custom_components.kustos_vision import panel as panel_module
+
+    monkeypatch.setattr(panel_module, "FRONTEND_DIR", tmp_path)
+    (tmp_path / "panel.js").write_bytes(
+        b'let x=1;const b="kustos-vision-built:0.7.1";render(b);'
+    )
+    assert panel_module.bundle_built_version() == "0.7.1"
+
+    (tmp_path / "panel.js").write_bytes(b"no tag in here")
+    assert panel_module.bundle_built_version() is None
+
+    (tmp_path / "panel.js").unlink()
+    assert panel_module.bundle_built_version() is None

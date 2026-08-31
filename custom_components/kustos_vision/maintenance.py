@@ -40,7 +40,12 @@ from .core.retention import (
     plan_retention,
     usable_capacity,
 )
-from .panel import bundle_fingerprint, store_disk_fingerprint
+from .panel import (
+    bundle_built_version,
+    bundle_fingerprint,
+    store_bundle_version,
+    store_disk_fingerprint,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -131,6 +136,7 @@ class MaintenanceRunner:
         # panel can only announce that if somebody keeps hashing the file
         # off the event loop.
         store_disk_fingerprint(self._hass, await self._run(bundle_fingerprint))
+        store_bundle_version(self._hass, await self._run(bundle_built_version))
 
         thumbnails = await self._async_make_thumbnails(config, base)
         plan = await self._async_apply_retention(config, base)

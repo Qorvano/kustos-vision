@@ -471,6 +471,17 @@ describe("surviving an update", () => {
   it("the player reports its position so the timeline can follow", () => {
     expect(read("components/player.ts")).toContain('"positionchange"');
   });
+
+  it("the stale banner compares bundles, never the integration version", () => {
+    // Regression for 0.6.3: comparing against build.version made every tab
+    // nag to reload forever after a Python-only release, and reloading could
+    // never help because the served bundle WAS the newest.
+    const source = read("panel.ts");
+    expect(source).toContain("snapshot.build?.bundle_version");
+    expect(source).not.toMatch(/installed\s*!==\s*BUILT_VERSION/);
+    // The build tag must survive into the bundle for the server to extract.
+    expect(source).toContain("kustosVisionBuild = BUILD_TAG");
+  });
 });
 
 describe("scrubbing", () => {

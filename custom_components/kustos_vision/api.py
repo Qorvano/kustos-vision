@@ -48,7 +48,7 @@ from .core.config import (
 from .core.index import blocks_from_segments
 from .core.mp4 import fragment_index
 from .core.observations import ObservationError
-from .panel import disk_fingerprint, registered_fingerprint
+from .panel import bundle_version, disk_fingerprint, registered_fingerprint
 from .version import integration_version
 from .vision import VisionError
 
@@ -205,6 +205,12 @@ def _snapshot(coordinator: CamwatchCoordinator) -> dict[str, Any]:
             # run, so an update through HACS leaves the address naming the
             # previous bundle until Home Assistant is restarted.
             "restart_pending": _restart_pending(coordinator.hass),
+            # The version the bundle on disk was built from. The stale-tab
+            # banner compares against this, never against the integration
+            # version: a Python-only release moves the latter while the
+            # bundle legitimately stays the same, and that comparison nagged
+            # every tab to reload forever (measured on 0.6.3).
+            "bundle_version": bundle_version(coordinator.hass),
         },
     }
 

@@ -9,6 +9,7 @@ verifiable without a browser.
 from __future__ import annotations
 
 import hashlib
+import re
 from pathlib import Path
 
 from aiohttp import web
@@ -42,6 +43,41 @@ DATA_DISK_FINGERPRINT = f"{DOMAIN}_disk_fingerprint"
 # different bundles cannot collide in practice, short enough to keep the URL
 # readable in the network tab.
 FINGERPRINT_LENGTH = 12
+
+# The version the bundle on disk says it was built from. Kept apart from the
+# integration version on purpose: a Python-only release moves the integration
+# version while the bundle legitimately stays the same, and a banner that
+# compares those two nags every tab to reload forever (measured on 0.6.3).
+DATA_BUNDLE_VERSION = f"{DOMAIN}_bundle_version"
+
+# The literal the bundle embeds for exactly this purpose, injected by the
+# build; see frontend/vite.config.ts.
+_BUILD_TAG_PATTERN = re.compile(rb"kustos-vision-built:([0-9A-Za-z.\-]+)")
+
+
+def bundle_built_version() -> str | None:
+    """The version the bundle on disk was built from, or None.
+
+    Extracted from the build tag inside the file, so the panel can compare
+    the bundle a browser is running against the bundle being served, and
+    only then claim the browser is holding something old.
+    """
+    bundle = FRONTEND_DIR / "panel.js"
+    try:
+        match = _BUILD_TAG_PATTERN.search(bundle.read_bytes())
+    except OSError:
+        return None
+    return match.group(1).decode() if match else None
+
+
+def bundle_version(hass: HomeAssistant) -> str | None:
+    """The last known built version of the bundle on disk."""
+    return hass.data.get(DATA_BUNDLE_VERSION)
+
+
+def store_bundle_version(hass: HomeAssistant, version: str | None) -> None:
+    """Record what the housekeeping pass extracted, from the event loop."""
+    hass.data[DATA_BUNDLE_VERSION] = version
 
 
 def bundle_fingerprint() -> str:
@@ -129,6 +165,9 @@ async def async_register_panel(hass: HomeAssistant) -> None:
     # Home Assistant is restarted, and nothing else would ever mention it.
     hass.data[DATA_REGISTERED_FINGERPRINT] = fingerprint
     hass.data[DATA_DISK_FINGERPRINT] = fingerprint
+    hass.data[DATA_BUNDLE_VERSION] = await hass.async_add_executor_job(
+        bundle_built_version
+    )
 
     hass.http.register_view(FrontendView())
     await panel_custom.async_register_panel(

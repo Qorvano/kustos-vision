@@ -143,6 +143,15 @@ export interface Storage {
 declare const __KUSTOS_VISION_VERSION__: string;
 export const BUILT_VERSION = __KUSTOS_VISION_VERSION__;
 
+/**
+ * The greppable literal the server extracts from the served bundle, so the
+ * stale-tab banner can compare running bundle against served bundle. Injected
+ * whole by the build; assigned to the page in panel.ts so it survives
+ * tree-shaking and is visible in devtools.
+ */
+declare const __KUSTOS_VISION_BUILD_TAG__: string;
+export const BUILD_TAG = __KUSTOS_VISION_BUILD_TAG__;
+
 export interface Snapshot {
   storage: Storage;
   /** Why the recording location cannot be used right now, or null. */
@@ -165,6 +174,12 @@ export interface Snapshot {
     stamp_available: boolean;
     /** The built front-end on disk is no longer the one being served. */
     restart_pending: boolean;
+    /**
+     * The version the bundle on disk was built from, or null. The stale-tab
+     * banner compares against this, never against `version`: a Python-only
+     * release moves `version` while the bundle legitimately stays the same.
+     */
+    bundle_version?: string | null;
   };
   maintenance: {
     indexed: number;
