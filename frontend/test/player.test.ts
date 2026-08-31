@@ -535,3 +535,27 @@ describe("the storage banner", () => {
     expect(read("api.ts")).toContain("storage/reconnect");
   });
 });
+
+describe("streaming the segments", () => {
+  const source = readFileSync(
+    new URL("../src/components/player.ts", import.meta.url),
+    "utf8",
+  );
+
+  it("appends while the bytes arrive instead of after the download", () => {
+    // Regression: the whole fifty-megabyte segment was downloaded before the
+    // first append, which kept the screen black for the entire transfer
+    // after every timeline click.
+    expect(source).toContain(".getReader()");
+  });
+
+  it("never resets a buffer nothing was appended to", () => {
+    // Regression: a pending play() on a freshly opened, still empty source
+    // came back as "Media failed to decode" when the reset raced it.
+    expect(source).toMatch(/if \(this\.accepted > 0\) this\.buffer\.abort\(\)/);
+  });
+
+  it("nudges a stalled element after data arrives", () => {
+    expect(source).toContain("nudgePlayback");
+  });
+});

@@ -43,13 +43,15 @@ export interface PlacedSegment {
 // somewhere else has not wasted much.
 const LOOKAHEAD_SEGMENTS = 2;
 
-// The most bytes handed to a single appendBuffer call. Appending a whole
-// high-resolution segment at once was measured to exhaust the browser's
-// SourceBuffer quota: three 2K segments filled it and the fourth append was
-// refused outright with "The SourceBuffer is full". Modest slices give the
-// quota recovery below a chance to free space between slices, and when the
-// tail of a segment no longer fits, the part that got in still plays.
-const APPEND_CHUNK_BYTES = 8 * 1024 * 1024;
+// The most bytes handed to a single appendBuffer call. Two reasons, one per
+// direction. Appending a whole high-resolution segment at once was measured
+// to exhaust the browser's SourceBuffer quota outright, so the quota
+// recovery below needs room to act between slices. And the first picture
+// should not wait for a whole fifty-megabyte segment to download: the byte
+// stream parser accepts arbitrarily split boxes, so appending about a
+// second's worth of high-resolution footage at a time puts frames on screen
+// while the rest is still arriving.
+const APPEND_CHUNK_BYTES = 1024 * 1024;
 
 // When there is an audio track it is AAC-LC, because the recorder either
 // encodes it that way or drops it entirely. Whether there is one at all has to
@@ -223,6 +225,8 @@ export class CamwatchPlayer extends LitElement {
   @state() private gapAt?: number;
   /** The real time the shown frame was recorded, for the corner clock. */
   @state() private clockUtc?: number;
+  /** The run is being fetched and nothing is on screen yet. */
+  @state() private loadingRun = false;
 
   private media?: MediaSource;
   private withAudio = true;
@@ -232,8 +236,15 @@ export class CamwatchPlayer extends LitElement {
   private appended = new Set<string>();
   /** Segments that really made it into the buffer, as opposed to skipped. */
   private accepted = 0;
-  /** The rest of a segment whose append was interrupted by a full buffer. */
-  private carry?: { path: string; rest: Uint8Array; firstOfSegment: boolean };
+  /** The segment currently being read and appended, piece by piece. */
+  private carry?: {
+    path: string;
+    /** Still delivering; null once the response has been read to its end. */
+    reader: ReadableStreamDefaultReader<Uint8Array> | null;
+    /** Bytes received but not yet appended. */
+    pending: Uint8Array;
+    firstOfSegment: boolean;
+  };
   /** Where a freshly loaded run starts, and whether it resumes playing. */
   private startup?: { mediaTime: number; resume: boolean };
   private loading = false;
@@ -468,6 +479,12 @@ export class CamwatchPlayer extends LitElement {
 
   private teardown(): void {
     this.generation += 1;
+    if (this.carry?.reader) {
+      // Stop pulling a segment nobody wants any more; without this the old
+      // download keeps competing with the new run for the same link.
+      void this.carry.reader.cancel().catch(() => {});
+    }
+    this.loadingRun = false;
     if (this.objectUrl) URL.revokeObjectURL(this.objectUrl);
     this.objectUrl = undefined;
     this.buffer = undefined;
@@ -495,6 +512,7 @@ export class CamwatchPlayer extends LitElement {
       return;
     }
 
+    this.loadingRun = true;
     const startAt = from ?? this.seekTo ?? this.segments[0].start;
     this.placed = placeRun(this.segments, startAt, preferStream);
     if (this.placed.length === 0) {
@@ -683,6 +701,7 @@ export class CamwatchPlayer extends LitElement {
         if (this.accepted === 0) {
           // Everything was skipped, so there is nothing to play and nothing
           // that will ever say so on its own.
+          this.loadingRun = false;
           this.message = "Keines der Segmente dieses Zeitraums ließ sich laden.";
           return;
         }
@@ -710,22 +729,26 @@ export class CamwatchPlayer extends LitElement {
       try {
         const response = await this.fetchSegment(next.segment);
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        const data = new Uint8Array(await response.arrayBuffer());
         if (generation !== this.generation || !this.buffer) return;
-        // Reset the parser before every new file. A segment cut short in the
-        // middle of a write, which is what a recorder crash or camera reboot
-        // leaves behind, parks the parser inside an unfinished media segment,
-        // and from then on setting timestampOffset throws for every file that
-        // follows. Measured with a real recording: one 58-second file that
-        // the index believed was five minutes poisoned the rest of the run.
-        this.buffer.abort();
+        // Reset the parser before a new file, but never on a buffer nothing
+        // was appended to yet: there is nothing to reset, and a pending
+        // play() on a freshly opened, still empty source has been seen to
+        // come back as a decode error when the reset raced it.
+        if (this.accepted > 0) this.buffer.abort();
         this.buffer.timestampOffset = next.mediaStart;
         this.appended.add(next.segment.path);
         this.carry = {
           path: next.segment.path,
-          rest: data,
+          // Streamed on purpose: waiting for a whole high-resolution segment
+          // to download before the first append kept the screen black for
+          // the length of a fifty-megabyte transfer after every click.
+          reader: response.body ? response.body.getReader() : null,
+          pending: response.body
+            ? new Uint8Array(0)
+            : new Uint8Array(await response.arrayBuffer()),
           firstOfSegment: true,
         };
+        if (generation !== this.generation) return;
       } catch (err) {
         // One unreadable segment must not end the playback: it is skipped and
         // shows up as a short jump, which is what the file actually is.
@@ -748,50 +771,85 @@ export class CamwatchPlayer extends LitElement {
     await this.drainCarry(video);
   }
 
-  /** Append the carried segment slice by slice until done or full. */
+  /** Append the carried segment as its bytes arrive, until done or full. */
   private async drainCarry(video: HTMLVideoElement | null): Promise<void> {
     const carry = this.carry;
     if (!carry || !this.buffer) return;
     const generation = this.generation;
     this.loading = true;
     try {
-      while (carry.rest.length > 0) {
-        const slice = carry.rest.subarray(0, APPEND_CHUNK_BYTES);
-        try {
-          await this.appendOnce(slice);
-        } catch (err) {
-          if (generation !== this.generation) return;
-          if (isQuotaError(err)) {
-            if (await this.evictBehind(video)) continue;
-            // Nothing behind the playhead to give up. The rest of this
-            // segment stays carried; the next timeupdate will have moved the
-            // playhead and freed room.
+      for (;;) {
+        const flush = carry.reader === null && carry.pending.length > 0;
+        if (carry.pending.length >= APPEND_CHUNK_BYTES || flush) {
+          const slice = carry.pending.subarray(0, APPEND_CHUNK_BYTES);
+          try {
+            await this.appendOnce(slice);
+          } catch (err) {
+            if (generation !== this.generation) return;
+            if (isQuotaError(err)) {
+              if (await this.evictBehind(video)) continue;
+              // Nothing behind the playhead to give up. The rest stays
+              // carried; the next timeupdate will have moved the playhead
+              // and freed room.
+              return;
+            }
+            // eslint-disable-next-line no-console
+            console.warn(
+              "kustos_vision: segment could not be appended",
+              carry.path,
+              err,
+            );
+            if (carry.reader) void carry.reader.cancel().catch(() => {});
+            this.carry = undefined;
             return;
           }
-          // eslint-disable-next-line no-console
-          console.warn(
-            "kustos_vision: segment could not be appended",
-            carry.path,
-            err,
-          );
-          this.carry = undefined;
-          return;
+          if (generation !== this.generation) return;
+          carry.pending = carry.pending.subarray(slice.length);
+          if (carry.firstOfSegment) {
+            this.accepted += 1;
+            carry.firstOfSegment = false;
+            this.loadingRun = false;
+            this.applyStartup();
+          }
+          this.nudgePlayback(video);
+          continue;
         }
-        if (generation !== this.generation) return;
-        carry.rest = carry.rest.subarray(slice.length);
-        if (carry.firstOfSegment) {
-          this.accepted += 1;
-          carry.firstOfSegment = false;
-          this.applyStartup();
+        if (carry.reader) {
+          const { value, done } = await carry.reader.read();
+          if (generation !== this.generation) return;
+          if (value && value.length > 0) {
+            const joined = new Uint8Array(carry.pending.length + value.length);
+            joined.set(carry.pending);
+            joined.set(value, carry.pending.length);
+            carry.pending = joined;
+          }
+          if (done) carry.reader = null;
+          continue;
         }
+        // Fully read, fully appended.
+        this.carry = undefined;
+        break;
       }
-      this.carry = undefined;
     } finally {
       this.loading = false;
     }
     if (generation === this.generation) {
       this.nudgeStalledSeek();
       void this.pump();
+    }
+  }
+
+  /**
+   * Ask a stalled element to move again.
+   *
+   * Safari in particular stays frozen after running out of data even once
+   * more has been appended; the person then pressed pause and play by hand.
+   * play() on something already playing is a no-op, so asking every time
+   * costs nothing.
+   */
+  private nudgePlayback(video: HTMLVideoElement | null): void {
+    if (video && !video.paused) {
+      void video.play().catch(() => {});
     }
   }
 
@@ -843,6 +901,9 @@ export class CamwatchPlayer extends LitElement {
           </div>`
         : nothing}
       ${this.message ? html`<div class="overlay">${this.message}</div>` : nothing}
+      ${this.loadingRun && !this.message && this.gapAt === undefined
+        ? html`<div class="overlay">Lade Aufnahme …</div>`
+        : nothing}
     `;
   }
 }
