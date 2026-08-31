@@ -146,15 +146,60 @@ export class CamwatchApi {
    * halfway through a long playback.
    */
   async authorizedFetch(url: string, init?: RequestInit): Promise<Response> {
-    const token = this.hass.auth?.data?.access_token;
-    if (!token) {
+    const auth = this.hass.auth;
+    if (!auth?.data?.access_token) {
       // No token to present. Signing works over the websocket connection,
       // which is authenticated by other means, so this still succeeds.
       return fetch(await this.signedUrl(url), init);
     }
+    // An access token only lives for a fraction of a sitting, and nothing
+    // else on this page keeps it fresh: the websocket authenticated once and
+    // never presents it again. A panel left open longer than the token's
+    // lifetime sent the stale token with every file request from then on,
+    // and every recording answered 401.
+    if (auth.expired) await this.refreshAccessToken();
+    const response = await this.tokenFetch(url, init);
+    if (response.status === 401 && auth.refreshAccessToken) {
+      // Expired between the check above and the server looking at it, or the
+      // two clocks disagree about when. One refresh and one retry settle
+      // both; a second 401 is a real refusal and goes to the caller as such.
+      await this.refreshAccessToken();
+      return this.tokenFetch(url, init);
+    }
+    return response;
+  }
+
+  /** The fetch itself, with whatever token the auth object holds right now. */
+  private tokenFetch(url: string, init?: RequestInit): Promise<Response> {
     const headers = new Headers(init?.headers);
-    headers.set("Authorization", `Bearer ${token}`);
+    headers.set(
+      "Authorization",
+      `Bearer ${this.hass.auth?.data?.access_token ?? ""}`,
+    );
     return fetch(url, { ...init, headers });
+  }
+
+  /** The refresh in flight, so parallel fetches share it, see below. */
+  private refreshing?: Promise<void>;
+
+  /**
+   * Renew the access token, once, no matter how many requests need it.
+   *
+   * A seek fires the init and data fetches together; without the shared
+   * promise each of them would trade the refresh token in separately.
+   */
+  private refreshAccessToken(): Promise<void> {
+    this.refreshing ??= Promise.resolve(this.hass.auth?.refreshAccessToken?.())
+      .catch(() => {
+        // A failed renewal is not this request's error to report. The fetch
+        // that follows carries the old token, and its status says what is
+        // actually wrong: 401 for a dead session, nothing at all when the
+        // token was still good after all.
+      })
+      .finally(() => {
+        this.refreshing = undefined;
+      });
+    return this.refreshing;
   }
 
   /**

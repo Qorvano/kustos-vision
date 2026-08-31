@@ -319,6 +319,113 @@ describe("re-signing an address that is about to expire", () => {
   });
 });
 
+// Regression: the panel sent whatever access token the auth object held, with
+// no renewal anywhere. Home Assistant's tokens outlive a websocket connection
+// but not a sitting, and nothing else on the page keeps them fresh, so a
+// recordings tab open longer than the token's lifetime got a black picture
+// and "HTTP 401" for every segment until the whole page was reloaded.
+describe("renewing an expired access token", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  /** An auth object shaped like the frontend's, renewing on request. */
+  function agingAuth(renewal = { works: true }) {
+    return {
+      refreshes: 0,
+      data: { access_token: "stale" },
+      expired: false,
+      async refreshAccessToken() {
+        this.refreshes += 1;
+        await Promise.resolve();
+        if (renewal.works) {
+          this.data = { access_token: "fresh" };
+          this.expired = false;
+        }
+      },
+    };
+  }
+
+  function hassWith(auth: unknown): HomeAssistant {
+    return {
+      callWS: async () => ({ path: "/signed?authSig=x" }),
+      auth,
+    } as unknown as HomeAssistant;
+  }
+
+  it("renews a token it knows to be expired before asking the server", async () => {
+    const auth = agingAuth();
+    auth.expired = true;
+    const seen: string[] = [];
+    vi.stubGlobal("fetch", async (_url: string, init?: RequestInit) => {
+      seen.push(new Headers(init?.headers).get("Authorization") ?? "");
+      return new Response("");
+    });
+
+    const response = await new CamwatchApi(hassWith(auth)).authorizedFetch(
+      "/api/kustos_vision/segment/a",
+    );
+
+    expect(response.ok).toBe(true);
+    expect(auth.refreshes).toBe(1);
+    // The stale token never went out at all.
+    expect(seen).toEqual(["Bearer fresh"]);
+  });
+
+  it("renews and retries once when the server refuses the token anyway", async () => {
+    // `expired` still says no: the token died between the check and the
+    // server looking at it, which a fixed lifetime makes inevitable.
+    const auth = agingAuth();
+    const seen: string[] = [];
+    vi.stubGlobal("fetch", async (_url: string, init?: RequestInit) => {
+      const bearer = new Headers(init?.headers).get("Authorization") ?? "";
+      seen.push(bearer);
+      return new Response("", { status: bearer === "Bearer fresh" ? 200 : 401 });
+    });
+
+    const response = await new CamwatchApi(hassWith(auth)).authorizedFetch(
+      "/api/kustos_vision/segment/a",
+    );
+
+    expect(response.status).toBe(200);
+    expect(auth.refreshes).toBe(1);
+    expect(seen).toEqual(["Bearer stale", "Bearer fresh"]);
+  });
+
+  it("hands a repeated 401 to the caller instead of retrying forever", async () => {
+    const auth = agingAuth({ works: false });
+    let fetches = 0;
+    vi.stubGlobal("fetch", async () => {
+      fetches += 1;
+      return new Response("", { status: 401 });
+    });
+
+    const response = await new CamwatchApi(hassWith(auth)).authorizedFetch(
+      "/api/kustos_vision/segment/a",
+    );
+
+    // The refusal reaches the player, whose message names the status; a
+    // retry loop here would sit on a black picture fetching forever.
+    expect(response.status).toBe(401);
+    expect(fetches).toBe(2);
+    expect(auth.refreshes).toBe(1);
+  });
+
+  it("shares one renewal between parallel fetches", async () => {
+    // A seek fires the init and the data fetch together; each trading the
+    // refresh token in separately would be two round trips for one click.
+    const auth = agingAuth();
+    auth.expired = true;
+    vi.stubGlobal("fetch", async () => new Response(""));
+
+    const api = new CamwatchApi(hassWith(auth));
+    await Promise.all([
+      api.authorizedFetch("/api/kustos_vision/segment/a"),
+      api.authorizedFetch("/api/kustos_vision/segment/b"),
+    ]);
+
+    expect(auth.refreshes).toBe(1);
+  });
+});
+
 // The tests above exercise CamwatchApi directly. That leaves the thing that
 // actually broke untested: the three places that have to go through it. None
 // of them can be driven here, because playback needs MediaSource and hovering
@@ -357,6 +464,40 @@ describe("no file endpoint is reached without credentials", () => {
       const opening = source.slice(source.indexOf(`<${tag}`));
       expect(opening.slice(0, opening.indexOf(">"))).toContain(".api=${this.api}");
     }
+  });
+});
+
+// Regression: a reload left the old picture running. teardown() dropped the
+// MediaSource but never touched the element, which kept playing its buffered
+// footage; load() then re-anchored `placed` for the new run, and the old
+// element's timeupdates mapped the old media clock onto the new timeline.
+// When the reload after a scrub failed (an expired token, see above), the
+// cursor ran at the scrubbed-to moment while the picture showed material from
+// hours earlier. Driving real playback needs MediaSource, so the source is
+// read instead, the same way the credentials checks above do it.
+describe("a reload takes the old playback down with it", () => {
+  const source = readFileSync(
+    new URL("../src/components/player.ts", import.meta.url),
+    "utf8",
+  );
+
+  it("teardown detaches the element, not only the fields", () => {
+    const teardown = source.slice(
+      source.indexOf("private teardown("),
+      source.indexOf("private async load("),
+    );
+    expect(teardown).toContain("video.pause()");
+    expect(teardown).toContain('video.removeAttribute("src")');
+    expect(teardown).toContain("video.load()");
+  });
+
+  it("load reads the resume intent before teardown stops the element", () => {
+    const load = source.slice(source.indexOf("private async load("));
+    const pausedRead = load.indexOf(".paused");
+    const teardownCall = load.indexOf("this.teardown()");
+    expect(pausedRead).toBeGreaterThan(-1);
+    expect(teardownCall).toBeGreaterThan(-1);
+    expect(pausedRead).toBeLessThan(teardownCall);
   });
 });
 

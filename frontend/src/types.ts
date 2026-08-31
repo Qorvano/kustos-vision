@@ -244,7 +244,14 @@ export interface HomeAssistant {
   states: Record<string, { state: string; attributes: Record<string, unknown> }>;
   /** Absent in contexts that never authenticated; the file endpoints
    *  fall back to a signed path there. */
-  auth?: { data?: { access_token?: string } };
+  auth?: {
+    data?: { access_token?: string };
+    /** Whether the token above is past its lifetime, judged by the auth
+     *  code that owns it. */
+    expired?: boolean;
+    /** Trade the refresh token for a fresh access token; replaces `data`. */
+    refreshAccessToken?: () => Promise<void>;
+  };
   hassUrl(path?: string): string;
   language: string;
   themes: unknown;

@@ -523,6 +523,18 @@ export class CamwatchPlayer extends LitElement {
       // download keeps competing with the new run for the same link.
       void this.carry.reader.cancel().catch(() => {});
     }
+    const video = this.video();
+    if (video) {
+      // The source has to come off the element, not only out of the fields
+      // here. Dropping the MediaSource alone left the element playing its
+      // buffered footage, and once `placed` was re-anchored for the next run,
+      // its timeupdates mapped the old media clock onto the new timeline: the
+      // cursor ran at the scrubbed-to moment while the picture showed the old
+      // material (seen live when the reload after a scrub failed with 401).
+      video.pause();
+      video.removeAttribute("src");
+      video.load();
+    }
     this.loadingRun = false;
     if (this.objectUrl) URL.revokeObjectURL(this.objectUrl);
     this.objectUrl = undefined;
@@ -541,6 +553,10 @@ export class CamwatchPlayer extends LitElement {
     preferStream?: string,
     forceResume = false,
   ): Promise<void> {
+    // Whether the element was playing decides whether the new run starts
+    // moving on its own. Read before teardown, which stops the element.
+    const previous = this.video();
+    const wasPlaying = previous !== null && !previous.paused;
     this.teardown();
     const generation = this.generation;
     this.message = "";
@@ -563,13 +579,10 @@ export class CamwatchPlayer extends LitElement {
       return;
     }
 
-    // The element about to lose its source: whether it was playing decides
-    // whether the new run starts moving on its own, and the requested moment
-    // is applied once there is data to stand on.
-    const previous = this.video();
+    // The requested moment is applied once there is data to stand on.
     this.startup = {
       mediaTime: mediaTimeFor(this.placed, startAt),
-      resume: forceResume || (previous !== null && !previous.paused),
+      resume: forceResume || wasPlaying,
       // After a decode refusal the ranged fetch must not start at the
       // refused keyframe again: measured, that costs one futile recovery
       // per skip until the skips outgrow the frame's multi-second span.
