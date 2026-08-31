@@ -399,6 +399,7 @@ export class CamwatchPanel extends LitElement {
           : this.active === SETTINGS_TAB
           ? html`<kustos-vision-settings
               .api=${this.api}
+              .hass=${this.hass}
               .snapshot=${snapshot}
               @changed=${() => this.load()}
             ></kustos-vision-settings>`

@@ -881,7 +881,6 @@ async def ws_timeline(
         vol.Optional("context", default=""): str,
         vol.Optional("cooldown_seconds"): vol.All(int, vol.Range(min=0)),
         vol.Optional("daily_budget"): vol.All(int, vol.Range(min=1)),
-        vol.Optional("condition_entity", default=None): vol.Any(None, str),
         vol.Optional("enabled", default=True): bool,
     }
 )
@@ -899,7 +898,6 @@ async def ws_set_vision(
         "observations": msg["observations"],
         "triggers": msg["triggers"],
         "context": msg["context"],
-        "condition_entity": msg["condition_entity"],
         "enabled": msg["enabled"],
     }
     for optional in ("cooldown_seconds", "daily_budget"):

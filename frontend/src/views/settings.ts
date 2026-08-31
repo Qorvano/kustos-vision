@@ -11,6 +11,7 @@ import { shared } from "../styles";
 import type {
   AvailableCamera,
   Camera,
+  HomeAssistant,
   Snapshot,
   StreamState,
   View,
@@ -34,6 +35,7 @@ const GIGABYTE = 1000 * 1000 * 1000;
 export class CamwatchSettings extends LitElement {
   @property({ attribute: false }) api!: CamwatchApi;
   @property({ attribute: false }) snapshot!: Snapshot;
+  @property({ attribute: false }) hass?: HomeAssistant;
 
   @state() private section: Section = "cameras";
   @state() private editing?: Camera;
@@ -225,6 +227,7 @@ export class CamwatchSettings extends LitElement {
       )}
       <kustos-vision-vision-editor
         .api=${this.api}
+        .hass=${this.hass}
         .camera=${this.visionFor}
         .profile=${this.snapshot.vision.find(
           (p) => p.camera_slug === this.visionFor!.slug,

@@ -263,3 +263,78 @@ def test_the_name_survives_a_round_trip() -> None:
 
 def test_no_name_is_not_stored() -> None:
     assert "name" not in obs().as_dict()
+
+
+# ----------------------------------------------------------------------
+# Pausing a question
+# ----------------------------------------------------------------------
+
+
+def test_a_question_is_enabled_unless_said_otherwise() -> None:
+    assert obs().enabled is True
+    parsed = Observation.from_dict(
+        {"key": "k", "type": "boolean", "question": "Sichtbar?"}
+    )
+    assert parsed.enabled is True
+
+
+def test_a_paused_question_survives_a_round_trip() -> None:
+    paused = obs(enabled=False)
+    assert Observation.from_dict(paused.as_dict()) == paused
+
+
+def test_enabled_is_only_stored_when_off() -> None:
+    """Every stored profile predates the flag; writing the default into all
+    of them would churn every stored config for nothing."""
+    assert "enabled" not in obs().as_dict()
+    assert obs(enabled=False).as_dict()["enabled"] is False
+
+
+def test_only_active_observations_travel_to_the_model() -> None:
+    from kustos_vision.core.config import VisionProfile
+
+    profile = VisionProfile.from_dict(
+        {
+            "camera_slug": "beispiel",
+            "backend": {
+                "kind": "openai",
+                "url": "http://model.invalid/v1",
+                "model": "m",
+            },
+            "observations": [
+                {"key": "paket", "type": "boolean", "question": "Paket?"},
+                {
+                    "key": "wer",
+                    "type": "text",
+                    "question": "Wer?",
+                    "enabled": False,
+                },
+            ],
+        }
+    )
+    assert [o.key for o in profile.active_observations] == ["paket"]
+    # The paused question keeps its place in the profile, and with it the
+    # entity everything downstream is wired to.
+    assert [o.key for o in profile.observations] == ["paket", "wer"]
+
+
+def test_a_stored_condition_entity_is_ignored() -> None:
+    """Regression: the "only while this entity is on" gate was removed, but
+    profiles stored before that still carry the key and must keep loading."""
+    from kustos_vision.core.config import VisionProfile
+
+    profile = VisionProfile.from_dict(
+        {
+            "camera_slug": "beispiel",
+            "backend": {
+                "kind": "openai",
+                "url": "http://model.invalid/v1",
+                "model": "m",
+            },
+            "observations": [
+                {"key": "paket", "type": "boolean", "question": "Paket?"}
+            ],
+            "condition_entity": "input_boolean.scharf",
+        }
+    )
+    assert not hasattr(profile, "condition_entity")

@@ -19,7 +19,7 @@ if (customElements.get("kustos-vision-panel") !== void 0) {
  * SPDX-License-Identifier: BSD-3-Clause
  */
 const ce = globalThis, ye = ce.ShadowRoot && (ce.ShadyCSS === void 0 || ce.ShadyCSS.nativeShadow) && "adoptedStyleSheets" in Document.prototype && "replace" in CSSStyleSheet.prototype, we = Symbol(), Se = /* @__PURE__ */ new WeakMap();
-let Ve = class {
+let Ke = class {
   constructor(e, s, i) {
     if (this._$cssResult$ = !0, i !== we) throw Error("CSSResult is not constructable. Use `unsafeCSS` or `css` instead.");
     this.cssText = e, this.t = s;
@@ -37,13 +37,13 @@ let Ve = class {
     return this.cssText;
   }
 };
-const Je = (t) => new Ve(typeof t == "string" ? t : t + "", void 0, we), R = (t, ...e) => {
+const Je = (t) => new Ke(typeof t == "string" ? t : t + "", void 0, we), H = (t, ...e) => {
   const s = t.length === 1 ? t[0] : e.reduce((i, r, a) => i + ((n) => {
     if (n._$cssResult$ === !0) return n.cssText;
     if (typeof n == "number") return n;
     throw Error("Value passed to 'css' function must be a 'css' function result: " + n + ". Use 'unsafeCSS' to pass non-literal values, but take care to ensure page security.");
   })(r) + t[a + 1], t[0]);
-  return new Ve(s, t, we);
+  return new Ke(s, t, we);
 }, Xe = (t, e) => {
   if (ye) t.adoptedStyleSheets = e.map((s) => s instanceof CSSStyleSheet ? s : s.styleSheet);
   else for (const s of e) {
@@ -277,9 +277,9 @@ Y.elementStyles = [], Y.shadowRootOptions = { mode: "open" }, Y[ie("elementPrope
  * Copyright 2017 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
  */
-const ke = globalThis, Oe = (t) => t, ue = ke.trustedTypes, ze = ue ? ue.createPolicy("lit-html", { createHTML: (t) => t }) : void 0, We = "$lit$", L = `lit$${Math.random().toFixed(9).slice(2)}$`, Fe = "?" + L, ot = `<${Fe}>`, W = document, re = () => W.createComment(""), ae = (t) => t === null || typeof t != "object" && typeof t != "function", xe = Array.isArray, lt = (t) => xe(t) || typeof t?.[Symbol.iterator] == "function", ve = `[ 	
-\f\r]`, ee = /<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g, Pe = /-->/g, De = />/g, K = RegExp(`>|${ve}(?:([^\\s"'>=/]+)(${ve}*=${ve}*(?:[^ 	
-\f\r"'\`<>=]|("|')|))|$)`, "g"), Be = /'/g, Re = /"/g, Ge = /^(?:script|style|textarea|title)$/i, ht = (t) => (e, ...s) => ({ _$litType$: t, strings: e, values: s }), o = ht(1), X = Symbol.for("lit-noChange"), h = Symbol.for("lit-nothing"), He = /* @__PURE__ */ new WeakMap(), V = W.createTreeWalker(W, 129);
+const ke = globalThis, Oe = (t) => t, ue = ke.trustedTypes, ze = ue ? ue.createPolicy("lit-html", { createHTML: (t) => t }) : void 0, We = "$lit$", j = `lit$${Math.random().toFixed(9).slice(2)}$`, Fe = "?" + j, ot = `<${Fe}>`, W = document, re = () => W.createComment(""), ae = (t) => t === null || typeof t != "object" && typeof t != "function", xe = Array.isArray, lt = (t) => xe(t) || typeof t?.[Symbol.iterator] == "function", ve = `[ 	
+\f\r]`, ee = /<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g, Pe = /-->/g, De = />/g, V = RegExp(`>|${ve}(?:([^\\s"'>=/]+)(${ve}*=${ve}*(?:[^ 	
+\f\r"'\`<>=]|("|')|))|$)`, "g"), Be = /'/g, Re = /"/g, Ge = /^(?:script|style|textarea|title)$/i, ht = (t) => (e, ...s) => ({ _$litType$: t, strings: e, values: s }), o = ht(1), X = Symbol.for("lit-noChange"), h = Symbol.for("lit-nothing"), He = /* @__PURE__ */ new WeakMap(), K = W.createTreeWalker(W, 129);
 function qe(t, e) {
   if (!xe(t) || !t.hasOwnProperty("raw")) throw Error("invalid template strings array");
   return ze !== void 0 ? ze.createHTML(e) : e;
@@ -290,9 +290,9 @@ const dt = (t, e) => {
   for (let l = 0; l < s; l++) {
     const d = t[l];
     let u, m, g = -1, _ = 0;
-    for (; _ < d.length && (n.lastIndex = _, m = n.exec(d), m !== null); ) _ = n.lastIndex, n === ee ? m[1] === "!--" ? n = Pe : m[1] !== void 0 ? n = De : m[2] !== void 0 ? (Ge.test(m[2]) && (r = RegExp("</" + m[2], "g")), n = K) : m[3] !== void 0 && (n = K) : n === K ? m[0] === ">" ? (n = r ?? ee, g = -1) : m[1] === void 0 ? g = -2 : (g = n.lastIndex - m[2].length, u = m[1], n = m[3] === void 0 ? K : m[3] === '"' ? Re : Be) : n === Re || n === Be ? n = K : n === Pe || n === De ? n = ee : (n = K, r = void 0);
-    const E = n === K && t[l + 1].startsWith("/>") ? " " : "";
-    a += n === ee ? d + ot : g >= 0 ? (i.push(u), d.slice(0, g) + We + d.slice(g) + L + E) : d + L + (g === -2 ? l : E);
+    for (; _ < d.length && (n.lastIndex = _, m = n.exec(d), m !== null); ) _ = n.lastIndex, n === ee ? m[1] === "!--" ? n = Pe : m[1] !== void 0 ? n = De : m[2] !== void 0 ? (Ge.test(m[2]) && (r = RegExp("</" + m[2], "g")), n = V) : m[3] !== void 0 && (n = V) : n === V ? m[0] === ">" ? (n = r ?? ee, g = -1) : m[1] === void 0 ? g = -2 : (g = n.lastIndex - m[2].length, u = m[1], n = m[3] === void 0 ? V : m[3] === '"' ? Re : Be) : n === Re || n === Be ? n = V : n === Pe || n === De ? n = ee : (n = V, r = void 0);
+    const C = n === V && t[l + 1].startsWith("/>") ? " " : "";
+    a += n === ee ? d + ot : g >= 0 ? (i.push(u), d.slice(0, g) + We + d.slice(g) + j + C) : d + j + (g === -2 ? l : C);
   }
   return [qe(t, a + (t[s] || "<?>") + (e === 2 ? "</svg>" : e === 3 ? "</math>" : "")), i];
 };
@@ -302,28 +302,28 @@ class ne {
     this.parts = [];
     let a = 0, n = 0;
     const l = e.length - 1, d = this.parts, [u, m] = dt(e, s);
-    if (this.el = ne.createElement(u, i), V.currentNode = this.el.content, s === 2 || s === 3) {
+    if (this.el = ne.createElement(u, i), K.currentNode = this.el.content, s === 2 || s === 3) {
       const g = this.el.content.firstChild;
       g.replaceWith(...g.childNodes);
     }
-    for (; (r = V.nextNode()) !== null && d.length < l; ) {
+    for (; (r = K.nextNode()) !== null && d.length < l; ) {
       if (r.nodeType === 1) {
         if (r.hasAttributes()) for (const g of r.getAttributeNames()) if (g.endsWith(We)) {
-          const _ = m[n++], E = r.getAttribute(g).split(L), C = /([.?@])?(.*)/.exec(_);
-          d.push({ type: 1, index: a, name: C[2], strings: E, ctor: C[1] === "." ? pt : C[1] === "?" ? ut : C[1] === "@" ? gt : me }), r.removeAttribute(g);
-        } else g.startsWith(L) && (d.push({ type: 6, index: a }), r.removeAttribute(g));
+          const _ = m[n++], C = r.getAttribute(g).split(j), T = /([.?@])?(.*)/.exec(_);
+          d.push({ type: 1, index: a, name: T[2], strings: C, ctor: T[1] === "." ? pt : T[1] === "?" ? ut : T[1] === "@" ? gt : me }), r.removeAttribute(g);
+        } else g.startsWith(j) && (d.push({ type: 6, index: a }), r.removeAttribute(g));
         if (Ge.test(r.tagName)) {
-          const g = r.textContent.split(L), _ = g.length - 1;
+          const g = r.textContent.split(j), _ = g.length - 1;
           if (_ > 0) {
             r.textContent = ue ? ue.emptyScript : "";
-            for (let E = 0; E < _; E++) r.append(g[E], re()), V.nextNode(), d.push({ type: 2, index: ++a });
+            for (let C = 0; C < _; C++) r.append(g[C], re()), K.nextNode(), d.push({ type: 2, index: ++a });
             r.append(g[_], re());
           }
         }
       } else if (r.nodeType === 8) if (r.data === Fe) d.push({ type: 2, index: a });
       else {
         let g = -1;
-        for (; (g = r.data.indexOf(L, g + 1)) !== -1; ) d.push({ type: 7, index: a }), g += L.length - 1;
+        for (; (g = r.data.indexOf(j, g + 1)) !== -1; ) d.push({ type: 7, index: a }), g += j.length - 1;
       }
       a++;
     }
@@ -351,16 +351,16 @@ class ct {
   }
   u(e) {
     const { el: { content: s }, parts: i } = this._$AD, r = (e?.creationScope ?? W).importNode(s, !0);
-    V.currentNode = r;
-    let a = V.nextNode(), n = 0, l = 0, d = i[0];
+    K.currentNode = r;
+    let a = K.nextNode(), n = 0, l = 0, d = i[0];
     for (; d !== void 0; ) {
       if (n === d.index) {
         let u;
         d.type === 2 ? u = new oe(a, a.nextSibling, this, e) : d.type === 1 ? u = new d.ctor(a, d.name, d.strings, this, e) : d.type === 6 && (u = new mt(a, this, e)), this._$AV.push(u), d = i[++l];
       }
-      n !== d?.index && (a = V.nextNode(), n++);
+      n !== d?.index && (a = K.nextNode(), n++);
     }
-    return V.currentNode = W, r;
+    return K.currentNode = W, r;
   }
   p(e) {
     let s = 0;
@@ -584,20 +584,20 @@ function p(t) {
 function c(t) {
   return p({ ...t, state: !0, attribute: !1 });
 }
-const v = "kustos_vision", Me = 3600, $t = 60;
+const f = "kustos_vision", Me = 3600, $t = 60;
 class Ue {
   constructor(e) {
     this.hass = e, this.signatures = /* @__PURE__ */ new Map(), this.fragmentMaps = /* @__PURE__ */ new Map();
   }
   getConfig() {
-    return this.hass.callWS({ type: `${v}/config/get` });
+    return this.hass.callWS({ type: `${f}/config/get` });
   }
   availableCameras() {
-    return this.hass.callWS({ type: `${v}/cameras/available` });
+    return this.hass.callWS({ type: `${f}/cameras/available` });
   }
   suggest(e) {
     return this.hass.callWS({
-      type: `${v}/camera/suggest`,
+      type: `${f}/camera/suggest`,
       entity_id: e
     });
   }
@@ -609,31 +609,31 @@ class Ue {
    */
   setCamera(e, s = !1) {
     return this.hass.callWS({
-      type: `${v}/camera/set`,
+      type: `${f}/camera/set`,
       replace_existing: s,
       ...e
     });
   }
   deleteCamera(e) {
-    return this.hass.callWS({ type: `${v}/camera/delete`, slug: e });
+    return this.hass.callWS({ type: `${f}/camera/delete`, slug: e });
   }
   setViews(e) {
-    return this.hass.callWS({ type: `${v}/views/set`, views: e });
+    return this.hass.callWS({ type: `${f}/views/set`, views: e });
   }
   /** Set the order of every camera in one view at once. */
   setViewOrder(e, s) {
     return this.hass.callWS({
-      type: `${v}/view/order`,
+      type: `${f}/view/order`,
       view_id: e,
       cameras: s
     });
   }
   setStorage(e) {
-    return this.hass.callWS({ type: `${v}/storage/set`, ...e });
+    return this.hass.callWS({ type: `${f}/storage/set`, ...e });
   }
   trigger(e, s, i) {
     return this.hass.callWS({
-      type: `${v}/camera/trigger`,
+      type: `${f}/camera/trigger`,
       slug: e,
       capability: s,
       ...i === void 0 ? {} : { value: i }
@@ -698,11 +698,11 @@ class Ue {
     }), r;
   }
   recordingDays(e) {
-    return this.hass.callWS({ type: `${v}/recordings/days`, camera: e });
+    return this.hass.callWS({ type: `${f}/recordings/days`, camera: e });
   }
   timeline(e, s, i, r) {
     return this.hass.callWS({
-      type: `${v}/recordings/timeline`,
+      type: `${f}/recordings/timeline`,
       camera: e,
       from: s,
       to: i,
@@ -710,32 +710,32 @@ class Ue {
     });
   }
   setVision(e) {
-    return this.hass.callWS({ type: `${v}/vision/set`, ...e });
+    return this.hass.callWS({ type: `${f}/vision/set`, ...e });
   }
   deleteVision(e) {
     return this.hass.callWS({
-      type: `${v}/vision/delete`,
+      type: `${f}/vision/delete`,
       camera_slug: e
     });
   }
   analyseNow(e) {
     return this.hass.callWS({
-      type: `${v}/vision/analyse`,
+      type: `${f}/vision/analyse`,
       camera_slug: e
     });
   }
   visionHistory(e) {
     return this.hass.callWS({
-      type: `${v}/vision/history`,
+      type: `${f}/vision/history`,
       camera_slug: e
     });
   }
   aiTaskEntities() {
-    return this.hass.callWS({ type: `${v}/vision/backends` });
+    return this.hass.callWS({ type: `${f}/vision/backends` });
   }
   /** Ask the Supervisor to reconnect the mount behind the recordings. */
   reconnectStorage() {
-    return this.hass.callWS({ type: `${v}/storage/reconnect` });
+    return this.hass.callWS({ type: `${f}/storage/reconnect` });
   }
   /**
    * The byte map of one segment, so playback can start mid-file.
@@ -746,13 +746,13 @@ class Ue {
   fragments(e) {
     const s = this.fragmentMaps.get(e);
     if (s) return s;
-    const i = this.hass.callWS({ type: `${v}/recordings/fragments`, path: e }).catch((r) => {
+    const i = this.hass.callWS({ type: `${f}/recordings/fragments`, path: e }).catch((r) => {
       throw this.fragmentMaps.delete(e), r;
     });
     return this.fragmentMaps.set(e, i), i;
   }
   rebuildIndex() {
-    return this.hass.callWS({ type: `${v}/index/rebuild` });
+    return this.hass.callWS({ type: `${f}/index/rebuild` });
   }
 }
 function k(t) {
@@ -779,7 +779,7 @@ function he(t) {
     s /= 1e3, i += 1;
   return `${s.toFixed(s < 10 && i > 0 ? 1 : 0)} ${e[i]}`;
 }
-const G = R`
+const G = H`
   :host {
     /* The geometry the panel repeats, named once. Each maps onto Home
        Assistant's own variable where the theme system has one, so a theme
@@ -1266,7 +1266,7 @@ var St = Object.defineProperty, Et = Object.getOwnPropertyDescriptor, N = (t, e,
     (n = t[a]) && (r = (i ? n(e, s, r) : n(r)) || r);
   return i && r && St(e, s, r), r;
 };
-const Ct = 2, Ie = 1024 * 1024, Le = 3, je = 8, Tt = "mp4a.40.2";
+const Ct = 2, Le = 1024 * 1024, je = 3, Ie = 8, Tt = "mp4a.40.2";
 function Ot(t, e, s) {
   const i = [...t].sort((l, d) => l.start - d.start), r = i.filter(
     (l) => l.start <= e && e < l.start + l.duration
@@ -1365,11 +1365,11 @@ let O = class extends A {
     }), t.addEventListener("seeking", () => this.onSeeking()), t.addEventListener("waiting", () => this.skipHole()), t.addEventListener("error", () => {
       const e = t.error;
       if (e) {
-        if (this.recoveries < je && this.placed.length > 0) {
+        if (this.recoveries < Ie && this.placed.length > 0) {
           this.recoveries += 1;
-          const s = te(this.placed, t.currentTime) + Le * this.recoveries;
+          const s = te(this.placed, t.currentTime) + je * this.recoveries;
           console.warn(
-            `kustos_vision: decoder refused playback (${e.message || e.code}), skipping ${Le * this.recoveries}s ahead (${this.recoveries}/${je})`
+            `kustos_vision: decoder refused playback (${e.message || e.code}), skipping ${je * this.recoveries}s ahead (${this.recoveries}/${Ie})`
           ), this.load(s, this.placed[0]?.segment.stream_key, !0);
           return;
         }
@@ -1496,8 +1496,8 @@ let O = class extends A {
       if (a !== this.generation) return;
       try {
         l = await this.inspect(this.placed[0].segment);
-      } catch (C) {
-        this.message = k(C);
+      } catch (T) {
+        this.message = k(T);
         return;
       }
     }
@@ -1513,18 +1513,18 @@ let O = class extends A {
     }
     const _ = new MediaSource();
     this.media = _, this.objectUrl = URL.createObjectURL(_), await this.updateComplete;
-    const E = this.video();
-    E && (this.wire(E), E.src = this.objectUrl, _.addEventListener(
+    const C = this.video();
+    C && (this.wire(C), C.src = this.objectUrl, _.addEventListener(
       "sourceopen",
       () => {
         if (a === this.generation)
           try {
-            const C = _.addSourceBuffer(g);
-            C.mode = "segments", this.buffer = C, C.addEventListener("updateend", () => void this.pump());
+            const T = _.addSourceBuffer(g);
+            T.mode = "segments", this.buffer = T, T.addEventListener("updateend", () => void this.pump());
             const be = this.placed[this.placed.length - 1];
             be && (_.duration = be.mediaStart + be.segment.duration), this.pump();
-          } catch (C) {
-            this.message = k(C);
+          } catch (T) {
+            this.message = k(T);
           }
       },
       { once: !0 }
@@ -1694,8 +1694,8 @@ let O = class extends A {
     try {
       for (; ; ) {
         const i = e.reader === null && e.pending.length > 0;
-        if (e.pending.length >= Ie || i) {
-          const r = e.pending.subarray(0, Ie);
+        if (e.pending.length >= Le || i) {
+          const r = e.pending.subarray(0, Le);
           try {
             await this.appendOnce(r);
           } catch (a) {
@@ -1780,7 +1780,7 @@ let O = class extends A {
     `;
   }
 };
-O.styles = R`
+O.styles = H`
     :host {
       display: block;
       background: #000;
@@ -2012,7 +2012,7 @@ let M = class extends A {
     }
   }
 };
-M.styles = R`
+M.styles = H`
     :host {
       display: block;
       position: relative;
@@ -2076,7 +2076,7 @@ q([
 M = q([
   P("kustos-vision-live-stream")
 ], M);
-var Mt = Object.defineProperty, Ut = Object.getOwnPropertyDescriptor, I = (t, e, s, i) => {
+var Mt = Object.defineProperty, Ut = Object.getOwnPropertyDescriptor, L = (t, e, s, i) => {
   for (var r = i > 1 ? void 0 : i ? Ut(e, s) : e, a = t.length - 1, n; a >= 0; a--)
     (n = t[a]) && (r = (i ? n(e, s, r) : n(r)) || r);
   return i && r && Mt(e, s, r), r;
@@ -2085,7 +2085,7 @@ function Nt(t, e) {
   const s = e.trim().toLowerCase();
   return s ? t.filter((i) => i.label.toLowerCase().includes(s)) : t;
 }
-function It(t, e, s) {
+function Lt(t, e, s) {
   const i = e - t.bottom - s, r = t.top - s, a = r > i;
   return { up: a, maxHeight: Math.max(a ? r : i, 0), left: t.left, width: t.width };
 }
@@ -2111,7 +2111,7 @@ let z = class extends A {
   openDrop() {
     const t = this.renderRoot.querySelector(".select-field");
     if (!(t instanceof HTMLElement)) return;
-    const e = t.getBoundingClientRect(), i = It(e, window.innerHeight, 8);
+    const e = t.getBoundingClientRect(), i = Lt(e, window.innerHeight, 8);
     this.drop = {
       ...i,
       anchorTop: e.top,
@@ -2228,7 +2228,7 @@ let z = class extends A {
 };
 z.styles = [
   G,
-  R`
+  H`
       :host {
         display: block;
         width: 100%;
@@ -2294,39 +2294,39 @@ z.styles = [
       }
     `
 ];
-I([
+L([
   p({ attribute: !1 })
 ], z.prototype, "options", 2);
-I([
+L([
   p()
 ], z.prototype, "value", 2);
-I([
+L([
   p({ type: Boolean })
 ], z.prototype, "search", 2);
-I([
+L([
   p({ type: Boolean })
 ], z.prototype, "disabled", 2);
-I([
+L([
   c()
 ], z.prototype, "open", 2);
-I([
+L([
   c()
 ], z.prototype, "query", 2);
-I([
+L([
   c()
 ], z.prototype, "highlighted", 2);
-I([
+L([
   c()
 ], z.prototype, "drop", 2);
-z = I([
+z = L([
   P("kustos-vision-select")
 ], z);
-var Lt = Object.defineProperty, jt = Object.getOwnPropertyDescriptor, Z = (t, e, s, i) => {
-  for (var r = i > 1 ? void 0 : i ? jt(e, s) : e, a = t.length - 1, n; a >= 0; a--)
+var jt = Object.defineProperty, It = Object.getOwnPropertyDescriptor, Z = (t, e, s, i) => {
+  for (var r = i > 1 ? void 0 : i ? It(e, s) : e, a = t.length - 1, n; a >= 0; a--)
     (n = t[a]) && (r = (i ? n(e, s, r) : n(r)) || r);
-  return i && r && Lt(e, s, r), r;
+  return i && r && jt(e, s, r), r;
 };
-const Kt = ["ptz_up", "ptz_left", "ptz_right", "ptz_down", "siren_on", "siren_off"], Vt = ["light", "siren", "privacy_mode"];
+const Vt = ["ptz_up", "ptz_left", "ptz_right", "ptz_down", "siren_on", "siren_off"], Kt = ["light", "siren", "privacy_mode"];
 let U = class extends A {
   constructor() {
     super(...arguments), this.viewId = "", this.busy = "", this.error = "";
@@ -2421,9 +2421,9 @@ let U = class extends A {
     const t = this.shownCapabilities, e = this.shownControls;
     if (!t.length && !e.length) return h;
     const s = [];
-    for (const i of Kt)
-      t.includes(i) && s.push(this.renderButton(i, _t[i] ?? J(i)));
     for (const i of Vt)
+      t.includes(i) && s.push(this.renderButton(i, _t[i] ?? J(i)));
+    for (const i of Kt)
       t.includes(i) && s.push(
         this.renderButton(i, `${J(i)} an`, !0),
         this.renderButton(i, `${J(i)} aus`, !1)
@@ -2457,7 +2457,7 @@ let U = class extends A {
 };
 U.styles = [
   G,
-  R`
+  H`
       :host {
         display: block;
         /* shared's :host serves full-page views and sets min-height: 100%;
@@ -2599,7 +2599,7 @@ let F = class extends A {
     `;
   }
 };
-F.styles = R`
+F.styles = H`
     :host {
       display: block;
       padding: 16px;
@@ -2783,7 +2783,7 @@ let S = class extends A {
     `;
   }
 };
-S.styles = R`
+S.styles = H`
     :host {
       display: block;
       user-select: none;
@@ -3122,7 +3122,7 @@ let y = class extends A {
 };
 y.styles = [
   G,
-  R`
+  H`
       /* The tab has to fit on one screen: picker, picture and timeline all
          visible at once, because scrolling to reach the timeline while
          watching the picture defeats the point of having both. So the view
@@ -3845,7 +3845,7 @@ let b = class extends A {
 };
 b.styles = [
   G,
-  R`
+  H`
       /* The row travelling with the pointer, dimmed like HA's sortables. */
       tr.dragging td {
         opacity: 0.6;
@@ -3917,13 +3917,13 @@ const is = [
   ["number", "Anzahl"],
   ["select", "Auswahl"]
 ];
-let f = class extends A {
+let v = class extends A {
   constructor() {
-    super(...arguments), this.backend = { kind: "openai" }, this.observations = [], this.triggers = [], this.context = "", this.cooldown = 60, this.budget = 100, this.condition = "", this.enabled = !0, this.aiTasks = [], this.history = [], this.busy = !1, this.error = "";
+    super(...arguments), this.backend = { kind: "openai" }, this.observations = [], this.triggers = [], this.addingTrigger = !1, this.context = "", this.cooldown = 60, this.budget = 100, this.enabled = !0, this.aiTasks = [], this.history = [], this.busy = !1, this.error = "";
   }
   async connectedCallback() {
     if (super.connectedCallback(), this.profile)
-      this.backend = { ...this.profile.backend }, this.observations = this.profile.observations.map((t) => ({ ...t })), this.triggers = [...this.profile.triggers], this.context = this.profile.context, this.cooldown = this.profile.cooldown_seconds, this.budget = this.profile.daily_budget, this.condition = this.profile.condition_entity ?? "", this.enabled = this.profile.enabled, this.loadHistory();
+      this.backend = { ...this.profile.backend }, this.observations = this.profile.observations.map((t) => ({ ...t })), this.triggers = [...this.profile.triggers], this.context = this.profile.context, this.cooldown = this.profile.cooldown_seconds, this.budget = this.profile.daily_budget, this.enabled = this.profile.enabled, this.loadHistory();
     else {
       const t = this.camera.capabilities.motion_trigger?.entity_id;
       t && (this.triggers = [t]);
@@ -3940,6 +3940,15 @@ let f = class extends A {
     } catch {
       this.history = [];
     }
+  }
+  /** Every entity the instance has, worded for people, searchable by id. */
+  triggerCandidates() {
+    const t = new Set(this.triggers);
+    return Object.keys(this.hass?.states ?? {}).filter((e) => !t.has(e)).map((e) => ({ value: e, label: this.entityLabel(e) })).sort((e, s) => e.label.localeCompare(s.label));
+  }
+  entityLabel(t) {
+    const e = this.hass?.states?.[t]?.attributes?.friendly_name;
+    return typeof e == "string" && e ? `${e} (${t})` : t;
   }
   patchObservation(t, e) {
     this.observations = this.observations.map(
@@ -3966,7 +3975,6 @@ let f = class extends A {
         context: this.context,
         cooldown_seconds: this.cooldown,
         daily_budget: this.budget,
-        condition_entity: this.condition || null,
         enabled: this.enabled
       }), this.dispatchEvent(new CustomEvent("saved", { bubbles: !0, composed: !0 }));
     } catch (t) {
@@ -4140,6 +4148,16 @@ let f = class extends A {
             </div>` : h}
 
         <div class="row" style="margin-top:8px">
+          <label style="margin:0">
+            <input
+              type="checkbox"
+              .checked=${t.enabled ?? !0}
+              @change=${(s) => this.patchObservation(e, {
+      enabled: s.target.checked
+    })}
+            />
+            Aktiv
+          </label>
           ${this.lastRun && t.key in this.lastRun.values ? o`<span class="muted">
                 Letzte Antwort: <strong>${String(this.lastRun.values[t.key])}</strong>
               </span>` : h}
@@ -4203,16 +4221,51 @@ let f = class extends A {
         </div>
 
         <h3>Auslöser</h3>
-        <label>Entities, die eine Analyse starten (durch Komma getrennt)</label>
-        <input
-          placeholder="binary_sensor.kamera_person_detection"
-          .value=${this.triggers.join(", ")}
-          @change=${(e) => this.triggers = e.target.value.split(",").map((s) => s.trim()).filter((s) => s)}
-        />
         <p class="hint">
-          Am besten die Personenerkennung der Kamera. Reine Bewegungsmelder
-          lösen bei Wind und Regen dauernd aus.
+          Entities, deren Einschalten eine Analyse startet. Am besten die
+          Personenerkennung der Kamera; reine Bewegungsmelder lösen bei Wind
+          und Regen dauernd aus.
         </p>
+        ${this.triggers.length === 0 ? o`<p class="hint">
+              Ohne Auslöser läuft die Analyse nur von Hand.
+            </p>` : this.triggers.map(
+      (e) => o`<div class="row divided">
+                <span class="grow">${this.entityLabel(e)}</span>
+                <button
+                  class="danger"
+                  @click=${() => this.triggers = this.triggers.filter(
+        (s) => s !== e
+      )}
+                >
+                  Entfernen
+                </button>
+              </div>`
+    )}
+        ${this.addingTrigger ? o`<div class="row" style="margin-top:8px">
+              <div class="grow">
+                <kustos-vision-select
+                  search
+                  .options=${this.triggerCandidates()}
+                  .value=${""}
+                  @value-changed=${(e) => {
+      e.detail.value && (this.triggers = [...this.triggers, e.detail.value]), this.addingTrigger = !1;
+    }}
+                ></kustos-vision-select>
+              </div>
+              <button
+                class="secondary"
+                @click=${() => this.addingTrigger = !1}
+              >
+                Abbrechen
+              </button>
+            </div>` : o`<div class="row" style="margin-top:8px">
+              <button
+                class="secondary"
+                @click=${() => this.addingTrigger = !0}
+              >
+                Auslöser hinzufügen
+              </button>
+            </div>`}
 
         <h3>Zusätzlicher Zusammenhang</h3>
         <label>Was das Modell nicht sehen kann</label>
@@ -4240,14 +4293,6 @@ let f = class extends A {
               min="1"
               .value=${String(this.budget)}
               @change=${(e) => this.budget = Number(e.target.value)}
-            />
-          </div>
-          <div class="grow">
-            <label>Nur wenn diese Entity an ist (optional)</label>
-            <input
-              placeholder="alarm_control_panel.zuhause"
-              .value=${this.condition}
-              @change=${(e) => this.condition = e.target.value}
             />
           </div>
         </div>
@@ -4308,59 +4353,62 @@ ${JSON.stringify(this.lastRun.raw, null, 2)}</pre
     `;
   }
 };
-f.styles = G;
+v.styles = G;
 $([
   p({ attribute: !1 })
-], f.prototype, "api", 2);
+], v.prototype, "api", 2);
 $([
   p({ attribute: !1 })
-], f.prototype, "camera", 2);
+], v.prototype, "camera", 2);
 $([
   p({ attribute: !1 })
-], f.prototype, "profile", 2);
+], v.prototype, "profile", 2);
+$([
+  p({ attribute: !1 })
+], v.prototype, "hass", 2);
 $([
   c()
-], f.prototype, "backend", 2);
+], v.prototype, "backend", 2);
 $([
   c()
-], f.prototype, "observations", 2);
+], v.prototype, "observations", 2);
 $([
   c()
-], f.prototype, "triggers", 2);
+], v.prototype, "triggers", 2);
 $([
   c()
-], f.prototype, "context", 2);
+], v.prototype, "addingTrigger", 2);
 $([
   c()
-], f.prototype, "cooldown", 2);
+], v.prototype, "context", 2);
 $([
   c()
-], f.prototype, "budget", 2);
+], v.prototype, "cooldown", 2);
 $([
   c()
-], f.prototype, "condition", 2);
+], v.prototype, "budget", 2);
 $([
   c()
-], f.prototype, "enabled", 2);
+], v.prototype, "enabled", 2);
 $([
   c()
-], f.prototype, "aiTasks", 2);
+], v.prototype, "aiTasks", 2);
 $([
   c()
-], f.prototype, "history", 2);
+], v.prototype, "history", 2);
 $([
   c()
-], f.prototype, "lastRun", 2);
+], v.prototype, "lastRun", 2);
 $([
   c()
-], f.prototype, "busy", 2);
+], v.prototype, "busy", 2);
 $([
   c()
-], f.prototype, "error", 2);
-f = $([
+], v.prototype, "error", 2);
+v = $([
   P("kustos-vision-vision-editor")
-], f);
-var rs = Object.defineProperty, as = Object.getOwnPropertyDescriptor, H = (t, e, s, i) => {
+], v);
+var rs = Object.defineProperty, as = Object.getOwnPropertyDescriptor, B = (t, e, s, i) => {
   for (var r = i > 1 ? void 0 : i ? as(e, s) : e, a = t.length - 1, n; a >= 0; a--)
     (n = t[a]) && (r = (i ? n(e, s, r) : n(r)) || r);
   return i && r && rs(e, s, r), r;
@@ -4371,8 +4419,8 @@ const ns = [
   ["storage", "Speicher"],
   ["views", "Ansichten"],
   ["system", "System"]
-], Ke = 1e3 * 1e3 * 1e3;
-let T = class extends A {
+], Ve = 1e3 * 1e3 * 1e3;
+let E = class extends A {
   constructor() {
     super(...arguments), this.section = "cameras", this.adding = !1, this.available = [], this.busy = !1, this.error = "";
   }
@@ -4523,6 +4571,7 @@ let T = class extends A {
     )}
       <kustos-vision-vision-editor
         .api=${this.api}
+        .hass=${this.hass}
         .camera=${this.visionFor}
         .profile=${this.snapshot.vision.find(
       (t) => t.camera_slug === this.visionFor.slug
@@ -4579,7 +4628,7 @@ let T = class extends A {
   // Storage
   // ------------------------------------------------------------------
   renderStorage() {
-    const { storage: t, totals: e } = this.snapshot, s = t.max_total_bytes === null ? "" : String(t.max_total_bytes / Ke);
+    const { storage: t, totals: e } = this.snapshot, s = t.max_total_bytes === null ? "" : String(t.max_total_bytes / Ve);
     return o`
       <div class="card">
         <h2>Speicher</h2>
@@ -4656,7 +4705,7 @@ Was bereits unter ${this.snapshot.storage.base_path} liegt, bleibt unverändert 
       () => this.api.setStorage({
         base_path: i,
         segment_seconds: e,
-        max_total_bytes: s === "" ? null : Math.round(Number(s) * Ke)
+        max_total_bytes: s === "" ? null : Math.round(Number(s) * Ve)
       })
     );
   }
@@ -4856,45 +4905,48 @@ Was bereits unter ${this.snapshot.storage.base_path} liegt, bleibt unverändert 
     `;
   }
 };
-T.styles = G;
-H([
+E.styles = G;
+B([
   p({ attribute: !1 })
-], T.prototype, "api", 2);
-H([
+], E.prototype, "api", 2);
+B([
   p({ attribute: !1 })
-], T.prototype, "snapshot", 2);
-H([
+], E.prototype, "snapshot", 2);
+B([
+  p({ attribute: !1 })
+], E.prototype, "hass", 2);
+B([
   c()
-], T.prototype, "section", 2);
-H([
+], E.prototype, "section", 2);
+B([
   c()
-], T.prototype, "editing", 2);
-H([
+], E.prototype, "editing", 2);
+B([
   c()
-], T.prototype, "adding", 2);
-H([
+], E.prototype, "adding", 2);
+B([
   c()
-], T.prototype, "available", 2);
-H([
+], E.prototype, "available", 2);
+B([
   c()
-], T.prototype, "visionFor", 2);
-H([
+], E.prototype, "visionFor", 2);
+B([
   c()
-], T.prototype, "busy", 2);
-H([
+], E.prototype, "busy", 2);
+B([
   c()
-], T.prototype, "error", 2);
-T = H([
+], E.prototype, "error", 2);
+E = B([
   P("kustos-vision-settings")
-], T);
-var os = Object.defineProperty, ls = Object.getOwnPropertyDescriptor, j = (t, e, s, i) => {
+], E);
+var os = Object.defineProperty, ls = Object.getOwnPropertyDescriptor, I = (t, e, s, i) => {
   for (var r = i > 1 ? void 0 : i ? ls(e, s) : e, a = t.length - 1, n; a >= 0; a--)
     (n = t[a]) && (r = (i ? n(e, s, r) : n(r)) || r);
   return i && r && os(e, s, r), r;
 };
 const de = "__recordings", se = "__settings";
 globalThis.kustosVisionBuild = kt;
-let B = class extends A {
+let R = class extends A {
   constructor() {
     super(...arguments), this.narrow = !1, this.active = "", this.error = "", this.reconnecting = !1, this.reconnectError = "";
   }
@@ -5051,6 +5103,7 @@ let B = class extends A {
               .stampAvailable=${t.build?.stamp_available ?? !1}
             ></kustos-vision-recordings>` : this.active === se ? o`<kustos-vision-settings
               .api=${this.api}
+              .hass=${this.hass}
               .snapshot=${t}
               @changed=${() => this.load()}
             ></kustos-vision-settings>` : e ? o`<kustos-vision-live-view
@@ -5066,9 +5119,9 @@ let B = class extends A {
     `;
   }
 };
-B.styles = [
+R.styles = [
   G,
-  R`
+  H`
       :host {
         display: flex;
         flex-direction: column;
@@ -5232,30 +5285,30 @@ B.styles = [
       }
     `
 ];
-j([
+I([
   p({ attribute: !1 })
-], B.prototype, "hass", 2);
-j([
+], R.prototype, "hass", 2);
+I([
   p({ type: Boolean, reflect: !0 })
-], B.prototype, "narrow", 2);
-j([
+], R.prototype, "narrow", 2);
+I([
   c()
-], B.prototype, "snapshot", 2);
-j([
+], R.prototype, "snapshot", 2);
+I([
   c()
-], B.prototype, "active", 2);
-j([
+], R.prototype, "active", 2);
+I([
   c()
-], B.prototype, "error", 2);
-j([
+], R.prototype, "error", 2);
+I([
   c()
-], B.prototype, "reconnecting", 2);
-j([
+], R.prototype, "reconnecting", 2);
+I([
   c()
-], B.prototype, "reconnectError", 2);
-B = j([
+], R.prototype, "reconnectError", 2);
+R = I([
   P("kustos-vision-panel")
-], B);
+], R);
 export {
-  B as CamwatchPanel
+  R as CamwatchPanel
 };

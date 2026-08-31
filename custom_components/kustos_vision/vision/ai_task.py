@@ -33,7 +33,7 @@ def _structure(profile: VisionProfile) -> vol.Schema:
     from homeassistant.helpers import selector
 
     fields = {}
-    for key, spec in to_ai_task_structure(list(profile.observations)).items():
+    for key, spec in to_ai_task_structure(list(profile.active_observations)).items():
         fields[vol.Required(key, description=spec[CONF_DESCRIPTION])] = (
             selector.selector(spec[CONF_SELECTOR])
         )

@@ -84,6 +84,8 @@ export interface Observation {
   options?: string[];
   minimum?: number;
   maximum?: number;
+  /** A paused question keeps its entity but is no longer asked. */
+  enabled?: boolean;
 }
 
 export interface VisionBackend {
@@ -111,7 +113,6 @@ export interface VisionProfile {
   context: string;
   cooldown_seconds: number;
   daily_budget: number;
-  condition_entity: string | null;
   enabled: boolean;
   state: VisionState;
 }

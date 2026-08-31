@@ -513,9 +513,6 @@ class VisionProfile:
     cannot see: which way the camera points, what belongs in the picture."""
     cooldown_seconds: int = DEFAULT_COOLDOWN_SECONDS
     daily_budget: int = DEFAULT_DAILY_BUDGET
-    condition_entity: str | None = None
-    """When set, an analysis only runs while this entity is on. This is how
-    "only when the alarm is armed" is expressed without an automation."""
     enabled: bool = True
 
     def __post_init__(self) -> None:
@@ -534,6 +531,15 @@ class VisionProfile:
     def observation(self, key: str) -> Observation | None:
         return next((o for o in self.observations if o.key == key), None)
 
+    @property
+    def active_observations(self) -> tuple[Observation, ...]:
+        """The questions an analysis actually asks.
+
+        Paused questions keep their entity and its history, but they no
+        longer travel to the model and cost nothing.
+        """
+        return tuple(o for o in self.observations if o.enabled)
+
     def as_dict(self) -> dict[str, Any]:
         return {
             "camera_slug": self.camera_slug,
@@ -543,7 +549,6 @@ class VisionProfile:
             "context": self.context,
             "cooldown_seconds": self.cooldown_seconds,
             "daily_budget": self.daily_budget,
-            "condition_entity": self.condition_entity,
             "enabled": self.enabled,
         }
 
@@ -565,7 +570,8 @@ class VisionProfile:
                 data.get("cooldown_seconds", DEFAULT_COOLDOWN_SECONDS)
             ),
             daily_budget=int(data.get("daily_budget", DEFAULT_DAILY_BUDGET)),
-            condition_entity=data.get("condition_entity"),
+            # condition_entity, the old "only while this entity is on" gate,
+            # may still sit in stored data and is deliberately ignored.
             enabled=bool(data.get("enabled", True)),
         )
 

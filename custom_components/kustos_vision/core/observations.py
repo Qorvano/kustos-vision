@@ -69,6 +69,11 @@ class Observation:
     """For NUMBER: the range. Bounding it keeps a model from answering with
     something absurd and turning a count into nonsense."""
 
+    enabled: bool = True
+    """A paused question: its entity stays, with whatever it last answered,
+    but the model is no longer asked. Pausing beats deleting because deleting
+    would also delete the sensor everything downstream is wired to."""
+
     def __post_init__(self) -> None:
         if not _KEY_RE.match(self.key):
             raise ObservationError(
@@ -112,6 +117,8 @@ class Observation:
         if self.type is ObservationType.NUMBER:
             stored["minimum"] = self.minimum
             stored["maximum"] = self.maximum
+        if not self.enabled:
+            stored["enabled"] = False
         return stored
 
     @classmethod
@@ -129,6 +136,7 @@ class Observation:
             options=tuple(data.get("options", [])),
             minimum=int(data.get("minimum", 0)),
             maximum=int(data.get("maximum", 100)),
+            enabled=bool(data.get("enabled", True)),
         )
 
 

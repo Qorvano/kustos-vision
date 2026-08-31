@@ -258,29 +258,67 @@ async def test_the_budget_resets_with_the_local_day(
     assert len(analysed) == 2
 
 
-async def test_a_condition_can_hold_the_analysis_back(
+async def test_a_stored_condition_entity_no_longer_holds_anything_back(
     hass: HomeAssistant, setup_vision, analysed: list
 ) -> None:
-    """This is how "only while the alarm is armed" is expressed without
-    writing an automation."""
+    """Regression: the "only while this entity is on" gate was removed. A
+    profile stored before that still carries the key; it must load, and the
+    named entity being off must not stop an analysis any more."""
     await setup_vision([profile(condition_entity=CONDITION)])
     hass.states.async_set(CONDITION, "off")
-    await fire(hass, "on")
-    assert analysed == []
-
-    hass.states.async_set(CONDITION, "on")
-    await fire(hass, "off")
     await fire(hass, "on")
     assert len(analysed) == 1
 
 
-async def test_a_missing_condition_entity_holds_it_back(
+async def test_a_profile_with_only_paused_questions_never_runs(
     hass: HomeAssistant, setup_vision, analysed: list
 ) -> None:
-    """An entity that does not exist is not a reason to analyse anyway."""
-    await setup_vision([profile(condition_entity="input_boolean.gibt_es_nicht")])
+    """Pausing every question is pausing the profile: nothing to ask means
+    nothing to pay for."""
+    await setup_vision(
+        [
+            profile(
+                observations=[
+                    {
+                        "key": "paket",
+                        "type": "boolean",
+                        "question": "Liegt ein Paket vor der Tür?",
+                        "enabled": False,
+                    }
+                ]
+            )
+        ]
+    )
     await fire(hass, "on")
     assert analysed == []
+
+
+async def test_a_paused_question_keeps_its_entity(
+    hass: HomeAssistant, setup_vision
+) -> None:
+    """Pausing beats deleting exactly because the sensor survives, with
+    whatever it last answered, and every automation wired to it stays valid."""
+    await setup_vision(
+        [
+            profile(
+                observations=[
+                    {
+                        "key": "paket",
+                        "type": "boolean",
+                        "question": "Liegt ein Paket vor der Tür?",
+                        "enabled": False,
+                    },
+                    {
+                        "key": "wer",
+                        "type": "text",
+                        "question": "Wer ist zu sehen?",
+                    },
+                ]
+            )
+        ]
+    )
+    entity_ids = hass.states.async_entity_ids()
+    assert any("paket" in e and e.startswith("binary_sensor.") for e in entity_ids)
 
 
 # ----------------------------------------------------------------------

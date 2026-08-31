@@ -86,7 +86,7 @@ async def async_run(
             "json_schema": {
                 "name": SCHEMA_NAME,
                 "strict": True,
-                "schema": to_json_schema(list(profile.observations)),
+                "schema": to_json_schema(list(profile.active_observations)),
             },
         },
         # Nothing here benefits from invention: the same picture should give

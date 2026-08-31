@@ -14,6 +14,7 @@ import type {
   AiTaskEntity,
   AnalysisRun,
   Camera,
+  HomeAssistant,
   Observation,
   ObservationType,
   VisionBackend,
@@ -32,14 +33,15 @@ export class CamwatchVisionEditor extends LitElement {
   @property({ attribute: false }) api!: CamwatchApi;
   @property({ attribute: false }) camera!: Camera;
   @property({ attribute: false }) profile?: VisionProfile;
+  @property({ attribute: false }) hass?: HomeAssistant;
 
   @state() private backend: VisionBackend = { kind: "openai" };
   @state() private observations: Observation[] = [];
   @state() private triggers: string[] = [];
+  @state() private addingTrigger = false;
   @state() private context = "";
   @state() private cooldown = 60;
   @state() private budget = 100;
-  @state() private condition = "";
   @state() private enabled = true;
 
   @state() private aiTasks: AiTaskEntity[] = [];
@@ -59,7 +61,6 @@ export class CamwatchVisionEditor extends LitElement {
       this.context = this.profile.context;
       this.cooldown = this.profile.cooldown_seconds;
       this.budget = this.profile.daily_budget;
-      this.condition = this.profile.condition_entity ?? "";
       this.enabled = this.profile.enabled;
       void this.loadHistory();
     } else {
@@ -81,6 +82,22 @@ export class CamwatchVisionEditor extends LitElement {
     } catch {
       this.history = [];
     }
+  }
+
+  /** Every entity the instance has, worded for people, searchable by id. */
+  private triggerCandidates(): { value: string; label: string }[] {
+    const chosen = new Set(this.triggers);
+    return Object.keys(this.hass?.states ?? {})
+      .filter((id) => !chosen.has(id))
+      .map((id) => ({ value: id, label: this.entityLabel(id) }))
+      .sort((a, b) => a.label.localeCompare(b.label));
+  }
+
+  private entityLabel(entityId: string): string {
+    const name = this.hass?.states?.[entityId]?.attributes?.friendly_name;
+    return typeof name === "string" && name
+      ? `${name} (${entityId})`
+      : entityId;
   }
 
   private patchObservation(index: number, patch: Partial<Observation>): void {
@@ -111,7 +128,6 @@ export class CamwatchVisionEditor extends LitElement {
         context: this.context,
         cooldown_seconds: this.cooldown,
         daily_budget: this.budget,
-        condition_entity: this.condition || null,
         enabled: this.enabled,
       });
       this.dispatchEvent(new CustomEvent("saved", { bubbles: true, composed: true }));
@@ -323,6 +339,17 @@ export class CamwatchVisionEditor extends LitElement {
           : nothing}
 
         <div class="row" style="margin-top:8px">
+          <label style="margin:0">
+            <input
+              type="checkbox"
+              .checked=${observation.enabled ?? true}
+              @change=${(e: Event) =>
+                this.patchObservation(index, {
+                  enabled: (e.target as HTMLInputElement).checked,
+                })}
+            />
+            Aktiv
+          </label>
           ${this.lastRun && observation.key in this.lastRun.values
             ? html`<span class="muted">
                 Letzte Antwort: <strong>${String(this.lastRun.values[observation.key])}</strong>
@@ -397,20 +424,59 @@ export class CamwatchVisionEditor extends LitElement {
         </div>
 
         <h3>Auslöser</h3>
-        <label>Entities, die eine Analyse starten (durch Komma getrennt)</label>
-        <input
-          placeholder="binary_sensor.kamera_person_detection"
-          .value=${this.triggers.join(", ")}
-          @change=${(e: Event) =>
-            (this.triggers = (e.target as HTMLInputElement).value
-              .split(",")
-              .map((t) => t.trim())
-              .filter((t) => t))}
-        />
         <p class="hint">
-          Am besten die Personenerkennung der Kamera. Reine Bewegungsmelder
-          lösen bei Wind und Regen dauernd aus.
+          Entities, deren Einschalten eine Analyse startet. Am besten die
+          Personenerkennung der Kamera; reine Bewegungsmelder lösen bei Wind
+          und Regen dauernd aus.
         </p>
+        ${this.triggers.length === 0
+          ? html`<p class="hint">
+              Ohne Auslöser läuft die Analyse nur von Hand.
+            </p>`
+          : this.triggers.map(
+              (trigger) => html`<div class="row divided">
+                <span class="grow">${this.entityLabel(trigger)}</span>
+                <button
+                  class="danger"
+                  @click=${() =>
+                    (this.triggers = this.triggers.filter(
+                      (t) => t !== trigger,
+                    ))}
+                >
+                  Entfernen
+                </button>
+              </div>`,
+            )}
+        ${this.addingTrigger
+          ? html`<div class="row" style="margin-top:8px">
+              <div class="grow">
+                <kustos-vision-select
+                  search
+                  .options=${this.triggerCandidates()}
+                  .value=${""}
+                  @value-changed=${(e: CustomEvent<{ value: string }>) => {
+                    if (e.detail.value) {
+                      this.triggers = [...this.triggers, e.detail.value];
+                    }
+                    this.addingTrigger = false;
+                  }}
+                ></kustos-vision-select>
+              </div>
+              <button
+                class="secondary"
+                @click=${() => (this.addingTrigger = false)}
+              >
+                Abbrechen
+              </button>
+            </div>`
+          : html`<div class="row" style="margin-top:8px">
+              <button
+                class="secondary"
+                @click=${() => (this.addingTrigger = true)}
+              >
+                Auslöser hinzufügen
+              </button>
+            </div>`}
 
         <h3>Zusätzlicher Zusammenhang</h3>
         <label>Was das Modell nicht sehen kann</label>
@@ -440,15 +506,6 @@ export class CamwatchVisionEditor extends LitElement {
               .value=${String(this.budget)}
               @change=${(e: Event) =>
                 (this.budget = Number((e.target as HTMLInputElement).value))}
-            />
-          </div>
-          <div class="grow">
-            <label>Nur wenn diese Entity an ist (optional)</label>
-            <input
-              placeholder="alarm_control_panel.zuhause"
-              .value=${this.condition}
-              @change=${(e: Event) =>
-                (this.condition = (e.target as HTMLInputElement).value)}
             />
           </div>
         </div>

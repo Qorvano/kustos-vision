@@ -25,7 +25,7 @@ from dataclasses import dataclass, field
 from datetime import date, datetime
 from typing import Any
 
-from homeassistant.const import STATE_ON, STATE_UNAVAILABLE, STATE_UNKNOWN
+from homeassistant.const import STATE_ON
 from homeassistant.core import Event, EventStateChangedData, HomeAssistant, callback
 from homeassistant.helpers.event import async_track_state_change_event
 from homeassistant.util import dt as dt_util
@@ -91,7 +91,7 @@ class VisionRunner:
 
         watched: dict[str, list[str]] = {}
         for profile in config.vision:
-            if not profile.enabled or not profile.observations:
+            if not profile.enabled or not profile.active_observations:
                 continue
             for entity_id in profile.triggers:
                 watched.setdefault(entity_id, []).append(profile.camera_slug)
@@ -151,7 +151,7 @@ class VisionRunner:
         """Return why an analysis must not run now, or None when it may."""
         if not profile.enabled:
             return "the profile is switched off"
-        if not profile.observations:
+        if not profile.active_observations:
             return "the profile asks nothing"
 
         today = dt_util.now().date()
@@ -159,16 +159,6 @@ class VisionRunner:
             return (
                 f"today's budget of {profile.daily_budget} analyses is used up"
             )
-
-        if profile.condition_entity:
-            condition = self._hass.states.get(profile.condition_entity)
-            if condition is None or condition.state in (
-                STATE_UNAVAILABLE,
-                STATE_UNKNOWN,
-            ):
-                return f"{profile.condition_entity} has no state"
-            if condition.state != STATE_ON:
-                return f"{profile.condition_entity} is off"
 
         if state.last_run is not None and profile.cooldown_seconds:
             elapsed = (dt_util.utcnow() - state.last_run).total_seconds()
@@ -186,7 +176,7 @@ class VisionRunner:
     ) -> VisionResult | None:
         """Analyse one camera, unless a limit says not to.
 
-        ``force`` skips the cooldown and the condition but never the daily
+        ``force`` skips the cooldown but never the daily
         budget: a manual run is meant to be immediate, while the budget is the
         one limit that exists to stop runaway cost.
         """

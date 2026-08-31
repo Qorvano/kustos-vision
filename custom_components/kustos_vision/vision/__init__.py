@@ -85,7 +85,7 @@ async def async_analyse(
     camera_entity_id: str,
 ) -> VisionResult:
     """Run one analysis through whichever backend the profile names."""
-    if not profile.observations:
+    if not profile.active_observations:
         raise VisionError(f"vision profile for {camera.slug!r} asks nothing")
 
     if profile.backend.kind is VisionBackendKind.AI_TASK:
@@ -100,7 +100,7 @@ async def async_analyse(
             f"the model answered with {type(raw).__name__}, not a set of fields"
         )
 
-    values, problems = coerce_answers(list(profile.observations), raw)
+    values, problems = coerce_answers(list(profile.active_observations), raw)
     if problems:
         _LOGGER.debug(
             "kustos_vision: %s could not be read from the answer: %s",
