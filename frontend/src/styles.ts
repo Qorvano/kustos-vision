@@ -73,29 +73,37 @@ export const shared = css`
     outline-offset: 2px;
   }
   button.secondary {
+    /* A text button, the way Home Assistant renders secondary actions. */
     background: transparent;
-    border-color: var(--divider-color, ButtonBorder);
     color: var(--primary-color);
   }
   button.danger {
-    /* Red text on a quiet outline is how Home Assistant renders destructive
-       actions; it also keeps rows of delete buttons from becoming a wall of
-       red slabs. */
+    /* Plain red text is how Home Assistant renders destructive actions;
+       it also keeps rows of delete buttons from becoming a wall of red. */
     background: transparent;
-    border-color: var(--divider-color, ButtonBorder);
     color: var(--error-color, #db4437);
   }
   button:disabled {
-    opacity: 0.5;
     cursor: default;
     box-shadow: none;
+    /* Grey fill, like Home Assistant's disabled filled buttons. */
+    background: var(--disabled-color, rgba(127, 127, 127, 0.3));
+    color: var(--disabled-text-color, GrayText);
   }
-  /* Controls that sit under a camera picture and must not push it around. */
+  button.secondary:disabled,
+  button.danger:disabled {
+    background: transparent;
+    color: var(--disabled-text-color, GrayText);
+  }
+  /* Controls that sit under a camera picture and must not push it around.
+     They read as chips, which Home Assistant outlines. */
   button.compact {
     min-height: 0;
     min-width: 36px;
     padding: 6px 10px;
     font-size: 0.9em;
+    border-color: var(--divider-color, ButtonBorder);
+    color: var(--primary-text-color);
   }
   label {
     display: block;
@@ -136,44 +144,51 @@ export const shared = css`
     box-shadow: inset 0 -1px 0 0 var(--primary-color);
   }
   /* A checkbox wearing Home Assistant's switch: same element, same events,
-     native look. The variables are the ones themes set for ha-switch; the
-     checked track falls back to the primary colour at the opacity the
-     original switch uses. */
+     native look. Shaped like the current HA switch, a bordered pill track
+     with the thumb riding inside it; the variables are the ones themes set
+     for ha-switch. */
   input[type="checkbox"] {
     appearance: none;
     -webkit-appearance: none;
-    width: 36px;
-    height: 14px;
-    margin: 3px 2px;
+    box-sizing: border-box;
+    width: 44px;
+    height: 24px;
+    margin: 2px 0;
     flex: none;
     vertical-align: middle;
-    border-radius: 7px;
-    background: var(--switch-unchecked-track-color, rgba(127, 127, 127, 0.5));
+    border-radius: 12px;
+    border: 1px solid
+      var(--switch-unchecked-track-color, var(--divider-color, ButtonBorder));
+    background: transparent;
     position: relative;
     cursor: pointer;
   }
   input[type="checkbox"]::after {
     content: "";
     position: absolute;
-    top: -3px;
-    left: 0;
-    width: 20px;
-    height: 20px;
+    top: 2px;
+    left: 2px;
+    width: 18px;
+    height: 18px;
     border-radius: 50%;
-    background: var(--switch-unchecked-button-color, ButtonFace);
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+    background: var(
+      --switch-unchecked-button-color,
+      var(--secondary-text-color, ButtonText)
+    );
     transition:
       left 90ms ease,
       background-color 90ms ease;
   }
   input[type="checkbox"]:checked {
+    border-color: var(--switch-checked-color, var(--primary-color));
     background: var(
       --switch-checked-track-color,
-      color-mix(in srgb, var(--primary-color) 54%, transparent)
+      color-mix(in srgb, var(--primary-color) 25%, transparent)
     );
   }
   input[type="checkbox"]:checked::after {
-    left: 16px;
+    /* 100% is the track's inner width; thumb width plus the 2px inset. */
+    left: calc(100% - 20px);
     background: var(--switch-checked-button-color, var(--primary-color));
   }
   input[type="checkbox"]:focus-visible {
@@ -204,6 +219,47 @@ export const shared = css`
   .divided {
     padding: 12px 0;
     border-bottom: 1px solid var(--divider-color, ButtonBorder);
+  }
+  /* A collapsible section, like ha-expansion-panel: an outlined row with a
+     chevron, native details/summary underneath so it costs no script and
+     keeps its keyboard behaviour. */
+  details.expander {
+    border: 1px solid var(--divider-color, ButtonBorder);
+    border-radius: var(--kv-radius-card);
+    margin: 12px 0;
+  }
+  details.expander > summary {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 16px;
+    font-weight: 500;
+    cursor: pointer;
+    list-style: none;
+  }
+  details.expander > summary::-webkit-details-marker {
+    display: none;
+  }
+  details.expander > summary::after {
+    /* The chevron, drawn from two borders so it follows the text colour. */
+    content: "";
+    margin-left: auto;
+    width: 7px;
+    height: 7px;
+    border-style: solid;
+    border-width: 0 2px 2px 0;
+    color: var(--secondary-text-color);
+    transform: rotate(45deg);
+    transition: transform 120ms ease;
+  }
+  details.expander[open] > summary::after {
+    transform: rotate(-135deg);
+  }
+  details.expander > .expander-body {
+    padding: 0 16px 16px;
+  }
+  details.expander > .expander-body > h3:first-child {
+    margin-top: 0;
   }
   /* Section switcher, the way Home Assistant marks a selection: a bar on a
      shared baseline, never a filled pill. This is the page-background

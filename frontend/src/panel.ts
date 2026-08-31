@@ -66,7 +66,10 @@ export class CamwatchPanel extends LitElement {
         height: var(--header-height, 56px);
         display: flex;
         align-items: center;
-        padding: 0 16px;
+        /* Flush with the first tab's text below (16px strip padding plus
+           16px tab padding), the way Alarmo and HA's own subpages line the
+           title up over the tab labels. */
+        padding: 0 32px;
         box-sizing: border-box;
       }
       .toolbar .title {
@@ -80,6 +83,7 @@ export class CamwatchPanel extends LitElement {
       .tabs {
         display: flex;
         overflow-x: auto;
+        padding: 0 16px;
         /* Home Assistant's tab strips scroll without showing a bar; one
            right under the tabs would compete with the selection underline. */
         scrollbar-width: none;
@@ -122,6 +126,9 @@ export class CamwatchPanel extends LitElement {
         outline-offset: -4px;
       }
       :host([narrow]) .toolbar {
+        padding: 0 24px;
+      }
+      :host([narrow]) .tabs {
         padding: 0 12px;
       }
       :host([narrow]) .tabs button {

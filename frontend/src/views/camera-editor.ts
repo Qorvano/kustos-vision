@@ -662,7 +662,9 @@ export class CamwatchCameraEditor extends LitElement {
           </div>
         </div>
 
-        <h3>Bedienelemente</h3>
+        <details class="expander">
+          <summary>Bedienelemente</summary>
+          <div class="expander-body">
         <p class="hint">
           Was hier zugeordnet ist, kann auf der Kachel erscheinen. Pro Ansicht
           lässt sich unten auswählen, welche davon dort gezeigt werden.
@@ -690,8 +692,12 @@ export class CamwatchCameraEditor extends LitElement {
             `,
           )}
         </table>
+          </div>
+        </details>
 
-        <h3>Eigene Bedienelemente</h3>
+        <details class="expander">
+          <summary>Eigene Bedienelemente</summary>
+          <div class="expander-body">
         <p class="hint">
           Für alles, was die vierzehn vorgegebenen Plätze nicht abdecken: Zoom,
           Wischer, Empfindlichkeit, Sirenenlautstärke und was Ihre Kamera sonst
@@ -716,8 +722,12 @@ export class CamwatchCameraEditor extends LitElement {
               >`
             : nothing}
         </div>
+          </div>
+        </details>
 
-        <h3>Ansichten</h3>
+        <details class="expander">
+          <summary>Ansichten</summary>
+          <div class="expander-body">
         ${this.views.length === 0
           ? html`<p class="hint">
               Noch keine Ansicht angelegt. Unter Einstellungen, Ansichten lässt
@@ -730,6 +740,8 @@ export class CamwatchCameraEditor extends LitElement {
                 Wandansicht nur als Bild.
               </p>
               ${this.views.map((view) => this.renderViewBlock(view))}`}
+          </div>
+        </details>
 
         ${this.error ? html`<p class="error">${this.error}</p>` : nothing}
 
