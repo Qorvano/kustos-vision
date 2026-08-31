@@ -519,3 +519,19 @@ describe("the corner clock", () => {
     expect(source).toContain("Zeitstempel einbrennen");
   });
 });
+
+describe("the storage banner", () => {
+  const read = (name: string) =>
+    readFileSync(new URL(`../src/${name}`, import.meta.url), "utf8");
+
+  it("offers the reconnect the supervisor never retries by itself", () => {
+    const source = read("panel.ts");
+    expect(source).toContain("storage_reconnect_available");
+    expect(source).toContain("Speicher neu verbinden");
+    expect(source).toContain("reconnectStorage()");
+  });
+
+  it("the api client carries the command", () => {
+    expect(read("api.ts")).toContain("storage/reconnect");
+  });
+});

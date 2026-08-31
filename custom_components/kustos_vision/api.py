@@ -59,6 +59,7 @@ def async_register(hass: HomeAssistant) -> None:
     for command in (
         ws_get_config,
         ws_set_storage,
+        ws_reconnect_storage,
         ws_set_camera,
         ws_delete_camera,
         ws_suggest_camera,
@@ -168,6 +169,10 @@ def _snapshot(coordinator: CamwatchCoordinator) -> dict[str, Any]:
         # panel shows this as a banner, because a camera page that silently
         # records nothing is the worst way to find out.
         "storage_error": coordinator.storage_error,
+        # Whether the banner may offer to reconnect the mount: only on
+        # Supervisor installations, and only when the broken location actually
+        # lives on a Supervisor mount.
+        "storage_reconnect_available": coordinator.reconnect_mount is not None,
         "totals": {
             "used_bytes": data.total_bytes if data else 0,
             "free_bytes": data.free_bytes if data else None,
@@ -225,6 +230,47 @@ async def ws_get_config(
     """Return the configuration and the current state in one snapshot."""
     if (coordinator := _require(hass, connection, msg)) is None:
         return
+    connection.send_result(msg["id"], _snapshot(coordinator))
+
+
+@websocket_api.require_admin
+@websocket_api.websocket_command(
+    {vol.Required("type"): f"{DOMAIN}/storage/reconnect"}
+)
+@websocket_api.async_response
+async def ws_reconnect_storage(
+    hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict
+) -> None:
+    """Ask the Supervisor to reconnect the mount behind the recording location.
+
+    The button in the storage banner. HAOS attempts network mounts exactly
+    once at boot and never retries on its own; this is that missing retry,
+    placed where the person is already looking at the consequence.
+    """
+    if (coordinator := _require(hass, connection, msg)) is None:
+        return
+    mount = coordinator.reconnect_mount
+    if mount is None:
+        connection.send_error(
+            msg["id"],
+            "no_mount",
+            "Der Aufnahmeort liegt auf keinem neu verbindbaren Netzwerkspeicher.",
+        )
+        return
+    from .supervisor_mount import async_reload_mount
+
+    try:
+        await async_reload_mount(hass, mount)
+    except Exception as err:
+        connection.send_error(
+            msg["id"],
+            "reconnect_failed",
+            f"Neu verbinden von {mount} fehlgeschlagen: {err}",
+        )
+        return
+    # Probe at once instead of waiting for the next cycle: the person is
+    # watching, and a successful reload should start recording immediately.
+    await coordinator.async_refresh()
     connection.send_result(msg["id"], _snapshot(coordinator))
 
 

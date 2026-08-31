@@ -229,6 +229,11 @@ export class CamwatchApi {
     return this.hass.callWS({ type: `${DOMAIN}/vision/backends` });
   }
 
+  /** Ask the Supervisor to reconnect the mount behind the recordings. */
+  reconnectStorage(): Promise<Snapshot> {
+    return this.hass.callWS({ type: `${DOMAIN}/storage/reconnect` });
+  }
+
   rebuildIndex(): Promise<Snapshot> {
     return this.hass.callWS({ type: `${DOMAIN}/index/rebuild` });
   }

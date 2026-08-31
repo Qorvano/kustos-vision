@@ -23,6 +23,7 @@ from .core.paths import prepare_storage
 from .maintenance import MaintenanceResult, MaintenanceRunner, interval_for
 from .recorder import RecorderManager, StreamStatus
 from .storage import CamwatchStore
+from .supervisor_mount import async_reconnectable_mount
 from .vision_runner import VisionRunner
 
 _LOGGER = logging.getLogger(__name__)
@@ -97,6 +98,9 @@ class CamwatchCoordinator(DataUpdateCoordinator[CamwatchData]):
         # setup-retry locked the user out of their own settings.
         self.storage_error: str | None = None
         self._storage_ready = False
+        # The Supervisor mount the recording location lives on, resolved only
+        # while the location is broken; None hides the reconnect button.
+        self.reconnect_mount: str | None = None
 
     # ------------------------------------------------------------------
     # Lifecycle
@@ -198,8 +202,12 @@ class CamwatchCoordinator(DataUpdateCoordinator[CamwatchData]):
                 prepare_storage, Path(self.config.storage.base_path)
             )
             self.storage_error = None
+            self.reconnect_mount = None
         except OSError as err:
             self.storage_error = str(err)
+            self.reconnect_mount = await async_reconnectable_mount(
+                self.hass, self.config.storage.base_path
+            )
 
         if self.storage_error is None and not self._storage_ready:
             self._storage_ready = True

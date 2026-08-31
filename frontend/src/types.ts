@@ -147,6 +147,8 @@ export interface Snapshot {
   storage: Storage;
   /** Why the recording location cannot be used right now, or null. */
   storage_error?: string | null;
+  /** The broken location lives on a Supervisor mount that can be reloaded. */
+  storage_reconnect_available?: boolean;
   cameras: Camera[];
   views: View[];
   vision: VisionProfile[];

@@ -28,6 +28,8 @@ export class CamwatchPanel extends LitElement {
   @state() private snapshot?: Snapshot;
   @state() private active = "";
   @state() private error = "";
+  @state() private reconnecting = false;
+  @state() private reconnectError = "";
 
   private api?: CamwatchApi;
 
@@ -165,7 +167,41 @@ export class CamwatchPanel extends LitElement {
         wieder verfügbar ist; ändern lässt er sich unter Einstellungen,
         Speicher.
       </span>
+      ${snapshot.storage_reconnect_available
+        ? html`<button
+            ?disabled=${this.reconnecting}
+            @click=${this.reconnectStorage}
+          >
+            ${this.reconnecting
+              ? "Verbinde neu …"
+              : "Speicher neu verbinden"}
+          </button>`
+        : nothing}
+      ${this.reconnectError
+        ? html`<span>${this.reconnectError}</span>`
+        : nothing}
     </div>`;
+  }
+
+  /**
+   * The retry HAOS itself never makes.
+   *
+   * Network mounts are attempted exactly once at boot; when that race is
+   * lost, the Supervisor covers the mount point with a read-only placeholder
+   * and waits for a manual reload. This button is that reload, placed where
+   * the person is already looking at the consequence.
+   */
+  private async reconnectStorage(): Promise<void> {
+    if (!this.api) return;
+    this.reconnecting = true;
+    this.reconnectError = "";
+    try {
+      this.snapshot = await this.api.reconnectStorage();
+    } catch (err) {
+      this.reconnectError = errorText(err);
+    } finally {
+      this.reconnecting = false;
+    }
   }
 
   private renderStaleNotice(snapshot: Snapshot) {

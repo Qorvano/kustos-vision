@@ -559,3 +559,100 @@ async def test_stopping_a_stream_is_not_an_error(
         await hass.async_block_till_done()
 
     assert "failed unexpectedly" not in caplog.text
+
+
+# ----------------------------------------------------------------------
+# The reconnect button behind the storage banner
+# ----------------------------------------------------------------------
+
+
+def test_the_mount_is_found_by_its_own_path() -> None:
+    """Matched against what the Supervisor reports, not by parsing /media."""
+    from custom_components.kustos_vision.supervisor_mount import mount_for_path
+
+    mounts = [("backup", "/backup/x"), ("nas", "/media/nas"), ("other", "/share/o")]
+    assert mount_for_path("/media/nas/Kameraaufnahmen", mounts) == "nas"
+    assert mount_for_path("/media/nas", mounts) == "nas"
+    assert mount_for_path("/media/elsewhere/clips", mounts) is None
+    # The deepest matching mount wins when one is nested inside another.
+    nested = [("outer", "/media"), ("inner", "/media/nas")]
+    assert mount_for_path("/media/nas/x", nested) == "inner"
+
+
+async def test_no_supervisor_means_no_button(
+    hass: HomeAssistant, hass_storage: dict, tmp_path: Path, recording_env
+) -> None:
+    """The test harness has no Supervisor, which is exactly the Container and
+    Core case: the flag stays off and nothing else changes."""
+    import os
+
+    base = tmp_path / "recordings"
+    base.mkdir()
+    os.chmod(base, 0o555)
+    try:
+        hass_storage[STORAGE_KEY_CONFIG] = stored_config(base)
+        entry = MockConfigEntry(domain=DOMAIN, data={CONF_BASE_PATH: str(base)})
+        entry.add_to_hass(hass)
+        assert await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+        assert entry.runtime_data.storage_error is not None
+        assert entry.runtime_data.reconnect_mount is None
+    finally:
+        os.chmod(base, 0o755)
+
+
+async def test_the_reconnect_command_reloads_and_reprobes(
+    hass: HomeAssistant,
+    hass_storage: dict,
+    hass_ws_client,
+    tmp_path: Path,
+    recording_env,
+    spawned: list[list[str]],
+) -> None:
+    """Reload the mount, probe at once, come back recording."""
+    import os
+
+    base = tmp_path / "recordings"
+    base.mkdir()
+    os.chmod(base, 0o555)
+    try:
+        hass_storage[STORAGE_KEY_CONFIG] = stored_config(base)
+        entry = MockConfigEntry(domain=DOMAIN, data={CONF_BASE_PATH: str(base)})
+        entry.add_to_hass(hass)
+        assert await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+        assert spawned == []
+    finally:
+        pass
+
+    coordinator = entry.runtime_data
+    coordinator.reconnect_mount = "nas"
+    reloaded: list[str] = []
+
+    async def _reload(hass_, name):
+        # The reload is what makes the location writable again.
+        reloaded.append(name)
+        os.chmod(base, 0o755)
+
+    client = await hass_ws_client(hass)
+    with patch(
+        "custom_components.kustos_vision.supervisor_mount.async_reload_mount",
+        _reload,
+    ):
+        await client.send_json_auto_id({"type": f"{DOMAIN}/storage/reconnect"})
+        result = await client.receive_json()
+
+    assert result["success"], result
+    assert reloaded == ["nas"]
+    assert result["result"]["storage_error"] is None
+    assert len(spawned) == 1  # die Aufzeichnung lief direkt wieder an
+
+
+async def test_reconnect_without_a_mount_says_so(
+    hass: HomeAssistant, hass_ws_client, loaded
+) -> None:
+    client = await hass_ws_client(hass)
+    await client.send_json_auto_id({"type": f"{DOMAIN}/storage/reconnect"})
+    result = await client.receive_json()
+    assert not result["success"]
+    assert result["error"]["code"] == "no_mount"
