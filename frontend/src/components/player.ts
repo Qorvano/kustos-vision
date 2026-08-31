@@ -575,9 +575,16 @@ export class CamwatchPlayer extends LitElement {
     let codec: string | null;
     try {
       codec = await this.inspect(this.placed[0].segment);
-    } catch (err) {
-      this.message = errorText(err);
-      return;
+    } catch {
+      // One immediate retry: a single dropped connection, seen live during
+      // an error recovery, must not end the viewing over eight kilobytes.
+      if (generation !== this.generation) return;
+      try {
+        codec = await this.inspect(this.placed[0].segment);
+      } catch (err) {
+        this.message = errorText(err);
+        return;
+      }
     }
     if (generation !== this.generation) return;
     if (!codec) {
@@ -773,6 +780,12 @@ export class CamwatchPlayer extends LitElement {
         const response = await this.fetchSegment(next.segment);
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         if (generation !== this.generation || !this.buffer) return;
+        if (media.readyState !== "open") {
+          // A decode error can end the stream while the fetch was in
+          // flight; the error listener is already reloading, and touching
+          // the buffer of an ended source only throws InvalidStateError.
+          return;
+        }
         // Reset the parser before a new file, but never on a buffer nothing
         // was appended to yet: there is nothing to reset, and a pending
         // play() on a freshly opened, still empty source has been seen to

@@ -847,7 +847,7 @@ const re = j`
     color: var(--secondary-text-color);
     font-size: 0.85em;
   }
-`, ge = "0.5.5", yt = {
+`, ge = "0.5.6", yt = {
   ptz_up: "Schwenken hoch",
   ptz_down: "Schwenken runter",
   ptz_left: "Schwenken links",
@@ -1122,9 +1122,14 @@ let O = class extends x {
     let a;
     try {
       a = await this.inspect(this.placed[0].segment);
-    } catch (_) {
-      this.message = k(_);
-      return;
+    } catch {
+      if (i !== this.generation) return;
+      try {
+        a = await this.inspect(this.placed[0].segment);
+      } catch (_) {
+        this.message = k(_);
+        return;
+      }
     }
     if (i !== this.generation) return;
     if (!a) {
@@ -1234,7 +1239,7 @@ let O = class extends x {
       try {
         const n = await this.fetchSegment(i.segment);
         if (!n.ok) throw new Error(`HTTP ${n.status}`);
-        if (r !== this.generation || !this.buffer || (this.accepted > 0 && this.buffer.abort(), this.buffer.timestampOffset = i.mediaStart, this.appended.add(i.segment.path), this.carry = {
+        if (r !== this.generation || !this.buffer || e.readyState !== "open" || (this.accepted > 0 && this.buffer.abort(), this.buffer.timestampOffset = i.mediaStart, this.appended.add(i.segment.path), this.carry = {
           path: i.segment.path,
           // Streamed on purpose: waiting for a whole high-resolution segment
           // to download before the first append kept the screen black for
