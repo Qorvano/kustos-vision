@@ -12,6 +12,7 @@ from pathlib import Path
 import pytest
 from kustos_vision.core.recorder import (
     AAC_BITRATE,
+    RTSP_READ_TIMEOUT_US,
     AudioMode,
     StreamSpec,
     build_concat_args,
@@ -177,3 +178,18 @@ def test_export_never_re_encodes() -> None:
     assert pair_after(args, "-c") == "copy"
     assert pair_after(args, "-f") == "concat"
     assert pair_after(args, "-safe") == "0"
+
+
+def test_rtsp_sources_carry_a_read_timeout() -> None:
+    """A camera connection can die silently: measured live 2026-08-31, a
+    51-minute network freeze left every recording process waiting forever on
+    a half-open TCP connection whose camera side had long been reset, and
+    recording stayed down for an hour after the network was back. The
+    timeout turns that silence into an ffmpeg exit the supervisor restarts.
+    Value is microseconds, per ffmpeg -h demuxer=rtsp on 8.0.1."""
+    args = build_record_args(spec(), BASE)
+    assert pair_after(args, "-timeout") == RTSP_READ_TIMEOUT_US
+    # Like -rtsp_transport, the option pair belongs to the RTSP demuxer and
+    # must not reach inputs of other protocols.
+    http = build_record_args(spec(source_url="http://cam.invalid/x.m3u8"), BASE)
+    assert "-timeout" not in http

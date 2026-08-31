@@ -656,3 +656,105 @@ async def test_reconnect_without_a_mount_says_so(
     result = await client.receive_json()
     assert not result["success"]
     assert result["error"]["code"] == "no_mount"
+
+
+async def test_a_broken_location_reconnects_its_mount_by_itself(
+    hass: HomeAssistant,
+    hass_storage: dict,
+    tmp_path: Path,
+    recording_env,
+    spawned: list[list[str]],
+) -> None:
+    """Regression for the boot race: the Supervisor mounts network shares
+    exactly once at boot, before its own network is up after an unclean
+    reboot, and never retries (measured live: mount.nfs failed with "Network
+    is unreachable" five seconds into boot, and recording stayed down until
+    a person clicked the banner). The first cycle that sees the broken
+    location now reloads the mount itself and starts recording in the same
+    cycle."""
+    import os
+
+    base = tmp_path / "recordings"
+    base.mkdir()
+    os.chmod(base, 0o555)
+    reloaded: list[str] = []
+
+    async def _reload(hass_, name):
+        # The reload is what makes the location writable again.
+        reloaded.append(name)
+        os.chmod(base, 0o755)
+
+    try:
+        hass_storage[STORAGE_KEY_CONFIG] = stored_config(base)
+        entry = MockConfigEntry(domain=DOMAIN, data={CONF_BASE_PATH: str(base)})
+        entry.add_to_hass(hass)
+        with (
+            patch(
+                "custom_components.kustos_vision.coordinator."
+                "async_reconnectable_mount",
+                AsyncMock(return_value="nas"),
+            ),
+            patch(
+                "custom_components.kustos_vision.supervisor_mount."
+                "async_reload_mount",
+                _reload,
+            ),
+        ):
+            assert await hass.config_entries.async_setup(entry.entry_id)
+            await hass.async_block_till_done()
+    finally:
+        os.chmod(base, 0o755)
+
+    assert reloaded == ["nas"]
+    assert entry.runtime_data.storage_error is None
+    assert len(spawned) == 1  # die Aufzeichnung lief im selben Zyklus an
+
+
+async def test_auto_reconnect_backs_off_while_the_share_stays_gone(
+    hass: HomeAssistant,
+    hass_storage: dict,
+    tmp_path: Path,
+    recording_env,
+    spawned: list[list[str]],
+) -> None:
+    """A share that is genuinely off is not asked to mount on every cycle:
+    attempts run on cycles 1 and 2, then double their spacing."""
+    import os
+
+    base = tmp_path / "recordings"
+    base.mkdir()
+    os.chmod(base, 0o555)
+    attempts: list[str] = []
+
+    async def _reload(hass_, name):
+        attempts.append(name)
+        raise OSError("still unreachable")
+
+    try:
+        hass_storage[STORAGE_KEY_CONFIG] = stored_config(base)
+        entry = MockConfigEntry(domain=DOMAIN, data={CONF_BASE_PATH: str(base)})
+        entry.add_to_hass(hass)
+        with (
+            patch(
+                "custom_components.kustos_vision.coordinator."
+                "async_reconnectable_mount",
+                AsyncMock(return_value="nas"),
+            ),
+            patch(
+                "custom_components.kustos_vision.supervisor_mount."
+                "async_reload_mount",
+                _reload,
+            ),
+        ):
+            assert await hass.config_entries.async_setup(entry.entry_id)
+            await hass.async_block_till_done()
+            assert len(attempts) == 1  # Zyklus 1 versucht sofort
+            coordinator = entry.runtime_data
+            await coordinator.async_refresh()
+            assert len(attempts) == 2  # Zyklus 2 direkt hinterher
+            await coordinator.async_refresh()
+            assert len(attempts) == 2  # Zyklus 3 setzt aus
+            await coordinator.async_refresh()
+            assert len(attempts) == 3  # Zyklus 4 versucht wieder
+    finally:
+        os.chmod(base, 0o755)

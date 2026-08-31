@@ -30,6 +30,19 @@ AAC_BITRATE = "64k"
 # time without being visible.
 THUMBNAIL_WIDTH = 320
 
+# Socket read timeout for RTSP inputs, in microseconds (ffmpeg's rtsp
+# ``-timeout`` option is an int64 of microseconds, verified against
+# ``ffmpeg -h demuxer=rtsp`` on 8.0.1, the version Home Assistant ships).
+# Exists because a camera connection can die silently: measured live
+# 2026-08-31, a 51-minute host-side network freeze left every recording
+# process waiting forever on a half-open TCP connection whose camera side
+# had long been reset, and recording stayed down for an hour after the
+# network came back. Thirty seconds is far above any legitimate gap between
+# packets of a continuously delivering camera (keyframes arrive every few
+# seconds) and short enough that the supervisor's restart brings the stream
+# back within a minute of the transport recovering.
+RTSP_READ_TIMEOUT_US = str(30 * 1_000_000)
+
 
 class AudioMode(StrEnum):
     """How to treat the audio track of a stream."""
@@ -77,11 +90,13 @@ def _input_args(source_url: str) -> list[str]:
     conditionally: passing it to an HTTP or file input makes ffmpeg reject the
     option instead of ignoring it. TCP is chosen because UDP silently drops
     packets under load, which produces corrupt segments rather than a visible
-    error.
+    error. The read timeout is what turns a silently dead connection into an
+    ffmpeg exit the supervisor can restart; see RTSP_READ_TIMEOUT_US.
     """
     args: list[str] = []
     if source_url.lower().startswith("rtsp://"):
         args += ["-rtsp_transport", "tcp"]
+        args += ["-timeout", RTSP_READ_TIMEOUT_US]
     # Arrival time as the clock, not the stream's own timestamps. The
     # reversal of an earlier finding, both measured: these cameras deliver
     # frames evenly (the live view is smooth) but stamp them uselessly, with

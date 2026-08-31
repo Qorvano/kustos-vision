@@ -28,6 +28,14 @@ from .vision_runner import VisionRunner
 
 _LOGGER = logging.getLogger(__name__)
 
+# Cap on the automatic mount-reconnect backoff, counted in update cycles.
+# Attempts double their spacing after every failure (cycles 1, 2, 4, 7, ...)
+# so the boot race resolves within the first cycles, while a NAS that is
+# genuinely off is asked about at most once per cap window: every attempt
+# restarts a systemd mount unit and writes an error line to the host journal,
+# so unbounded per-cycle retries would turn a powered-down share into log spam.
+AUTO_RECONNECT_MAX_SKIP_CYCLES = 16
+
 
 @dataclass(frozen=True, slots=True)
 class CameraState:
@@ -101,6 +109,16 @@ class CamwatchCoordinator(DataUpdateCoordinator[CamwatchData]):
         # The Supervisor mount the recording location lives on, resolved only
         # while the location is broken; None hides the reconnect button.
         self.reconnect_mount: str | None = None
+        # Automatic reconnect state: cycles left to sit out before the next
+        # attempt, and the spacing the next failure earns. Exists because the
+        # Supervisor tries network mounts exactly once at boot and loses that
+        # race against its own network after an unclean reboot; the banner
+        # button covers a watching person, this covers the boot where nobody
+        # is. Measured live 2026-08-31: mount.nfs failed with "Network is
+        # unreachable" five seconds into boot and recording stayed down for
+        # ten minutes until someone clicked.
+        self._auto_reconnect_skip = 0
+        self._auto_reconnect_backoff = 0
 
     # ------------------------------------------------------------------
     # Lifecycle
@@ -195,19 +213,14 @@ class CamwatchCoordinator(DataUpdateCoordinator[CamwatchData]):
 
         Ready to gone: recording stops, with the reason kept for the panel.
         Gone to ready: recording starts, which also covers the very first
-        cycle after setup.
+        cycle after setup. A broken location that lives on a Supervisor
+        mount additionally gets an automatic reload attempt, with backoff.
         """
-        try:
-            await self.hass.async_add_executor_job(
-                prepare_storage, Path(self.config.storage.base_path)
-            )
-            self.storage_error = None
-            self.reconnect_mount = None
-        except OSError as err:
-            self.storage_error = str(err)
-            self.reconnect_mount = await async_reconnectable_mount(
-                self.hass, self.config.storage.base_path
-            )
+        await self._async_probe_storage()
+        if self.storage_error is not None and await self._async_auto_reconnect():
+            # The reload went through; probe again at once so the location
+            # can come back in this cycle instead of a full interval later.
+            await self._async_probe_storage()
 
         if self.storage_error is None and not self._storage_ready:
             self._storage_ready = True
@@ -224,6 +237,58 @@ class CamwatchCoordinator(DataUpdateCoordinator[CamwatchData]):
                 self.storage_error,
             )
             await self.recorder.async_stop_all()
+
+    async def _async_probe_storage(self) -> None:
+        """One probe of the recording location, leaving its verdict behind."""
+        try:
+            await self.hass.async_add_executor_job(
+                prepare_storage, Path(self.config.storage.base_path)
+            )
+            self.storage_error = None
+            self.reconnect_mount = None
+            self._auto_reconnect_skip = 0
+            self._auto_reconnect_backoff = 0
+        except OSError as err:
+            self.storage_error = str(err)
+            self.reconnect_mount = await async_reconnectable_mount(
+                self.hass, self.config.storage.base_path
+            )
+
+    async def _async_auto_reconnect(self) -> bool:
+        """One automatic attempt at reloading the mount behind the location.
+
+        The Supervisor's missing retry, run without a person: after an
+        unclean reboot the read-only placeholder would sit there until the
+        next panel visit. Returns True when the reload went through and the
+        location deserves an immediate re-probe. Failed attempts double
+        their spacing up to AUTO_RECONNECT_MAX_SKIP_CYCLES.
+        """
+        if self.reconnect_mount is None:
+            return False
+        if self._auto_reconnect_skip > 0:
+            self._auto_reconnect_skip -= 1
+            return False
+        self._auto_reconnect_skip = self._auto_reconnect_backoff
+        self._auto_reconnect_backoff = min(
+            max(1, 2 * self._auto_reconnect_backoff), AUTO_RECONNECT_MAX_SKIP_CYCLES
+        )
+        from .supervisor_mount import async_reload_mount
+
+        mount = self.reconnect_mount
+        try:
+            await async_reload_mount(self.hass, mount)
+        except Exception as err:
+            _LOGGER.info(
+                "kustos_vision: automatic reconnect of mount %s failed: %s",
+                mount,
+                err,
+            )
+            return False
+        _LOGGER.info(
+            "kustos_vision: reloaded mount %s behind the recording location",
+            mount,
+        )
+        return True
 
     async def _async_build_state(self, result: MaintenanceResult) -> CamwatchData:
         by_camera = await self.hass.async_add_executor_job(self.index.bytes_by_camera)
