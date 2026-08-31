@@ -54,7 +54,9 @@ export class CamwatchLiveStream extends LitElement {
     :host {
       display: block;
       position: relative;
-      background: var(--secondary-background-color, #222);
+      /* The letterbox behind a 16:9 picture, dark in every theme for the
+         same reason the player chrome is: it frames video, not text. */
+      background: #111;
       aspect-ratio: 16 / 9;
       overflow: hidden;
     }
@@ -73,7 +75,8 @@ export class CamwatchLiveStream extends LitElement {
       justify-content: center;
       text-align: center;
       padding: 8px;
-      color: var(--secondary-text-color, #bbb);
+      /* On the always-dark backdrop above, not on the theme's surface. */
+      color: #ddd;
       font-size: 0.9em;
     }
     .clock {

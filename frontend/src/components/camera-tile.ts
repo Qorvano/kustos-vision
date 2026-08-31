@@ -6,6 +6,7 @@ import { LitElement, css, html, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import { errorText, type CamwatchApi } from "../api";
 import { capabilityLabel, PTZ_SYMBOLS } from "../capabilities";
+import { shared } from "../styles";
 import type { Camera, CustomControl, HomeAssistant } from "../types";
 import "./live-stream";
 
@@ -24,86 +25,83 @@ export class CamwatchCameraTile extends LitElement {
   @state() private busy = "";
   @state() private error = "";
 
-  static override styles = css`
-    :host {
-      display: block;
-      background: var(--card-background-color, #fff);
-      border-radius: var(--ha-card-border-radius, 12px);
-      overflow: hidden;
-      box-shadow: var(--ha-card-box-shadow, 0 2px 4px rgba(0, 0, 0, 0.15));
-    }
-    header {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 10px 12px;
-      font-weight: 500;
-    }
-    .dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: var(--error-color, #db4437);
-      flex: none;
-    }
-    .dot.recording {
-      background: var(--success-color, #43a047);
-    }
-    /* Grey, not red: nothing is wrong, nothing is meant to be recorded. */
-    .dot.idle {
-      background: var(--disabled-text-color, #888);
-    }
-    .spacer {
-      flex: 1;
-    }
-    .meta {
-      font-size: 0.8em;
-      color: var(--secondary-text-color);
-      font-weight: normal;
-    }
-    .controls {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      padding: 8px 12px 12px;
-    }
-    button {
-      font: inherit;
-      cursor: pointer;
-      border: none;
-      border-radius: 8px;
-      padding: 6px 10px;
-      min-width: 36px;
-      background: var(--secondary-background-color);
-      color: var(--primary-text-color);
-    }
-    button:disabled {
-      opacity: 0.5;
-      cursor: default;
-    }
-    label.inline {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 0.85em;
-      color: var(--secondary-text-color);
-    }
-    label.inline select,
-    label.inline input {
-      font: inherit;
-      padding: 4px 6px;
-      border-radius: 6px;
-      border: 1px solid var(--divider-color, #ccc);
-      background: var(--card-background-color, #fff);
-      color: var(--primary-text-color);
-      max-width: 130px;
-    }
-    .error {
-      padding: 0 12px 10px;
-      color: var(--error-color, #db4437);
-      font-size: 0.85em;
-    }
-  `;
+  static override styles = [
+    shared,
+    css`
+      :host {
+        display: block;
+        /* shared's :host serves full-page views and sets min-height: 100%;
+           a tile is a grid item and must size to its content. */
+        min-height: 0;
+        background: var(
+          --ha-card-background,
+          var(--card-background-color, Canvas)
+        );
+        border-radius: var(--kv-radius-card);
+        border: var(--ha-card-border-width, 1px) solid
+          var(--ha-card-border-color, var(--divider-color, ButtonBorder));
+        box-shadow: var(--ha-card-box-shadow, none);
+        overflow: hidden;
+      }
+      header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 12px;
+        font-weight: 500;
+      }
+      .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--error-color, #db4437);
+        flex: none;
+      }
+      .dot.recording {
+        background: var(--success-color, #43a047);
+      }
+      /* Grey, not red: nothing is wrong, nothing is meant to be recorded. */
+      .dot.idle {
+        background: var(--disabled-text-color, #888);
+      }
+      .spacer {
+        flex: 1;
+      }
+      .meta {
+        font-size: 0.8em;
+        color: var(--secondary-text-color);
+        font-weight: normal;
+      }
+      .controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        padding: 8px 12px 12px;
+      }
+      label.inline {
+        /* shared's label is block with a top margin, which would break the
+           control row apart. */
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        margin: 0;
+        font-size: 0.85em;
+        color: var(--secondary-text-color);
+      }
+      label.inline select,
+      label.inline input {
+        /* shared makes fields fill their row; tile controls stay compact. */
+        width: auto;
+        max-width: 130px;
+        padding: 4px 8px;
+      }
+      .error {
+        /* shared only supplies the colour. */
+        padding: 0 12px 10px;
+        font-size: 0.85em;
+      }
+    `,
+  ];
 
   private get liveEntity(): string | undefined {
     const streams = this.camera.streams;
@@ -146,6 +144,7 @@ export class CamwatchCameraTile extends LitElement {
 
   private renderButton(capability: string, label: string, value?: boolean | string) {
     return html`<button
+      class="secondary compact"
       title=${capabilityLabel(capability)}
       ?disabled=${this.busy !== ""}
       @click=${() => this.run(capability, value)}

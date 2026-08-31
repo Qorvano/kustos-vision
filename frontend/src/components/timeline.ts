@@ -100,7 +100,7 @@ export class CamwatchTimeline extends LitElement {
       position: relative;
       height: 44px;
       touch-action: none;
-      background: var(--secondary-background-color, #2a2a2a);
+      background: var(--secondary-background-color, ButtonFace);
       border-radius: 8px;
       overflow: hidden;
       cursor: pointer;
@@ -132,7 +132,7 @@ export class CamwatchTimeline extends LitElement {
     }
     .head .flag {
       background: var(--error-color, #db4437);
-      color: #fff;
+      color: var(--text-primary-color, #fff);
       font-size: 0.7em;
       padding: 1px 5px;
       border-radius: 4px;
@@ -182,7 +182,7 @@ export class CamwatchTimeline extends LitElement {
       position: absolute;
       bottom: 52px;
       transform: translateX(-50%);
-      background: var(--card-background-color, #fff);
+      background: var(--ha-card-background, var(--card-background-color, Canvas));
       border-radius: 8px;
       padding: 4px;
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);

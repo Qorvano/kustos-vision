@@ -235,7 +235,7 @@ export class CamwatchVisionEditor extends LitElement {
 
   private renderObservation(observation: Observation, index: number) {
     return html`
-      <div style="border-bottom:1px solid var(--divider-color,#eee);padding:12px 0">
+      <div class="divided">
         <div class="row">
           <div class="grow">
             <label>Frage an das Modell</label>

@@ -403,7 +403,7 @@ export class CamwatchSettings extends LitElement {
 
   private renderViewRow(view: View, index: number) {
     return html`
-      <div style="border-bottom:1px solid var(--divider-color,#eee);padding:12px 0">
+      <div class="divided">
         <div class="row">
           <div class="grow">
             <label>Name</label>
@@ -576,11 +576,13 @@ export class CamwatchSettings extends LitElement {
   override render() {
     return html`
       <div style="padding:16px">
-        <div class="row" style="margin-bottom:16px">
+        <div class="subtabs" role="tablist">
           ${SECTIONS.map(
             ([id, label]) => html`
               <button
-                class=${this.section === id ? "" : "secondary"}
+                role="tab"
+                aria-selected=${this.section === id ? "true" : "false"}
+                class=${this.section === id ? "active" : ""}
                 @click=${() => {
                   this.section = id;
                   this.adding = false;

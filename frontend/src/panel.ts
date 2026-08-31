@@ -57,24 +57,76 @@ export class CamwatchPanel extends LitElement {
             var(--safe-area-inset-bottom, 0px)
         );
       }
+      .header {
+        flex: none;
+        background: var(--app-header-background-color, var(--primary-color));
+        color: var(--app-header-text-color, var(--text-primary-color, #fff));
+      }
+      .toolbar {
+        height: var(--header-height, 56px);
+        display: flex;
+        align-items: center;
+        padding: 0 16px;
+        box-sizing: border-box;
+      }
+      .toolbar .title {
+        font-size: 20px;
+        font-weight: 400;
+        line-height: 1.2;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
       .tabs {
         display: flex;
-        gap: 4px;
-        padding: 8px 12px;
         overflow-x: auto;
-        background: var(--app-header-background-color, var(--primary-color));
-        color: var(--app-header-text-color, #fff);
+        /* Home Assistant's tab strips scroll without showing a bar; one
+           right under the tabs would compete with the selection underline. */
+        scrollbar-width: none;
+      }
+      .tabs::-webkit-scrollbar {
+        display: none;
       }
       .tabs button {
-        background: transparent;
+        height: 48px;
+        min-height: 0;
+        min-width: 90px;
+        padding: 0 16px;
+        background: none;
+        border: none;
+        border-radius: 0;
         color: inherit;
-        border-radius: 8px;
+        font-size: 14px;
         white-space: nowrap;
-        opacity: 0.75;
+        opacity: 0.7;
+        /* The selection mark Home Assistant uses: a bar, never a fill. */
+        border-bottom: 2px solid transparent;
+        transition: opacity 120ms ease-in-out;
+      }
+      .tabs button:hover:not(:disabled) {
+        opacity: 1;
+        box-shadow: none;
       }
       .tabs button.active {
-        background: rgba(255, 255, 255, 0.18);
         opacity: 1;
+        /* The chain hass-tabs-subpage itself resolves for its selection
+           bar, with one more link so a header without any text colour set
+           still shows a bar. */
+        border-bottom-color: var(
+          --app-header-selection-bar-color,
+          var(--app-header-text-color, var(--text-primary-color, #fff))
+        );
+      }
+      .tabs button:focus-visible {
+        outline: 2px solid currentColor;
+        outline-offset: -4px;
+      }
+      :host([narrow]) .toolbar {
+        padding: 0 12px;
+      }
+      :host([narrow]) .tabs button {
+        min-width: 0;
+        padding: 0 12px;
       }
       .body {
         flex: 1;
@@ -96,20 +148,46 @@ export class CamwatchPanel extends LitElement {
       .body > kustos-vision-settings {
         flex: 0 0 auto;
       }
+      .body > kustos-vision-settings {
+        /* Home Assistant caps and centres its settings content; a
+           full-width form on a wide monitor is a line length nobody reads.
+           The live views deliberately stay full width, a camera wall wants
+           every pixel. width:100% matters: with only the auto margins, a
+           column flex child shrinks to fit-content instead of stretching. */
+        width: 100%;
+        max-width: var(--kv-content-max-width, 1040px);
+        margin: 0 auto;
+      }
       .stale {
+        position: relative;
+        flex: none;
         display: flex;
         align-items: center;
         gap: 12px;
         flex-wrap: wrap;
-        padding: 10px 16px;
-        background: var(--warning-color, #ffa600);
-        color: #000;
+        padding: 12px 16px;
+        /* How ha-alert colours a warning: the accent laid over the surface
+           at low opacity instead of used as the background, so the text
+           keeps the theme's own colour and stays readable on light and
+           dark alike. */
+        background: var(
+          --ha-card-background,
+          var(--card-background-color, Canvas)
+        );
+        color: var(--primary-text-color, CanvasText);
+        border-left: 4px solid var(--warning-color, #ffa600);
         font-size: 0.9em;
       }
-      .stale button {
-        background: rgba(0, 0, 0, 0.75);
-        color: #fff;
-        padding: 6px 12px;
+      .stale::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: var(--warning-color, #ffa600);
+        opacity: 0.12;
+        pointer-events: none;
+      }
+      .stale > * {
+        position: relative;
       }
       .notice {
         padding: 32px 16px;
@@ -174,6 +252,7 @@ export class CamwatchPanel extends LitElement {
       </span>
       ${snapshot.storage_reconnect_available
         ? html`<button
+            class="secondary"
             ?disabled=${this.reconnecting}
             @click=${this.reconnectStorage}
           >
@@ -230,13 +309,65 @@ export class CamwatchPanel extends LitElement {
           ausgeliefert wird ${served}. Der Browser hält eine ältere
           Oberfläche fest.
         </span>
-        <button @click=${() => location.reload()}>Neu laden</button>
+        <button class="secondary" @click=${() => location.reload()}>
+          Neu laden
+        </button>
       </div>`;
     }
     return nothing;
   }
 
+  /** The identity above everything, shown even while loading or broken. */
+  private renderHeader() {
+    return html`<div class="header">
+      <div class="toolbar"><div class="title">Kustos Vision</div></div>
+      ${this.snapshot ? this.renderTabs(this.snapshot) : nothing}
+    </div>`;
+  }
+
+  private renderTabs(snapshot: Snapshot) {
+    return html`<div class="tabs" role="tablist">
+      ${snapshot.views.map(
+        (v) => html`
+          <button
+            role="tab"
+            aria-selected=${v.id === this.active ? "true" : "false"}
+            class=${v.id === this.active ? "active" : ""}
+            @click=${() => (this.active = v.id)}
+          >
+            ${v.name}
+          </button>
+        `,
+      )}
+      <button
+        role="tab"
+        aria-selected=${this.active === RECORDINGS_TAB ? "true" : "false"}
+        class=${this.active === RECORDINGS_TAB ? "active" : ""}
+        @click=${() => (this.active = RECORDINGS_TAB)}
+      >
+        Aufnahmen
+      </button>
+      <button
+        role="tab"
+        aria-selected=${this.active === SETTINGS_TAB ? "true" : "false"}
+        class=${this.active === SETTINGS_TAB ? "active" : ""}
+        @click=${() => (this.active = SETTINGS_TAB)}
+      >
+        Einstellungen
+      </button>
+    </div>`;
+  }
+
   override render() {
+    return html`
+      ${this.renderHeader()}
+      ${this.snapshot ? this.renderStaleNotice(this.snapshot) : nothing}
+      ${this.snapshot ? this.renderStorageNotice(this.snapshot) : nothing}
+      ${this.renderBody()}
+    `;
+  }
+
+  private renderBody() {
     if (this.error) {
       return html`<div class="notice">
         kustos_vision ist nicht eingerichtet oder nicht erreichbar.<br />
@@ -251,33 +382,6 @@ export class CamwatchPanel extends LitElement {
     const view = snapshot.views.find((v) => v.id === this.active);
 
     return html`
-      ${this.renderStaleNotice(snapshot)}
-      ${this.renderStorageNotice(snapshot)}
-      <div class="tabs">
-        ${snapshot.views.map(
-          (v) => html`
-            <button
-              class=${v.id === this.active ? "active" : ""}
-              @click=${() => (this.active = v.id)}
-            >
-              ${v.name}
-            </button>
-          `,
-        )}
-        <button
-          class=${this.active === RECORDINGS_TAB ? "active" : ""}
-          @click=${() => (this.active = RECORDINGS_TAB)}
-        >
-          Aufnahmen
-        </button>
-        <button
-          class=${this.active === SETTINGS_TAB ? "active" : ""}
-          @click=${() => (this.active = SETTINGS_TAB)}
-        >
-          Einstellungen
-        </button>
-      </div>
-
       <div class="body">
         ${this.active === RECORDINGS_TAB
           ? html`<kustos-vision-recordings

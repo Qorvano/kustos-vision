@@ -277,7 +277,7 @@ export class CamwatchCameraEditor extends LitElement {
       : ["button", "switch", "select", "number"];
     const chosenEntity = control.binding.entity_id;
     return html`
-      <div style="border-bottom:1px solid var(--divider-color,#eee);padding:12px 0">
+      <div class="divided">
         <div class="row">
           <div class="grow">
             <label>Beschriftung</label>
@@ -370,7 +370,7 @@ export class CamwatchCameraEditor extends LitElement {
     ];
 
     return html`
-      <div style="border-bottom:1px solid var(--divider-color,#eee);padding:12px 0">
+      <div class="divided">
         <label style="margin:0">
           <input
             type="checkbox"
