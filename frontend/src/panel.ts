@@ -11,6 +11,9 @@ import "./version-guard";
 import { LitElement, css, html, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import { CamwatchApi, errorText } from "./api";
+import "./components/unsaved-dialog";
+import type { CamwatchUnsavedDialog } from "./components/unsaved-dialog";
+import { guardNavigation, hasUnsavedWork, setUnsavedPrompter } from "./dirty";
 import { shared } from "./styles";
 import { BUILD_TAG, BUILT_VERSION, type HomeAssistant, type Snapshot } from "./types";
 import "./views/live";
@@ -207,7 +210,33 @@ export class CamwatchPanel extends LitElement {
 
   override connectedCallback(): void {
     super.connectedCallback();
+    // The guard's question is this panel's dialog; a page reload gets the
+    // browser's own question instead, which is all it allows.
+    setUnsavedPrompter(() => this.unsavedDialog().ask());
+    window.addEventListener("beforeunload", this.onBeforeUnload);
     void this.load();
+  }
+
+  override disconnectedCallback(): void {
+    super.disconnectedCallback();
+    setUnsavedPrompter(undefined);
+    window.removeEventListener("beforeunload", this.onBeforeUnload);
+  }
+
+  private onBeforeUnload = (event: BeforeUnloadEvent): void => {
+    if (hasUnsavedWork()) event.preventDefault();
+  };
+
+  private unsavedDialog(): CamwatchUnsavedDialog {
+    return this.renderRoot.querySelector(
+      "kustos-vision-unsaved-dialog",
+    ) as CamwatchUnsavedDialog;
+  }
+
+  /** Change the tab, unless unsaved work says otherwise. */
+  private async switchTab(id: string): Promise<void> {
+    if (this.active === id) return;
+    if (await guardNavigation()) this.active = id;
   }
 
   override updated(changed: Map<string, unknown>): void {
@@ -340,7 +369,7 @@ export class CamwatchPanel extends LitElement {
             role="tab"
             aria-selected=${v.id === this.active ? "true" : "false"}
             class=${v.id === this.active ? "active" : ""}
-            @click=${() => (this.active = v.id)}
+            @click=${() => void this.switchTab(v.id)}
           >
             ${v.name}
           </button>
@@ -350,7 +379,7 @@ export class CamwatchPanel extends LitElement {
         role="tab"
         aria-selected=${this.active === RECORDINGS_TAB ? "true" : "false"}
         class=${this.active === RECORDINGS_TAB ? "active" : ""}
-        @click=${() => (this.active = RECORDINGS_TAB)}
+        @click=${() => void this.switchTab(RECORDINGS_TAB)}
       >
         Aufnahmen
       </button>
@@ -358,7 +387,7 @@ export class CamwatchPanel extends LitElement {
         role="tab"
         aria-selected=${this.active === SETTINGS_TAB ? "true" : "false"}
         class=${this.active === SETTINGS_TAB ? "active" : ""}
-        @click=${() => (this.active = SETTINGS_TAB)}
+        @click=${() => void this.switchTab(SETTINGS_TAB)}
       >
         Einstellungen
       </button>
@@ -371,6 +400,7 @@ export class CamwatchPanel extends LitElement {
       ${this.snapshot ? this.renderStaleNotice(this.snapshot) : nothing}
       ${this.snapshot ? this.renderStorageNotice(this.snapshot) : nothing}
       ${this.renderBody()}
+      <kustos-vision-unsaved-dialog></kustos-vision-unsaved-dialog>
     `;
   }
 

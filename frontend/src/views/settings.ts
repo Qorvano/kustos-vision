@@ -7,6 +7,12 @@
 import { LitElement, html, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import { errorText, formatBytes, type CamwatchApi } from "../api";
+import {
+  guardNavigation,
+  registerUnsavedWork,
+  unregisterUnsavedWork,
+  type UnsavedWork,
+} from "../dirty";
 import { shared } from "../styles";
 import type {
   AvailableCamera,
@@ -44,21 +50,50 @@ export class CamwatchSettings extends LitElement {
   @state() private visionFor?: Camera;
   @state() private busy = false;
   @state() private error = "";
+  /** Edits to the view list that are not stored yet, see renderViews. */
+  @state() private viewsDraft?: View[];
 
   static override styles = shared;
+
+  /** The unsaved work this page itself holds: the view-list draft and the
+      storage fields. The editors it opens register on their own. */
+  private readonly unsavedSections: UnsavedWork = {
+    isDirty: () => this.viewsDirty() || this.storageDirty(),
+    save: async () => {
+      if (this.viewsDirty() && !(await this.commitViews())) return false;
+      if (this.storageDirty() && !(await this.saveStorage())) return false;
+      return true;
+    },
+    discard: () => {
+      this.viewsDraft = undefined;
+      this.resetStorageInputs();
+    },
+  };
+
+  override connectedCallback(): void {
+    super.connectedCallback();
+    registerUnsavedWork(this.unsavedSections);
+  }
+
+  override disconnectedCallback(): void {
+    super.disconnectedCallback();
+    unregisterUnsavedWork(this.unsavedSections);
+  }
 
   private async refresh(): Promise<void> {
     this.dispatchEvent(new CustomEvent("changed", { bubbles: true, composed: true }));
   }
 
-  private async run(work: () => Promise<unknown>): Promise<void> {
+  private async run(work: () => Promise<unknown>): Promise<boolean> {
     this.busy = true;
     this.error = "";
     try {
       await work();
       await this.refresh();
+      return true;
     } catch (err) {
       this.error = errorText(err);
+      return false;
     } finally {
       this.busy = false;
     }
@@ -96,7 +131,8 @@ export class CamwatchSettings extends LitElement {
     if (this.adding || this.editing) {
       return html`${this.renderSubpageHeader(
         this.editing ? `${this.editing.name} bearbeiten` : "Kamera hinzufügen",
-        () => {
+        async () => {
+          if (!(await guardNavigation())) return;
           this.adding = false;
           this.editing = undefined;
         },
@@ -223,7 +259,10 @@ export class CamwatchSettings extends LitElement {
     if (this.visionFor) {
       return html`${this.renderSubpageHeader(
         `Bilderkennung für ${this.visionFor.name}`,
-        () => (this.visionFor = undefined),
+        async () => {
+          if (!(await guardNavigation())) return;
+          this.visionFor = undefined;
+        },
       )}
       <kustos-vision-vision-editor
         .api=${this.api}
@@ -374,7 +413,44 @@ export class CamwatchSettings extends LitElement {
     `;
   }
 
-  private saveStorage(): void {
+  private storageInput(id: string): HTMLInputElement | null {
+    return this.renderRoot.querySelector(`#${id}`);
+  }
+
+  /** Whether the storage fields differ from what is stored. False whenever
+      the section is not on screen, because then nothing can have changed. */
+  private storageDirty(): boolean {
+    const path = this.storageInput("base_path");
+    const segment = this.storageInput("segment");
+    const budget = this.storageInput("budget");
+    if (!path || !segment || !budget) return false;
+    const { storage } = this.snapshot;
+    const budgetNow =
+      storage.max_total_bytes === null ? null : storage.max_total_bytes / GIGABYTE;
+    const budgetTyped = budget.value.trim() === "" ? null : Number(budget.value);
+    return (
+      path.value.trim() !== storage.base_path ||
+      Number(segment.value) !== storage.segment_seconds ||
+      budgetTyped !== budgetNow
+    );
+  }
+
+  private resetStorageInputs(): void {
+    const { storage } = this.snapshot;
+    const path = this.storageInput("base_path");
+    if (path) path.value = storage.base_path;
+    const segment = this.storageInput("segment");
+    if (segment) segment.value = String(storage.segment_seconds);
+    const budget = this.storageInput("budget");
+    if (budget) {
+      budget.value =
+        storage.max_total_bytes === null
+          ? ""
+          : String(storage.max_total_bytes / GIGABYTE);
+    }
+  }
+
+  private async saveStorage(): Promise<boolean> {
     const root = this.renderRoot;
     const segment = Number(
       (root.querySelector("#segment") as HTMLInputElement).value,
@@ -389,10 +465,10 @@ export class CamwatchSettings extends LitElement {
           `unverändert dort und verschwindet aus der Übersicht, bis Sie es an ` +
           `den neuen Ort kopieren.`,
       );
-      if (!ok) return;
+      if (!ok) return false;
     }
 
-    void this.run(() =>
+    return this.run(() =>
       this.api.setStorage({
         base_path: path,
         segment_seconds: segment,
@@ -406,8 +482,33 @@ export class CamwatchSettings extends LitElement {
   // Views
   // ------------------------------------------------------------------
 
+  /** The view list as currently edited; the draft until it is stored. */
+  private draftViews(): View[] {
+    return this.viewsDraft ?? this.snapshot.views;
+  }
+
+  private viewsDirty(): boolean {
+    if (!this.viewsDraft) return false;
+    const strip = (views: View[]) =>
+      views.map(({ cameras: _cameras, ...rest }) => rest);
+    return (
+      JSON.stringify(strip(this.viewsDraft)) !==
+      JSON.stringify(strip(this.snapshot.views))
+    );
+  }
+
+  private async commitViews(): Promise<boolean> {
+    const draft = this.viewsDraft;
+    if (!draft) return true;
+    const ok = await this.run(() =>
+      this.api.setViews(draft.map(({ cameras: _cameras, ...rest }) => rest)),
+    );
+    if (ok) this.viewsDraft = undefined;
+    return ok;
+  }
+
   private renderViews() {
-    const views = this.snapshot.views;
+    const views = this.draftViews();
     return html`
       <div class="card">
         <h2>Ansichten</h2>
@@ -421,9 +522,23 @@ export class CamwatchSettings extends LitElement {
           ? html`<p class="hint">Noch keine Ansicht angelegt.</p>`
           : views.map((view, index) => this.renderViewRow(view, index))}
         <div class="row" style="margin-top:16px">
-          <button ?disabled=${this.busy} @click=${this.addView}>
+          <button
+            ?disabled=${this.busy || !this.viewsDirty()}
+            @click=${() => void this.commitViews()}
+          >
+            Speichern
+          </button>
+          <button class="secondary" ?disabled=${this.busy} @click=${this.addView}>
             Ansicht hinzufügen
           </button>
+          ${this.viewsDirty()
+            ? html`<button
+                class="secondary"
+                @click=${() => (this.viewsDraft = undefined)}
+              >
+                Verwerfen
+              </button>`
+            : nothing}
         </div>
       </div>
     `;
@@ -478,7 +593,7 @@ export class CamwatchSettings extends LitElement {
           </button>
           <button
             class="secondary"
-            ?disabled=${index === this.snapshot.views.length - 1}
+            ?disabled=${index === this.draftViews().length - 1}
             @click=${() => this.moveView(index, 1)}
           >
             nach unten
@@ -491,38 +606,34 @@ export class CamwatchSettings extends LitElement {
     `;
   }
 
-  private saveViews(views: View[]): void {
-    // Membership is resolved by the backend and read-only here.
-    void this.run(() =>
-      this.api.setViews(
-        views.map(({ cameras: _cameras, ...rest }) => rest),
-      ),
-    );
-  }
+  // Every edit lands in the draft; only the Speichern button stores it.
+  // Storing on every change meant a click on another tab quietly saved,
+  // because leaving the field fires its change event first.
 
   private patchView(index: number, patch: Partial<View>): void {
-    this.saveViews(
-      this.snapshot.views.map((v, i) => (i === index ? { ...v, ...patch } : v)),
+    this.viewsDraft = this.draftViews().map((v, i) =>
+      i === index ? { ...v, ...patch } : v,
     );
   }
 
   private moveView(index: number, delta: number): void {
-    const views = [...this.snapshot.views];
+    const views = [...this.draftViews()];
     const [moved] = views.splice(index, 1);
     views.splice(index + delta, 0, moved);
-    this.saveViews(views);
+    this.viewsDraft = views;
   }
 
   private removeView(index: number): void {
-    this.saveViews(this.snapshot.views.filter((_, i) => i !== index));
+    this.viewsDraft = this.draftViews().filter((_, i) => i !== index);
   }
 
   private addView(): void {
-    const used = new Set(this.snapshot.views.map((v) => v.id));
-    let n = this.snapshot.views.length + 1;
+    const views = this.draftViews();
+    const used = new Set(views.map((v) => v.id));
+    let n = views.length + 1;
     while (used.has(`ansicht_${n}`)) n += 1;
-    this.saveViews([
-      ...this.snapshot.views,
+    this.viewsDraft = [
+      ...views,
       {
         id: `ansicht_${n}`,
         name: `Ansicht ${n}`,
@@ -530,7 +641,7 @@ export class CamwatchSettings extends LitElement {
         icon: "mdi:cctv",
         columns: 0,
       },
-    ]);
+    ];
   }
 
   // ------------------------------------------------------------------
@@ -611,7 +722,9 @@ export class CamwatchSettings extends LitElement {
                 role="tab"
                 aria-selected=${this.section === id ? "true" : "false"}
                 class=${this.section === id ? "active" : ""}
-                @click=${() => {
+                @click=${async () => {
+                  if (this.section === id) return;
+                  if (!(await guardNavigation())) return;
                   this.section = id;
                   this.adding = false;
                   this.editing = undefined;

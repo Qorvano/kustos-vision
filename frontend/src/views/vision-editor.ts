@@ -9,6 +9,12 @@ import { LitElement, html, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import { errorText, type CamwatchApi } from "../api";
 import "../components/select";
+import {
+  guardNavigation,
+  registerUnsavedWork,
+  unregisterUnsavedWork,
+  type UnsavedWork,
+} from "../dirty";
 import { shared } from "../styles";
 import type {
   AiTaskEntity,
@@ -52,6 +58,21 @@ export class CamwatchVisionEditor extends LitElement {
 
   static override styles = shared;
 
+  /** The saved state this editor started from, for spotting unsaved work. */
+  private baseline = "";
+
+  private readonly unsaved: UnsavedWork = {
+    isDirty: () => JSON.stringify(this.payload()) !== this.baseline,
+    save: () => this.save(),
+    // Nothing to restore: leaving unmounts the editor and its drafts.
+    discard: () => {},
+  };
+
+  override disconnectedCallback(): void {
+    super.disconnectedCallback();
+    unregisterUnsavedWork(this.unsaved);
+  }
+
   override async connectedCallback(): Promise<void> {
     super.connectedCallback();
     if (this.profile) {
@@ -69,11 +90,29 @@ export class CamwatchVisionEditor extends LitElement {
       const motion = this.camera.capabilities["motion_trigger"]?.entity_id;
       if (motion) this.triggers = [motion];
     }
+    // The pre-selected trigger proposal is part of the starting point, not
+    // an unsaved edit of the person's own.
+    this.baseline = JSON.stringify(this.payload());
+    registerUnsavedWork(this.unsaved);
     try {
       this.aiTasks = (await this.api.aiTaskEntities()).ai_task;
     } catch {
       this.aiTasks = [];
     }
+  }
+
+  /** What save() sends, and the yardstick unsaved work is measured by. */
+  private payload() {
+    return {
+      camera_slug: this.camera.slug,
+      backend: this.backend,
+      observations: this.observations,
+      triggers: this.triggers.filter((t) => t),
+      context: this.context,
+      cooldown_seconds: this.cooldown,
+      daily_budget: this.budget,
+      enabled: this.enabled,
+    };
   }
 
   private async loadHistory(): Promise<void> {
@@ -116,23 +155,17 @@ export class CamwatchVisionEditor extends LitElement {
     ];
   }
 
-  private async save(): Promise<void> {
+  private async save(): Promise<boolean> {
     this.busy = true;
     this.error = "";
     try {
-      await this.api.setVision({
-        camera_slug: this.camera.slug,
-        backend: this.backend,
-        observations: this.observations,
-        triggers: this.triggers.filter((t) => t),
-        context: this.context,
-        cooldown_seconds: this.cooldown,
-        daily_budget: this.budget,
-        enabled: this.enabled,
-      });
+      await this.api.setVision(this.payload());
+      this.baseline = JSON.stringify(this.payload());
       this.dispatchEvent(new CustomEvent("saved", { bubbles: true, composed: true }));
+      return true;
     } catch (err) {
       this.error = errorText(err);
+      return false;
     } finally {
       this.busy = false;
     }
@@ -551,10 +584,12 @@ ${JSON.stringify(this.lastRun.raw, null, 2)}</pre
             : nothing}
           <button
             class="secondary"
-            @click=${() =>
+            @click=${async () => {
+              if (!(await guardNavigation())) return;
               this.dispatchEvent(
                 new CustomEvent("cancelled", { bubbles: true, composed: true }),
-              )}
+              );
+            }}
           >
             Zurück
           </button>

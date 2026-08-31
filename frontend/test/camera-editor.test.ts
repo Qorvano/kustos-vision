@@ -15,9 +15,13 @@ import type { CameraViewSettings, View } from "../src/types";
 
 type EditorInternals = {
   slug: string;
+  name: string;
   api: CamwatchApi;
   views: View[];
   viewSettings: Record<string, CameraViewSettings>;
+  baseline: string;
+  unsaved: { isDirty(): boolean };
+  payload(): unknown;
   patchView(viewId: string, patch: Partial<CameraViewSettings>): void;
   applyOrder(view: View, order: string[]): Promise<void>;
 };
@@ -48,6 +52,31 @@ describe("the editor keeps its positions in step with the stored order", () => {
     el.patchView("alle", { stream_key: "sd" });
 
     expect(el.viewSettings["alle"].position).toBe(1);
+  });
+
+  it("an edited field counts as unsaved work", () => {
+    const el = editor(["a"]);
+    el.baseline = JSON.stringify(el.payload());
+
+    expect(el.unsaved.isDirty()).toBe(false);
+    el.name = "Neuer Name";
+    expect(el.unsaved.isDirty()).toBe(true);
+  });
+
+  it("a stored reorder does not count as unsaved work", async () => {
+    // The order is saved the moment it is dragged, so it must not make the
+    // navigation guard ask about it afterwards.
+    const el = editor(["kamera_neu", "a"]);
+    el.viewSettings = { alle: { visible: true, position: 0 } };
+    el.api = {
+      setViewOrder: async () => {},
+    } as unknown as CamwatchApi;
+    el.baseline = JSON.stringify(el.payload());
+
+    await el.applyOrder(el.views[0], ["a", "kamera_neu"]);
+
+    expect(el.viewSettings["alle"].position).toBe(1);
+    expect(el.unsaved.isDirty()).toBe(false);
   });
 
   it("adopts the position a reorder just stored", async () => {

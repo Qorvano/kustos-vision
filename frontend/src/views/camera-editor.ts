@@ -21,6 +21,12 @@ import type {
 } from "../types";
 import { capabilityLabel, KIND_LABELS, kindsForEntity } from "../capabilities";
 import "../components/select";
+import {
+  guardNavigation,
+  registerUnsavedWork,
+  unregisterUnsavedWork,
+  type UnsavedWork,
+} from "../dirty";
 import { shared } from "../styles";
 
 function slugify(value: string): string {
@@ -68,6 +74,16 @@ export class CamwatchCameraEditor extends LitElement {
     `,
   ];
 
+  /** The saved state this editor started from, for spotting unsaved work. */
+  private baseline = "";
+
+  private readonly unsaved: UnsavedWork = {
+    isDirty: () => JSON.stringify(this.payload()) !== this.baseline,
+    save: () => this.save(),
+    // Nothing to restore: leaving unmounts the editor and its drafts.
+    discard: () => {},
+  };
+
   override connectedCallback(): void {
     super.connectedCallback();
     if (this.camera) {
@@ -84,6 +100,13 @@ export class CamwatchCameraEditor extends LitElement {
       // device so the section works straight away.
       void this.loadCandidates();
     }
+    this.baseline = JSON.stringify(this.payload());
+    registerUnsavedWork(this.unsaved);
+  }
+
+  override disconnectedCallback(): void {
+    super.disconnectedCallback();
+    unregisterUnsavedWork(this.unsaved);
   }
 
   /** Fetch the sibling entities of this camera's device, without changing
@@ -148,28 +171,36 @@ export class CamwatchCameraEditor extends LitElement {
     this.capabilities = next;
   }
 
-  private async save(): Promise<void> {
+  /** What save() sends, and the yardstick unsaved work is measured by. */
+  private payload() {
+    return {
+      slug: this.slug,
+      name: this.name,
+      streams: this.streams,
+      capabilities: this.capabilities,
+      retention_days: this.retentionDays,
+      enabled: this.enabled,
+      area_id: this.camera?.area_id ?? null,
+      view_settings: this.viewSettings,
+      controls: this.controls,
+    };
+  }
+
+  private async save(): Promise<boolean> {
     this.busy = true;
     this.error = "";
     try {
       await this.api.setCamera(
-        {
-          slug: this.slug,
-          name: this.name,
-          streams: this.streams,
-          capabilities: this.capabilities,
-          retention_days: this.retentionDays,
-          enabled: this.enabled,
-          area_id: this.camera?.area_id ?? null,
-          view_settings: this.viewSettings,
-          controls: this.controls,
-        },
+        this.payload(),
         // Editing an existing camera is the only case allowed to replace one.
         this.camera !== undefined,
       );
+      this.baseline = JSON.stringify(this.payload());
       this.dispatchEvent(new CustomEvent("saved", { bubbles: true, composed: true }));
+      return true;
     } catch (err) {
       this.error = errorText(err);
+      return false;
     } finally {
       this.busy = false;
     }
@@ -226,6 +257,15 @@ export class CamwatchCameraEditor extends LitElement {
       const position = order.indexOf(this.slug);
       if (position >= 0 && this.viewSettings[view.id]) {
         this.patchView(view.id, { position });
+        // The order is stored on the spot, so the new position is part of
+        // the saved state, never of the unsaved work.
+        const base = JSON.parse(this.baseline) as {
+          view_settings?: Record<string, { position?: number }>;
+        };
+        if (base.view_settings?.[view.id]) {
+          base.view_settings[view.id].position = position;
+          this.baseline = JSON.stringify(base);
+        }
       }
       this.dispatchEvent(
         new CustomEvent("reordered", { bubbles: true, composed: true }),
@@ -841,10 +881,12 @@ export class CamwatchCameraEditor extends LitElement {
           </button>
           <button
             class="secondary"
-            @click=${() =>
+            @click=${async () => {
+              if (!(await guardNavigation())) return;
               this.dispatchEvent(
                 new CustomEvent("cancelled", { bubbles: true, composed: true }),
-              )}
+              );
+            }}
           >
             Abbrechen
           </button>
