@@ -1026,7 +1026,7 @@ const Y = j`
     color: var(--secondary-text-color);
     font-size: 0.85em;
   }
-`, be = "0.6.5", $t = "kustos-vision-built:0.6.5", wt = {
+`, be = "0.6.6", $t = "kustos-vision-built:0.6.6", wt = {
   ptz_up: "Schwenken hoch",
   ptz_down: "Schwenken runter",
   ptz_left: "Schwenken links",
