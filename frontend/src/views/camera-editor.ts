@@ -167,7 +167,18 @@ export class CamwatchCameraEditor extends LitElement {
   }
 
   private patchView(viewId: string, patch: Partial<CameraViewSettings>): void {
-    const current = this.viewSettings[viewId] ?? { visible: false, position: 0 };
+    // A membership created here starts behind every camera the view already
+    // has, which is where the member list below shows it. Seeding position 0
+    // instead sent the camera to the front of the view on save, no matter
+    // where the person had just put it.
+    const behindOthers =
+      this.views
+        .find((v) => v.id === viewId)
+        ?.cameras.filter((slug) => slug !== this.slug).length ?? 0;
+    const current = this.viewSettings[viewId] ?? {
+      visible: false,
+      position: behindOthers,
+    };
     this.viewSettings = { ...this.viewSettings, [viewId]: { ...current, ...patch } };
   }
 
@@ -202,6 +213,14 @@ export class CamwatchCameraEditor extends LitElement {
     this.error = "";
     try {
       await this.api.setViewOrder(view.id, order);
+      // The local copy has to follow. Saving the camera writes its whole
+      // view_settings back, so a position left at its opening value would
+      // overwrite the order just stored and the camera jumped to wherever
+      // the stale number said, usually the front.
+      const position = order.indexOf(this.slug);
+      if (position >= 0 && this.viewSettings[view.id]) {
+        this.patchView(view.id, { position });
+      }
       this.dispatchEvent(
         new CustomEvent("reordered", { bubbles: true, composed: true }),
       );
