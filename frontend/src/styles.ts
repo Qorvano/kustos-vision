@@ -112,7 +112,8 @@ export const shared = css`
     color: var(--secondary-text-color);
   }
   input:not([type="checkbox"]),
-  select {
+  select,
+  .select-field {
     font: inherit;
     width: 100%;
     box-sizing: border-box;
@@ -135,7 +136,8 @@ export const shared = css`
     );
     color: var(--primary-text-color, FieldText);
   }
-  select {
+  select,
+  .select-field {
     /* Without this the browser draws its own menulist chrome and ignores
        the field styling above, which stood out as a different box right
        next to identically styled inputs. */
@@ -164,12 +166,71 @@ export const shared = css`
     margin: 0;
   }
   input:not([type="checkbox"]):focus,
-  select:focus {
+  select:focus,
+  .select-field:focus {
     outline: none;
     /* The second pixel of the focused underline, drawn without changing the
        box so nothing shifts when a field takes focus. */
     border-bottom-color: var(--primary-color);
     box-shadow: inset 0 -1px 0 0 var(--primary-color);
+  }
+  /* The closed face of the panel's own dropdown is a button, so the button
+     rules above have to be walked back where they differ from a field. */
+  .select-field {
+    text-align: left;
+    font-weight: normal;
+    min-height: 36px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    cursor: pointer;
+  }
+  .select-field:hover:not(:disabled) {
+    box-shadow: none;
+  }
+  .select-field:disabled {
+    background: var(
+      --mdc-text-field-fill-color,
+      var(--secondary-background-color, Field)
+    );
+    color: var(--disabled-text-color, GrayText);
+  }
+  /* The label worn inside the field, like ha-textfield: a label sitting
+     directly on a field fuses with it into one filled block, the small text
+     inside its top edge. Labels captioning anything else keep their place. */
+  label:has(+ input:not([type="checkbox"])),
+  label:has(+ select),
+  label:has(+ kustos-vision-select) {
+    background: var(
+      --mdc-text-field-fill-color,
+      var(--secondary-background-color, Field)
+    );
+    margin: 10px 0 0;
+    padding: 6px 12px 0;
+    border-radius: var(--kv-radius-field) var(--kv-radius-field) 0 0;
+    font-size: 0.75em;
+  }
+  label:has(+ input:focus),
+  label:has(+ select:focus),
+  label:has(+ kustos-vision-select:focus-within) {
+    color: var(--primary-color);
+  }
+  label:has(+ input:not([type="checkbox"])) + input,
+  label:has(+ select) + select {
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+    padding-top: 4px;
+  }
+  /* Custom properties cross the shadow boundary, which lets the fused label
+     reach the dropdown's inner field the same way. */
+  label:has(+ kustos-vision-select) + kustos-vision-select {
+    --kv-field-top-radius: 0;
+    --kv-field-top-pad: 4px;
+  }
+  .select-field {
+    border-top-left-radius: var(--kv-field-top-radius, var(--kv-radius-field));
+    border-top-right-radius: var(--kv-field-top-radius, var(--kv-radius-field));
+    padding-top: var(--kv-field-top-pad, 8px);
   }
   /* A checkbox wearing Home Assistant's switch: same element, same events,
      native look. Shaped like the current HA switch, a bordered pill track

@@ -9,6 +9,7 @@ import { capabilityLabel, PTZ_SYMBOLS } from "../capabilities";
 import { shared } from "../styles";
 import type { Camera, CustomControl, HomeAssistant } from "../types";
 import "./live-stream";
+import "./select";
 
 /** Capabilities that are a single press, in the order a tile shows them. */
 const MOMENTARY = ["ptz_up", "ptz_left", "ptz_right", "ptz_down", "siren_on", "siren_off"];
@@ -99,6 +100,11 @@ export class CamwatchCameraTile extends LitElement {
         /* Room for the shared chevron on the compact size. */
         padding-right: 28px;
       }
+      label.inline kustos-vision-select {
+        width: auto;
+        min-width: 90px;
+        max-width: 130px;
+      }
       .error {
         /* shared only supplies the colour. */
         padding: 0 12px 10px;
@@ -187,20 +193,17 @@ export class CamwatchCameraTile extends LitElement {
         }
         return html`<label class="inline">
           ${control.name}
-          <select
+          <kustos-vision-select
+            compact
+            .options=${options.map((option) => ({
+              value: option,
+              label: option,
+            }))}
+            .value=${state?.state ?? ""}
             ?disabled=${this.busy !== ""}
-            @change=${(e: Event) =>
-              this.run(control.key, (e.target as HTMLSelectElement).value)}
-          >
-            ${options.map(
-              (option) => html`<option
-                value=${option}
-                ?selected=${state?.state === option}
-              >
-                ${option}
-              </option>`,
-            )}
-          </select>
+            @value-changed=${(e: CustomEvent<{ value: string }>) =>
+              this.run(control.key, e.detail.value)}
+          ></kustos-vision-select>
         </label>`;
       }
       case "number":

@@ -8,6 +8,7 @@
 import { LitElement, html, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import { errorText, type CamwatchApi } from "../api";
+import "../components/select";
 import { shared } from "../styles";
 import type {
   AiTaskEntity,
@@ -150,38 +151,38 @@ export class CamwatchVisionEditor extends LitElement {
     return html`
       <h3>Modell</h3>
       <label>Anbindung</label>
-      <select
-        @change=${(e: Event) => {
-          const kind = (e.target as HTMLSelectElement).value as VisionBackend["kind"];
-          this.backend = { ...this.backend, kind };
+      <kustos-vision-select
+        .options=${[
+          { value: "openai", label: "OpenAI-kompatibler Endpunkt" },
+          { value: "ai_task", label: "Home Assistant AI Task" },
+        ]}
+        .value=${isAiTask ? "ai_task" : "openai"}
+        @value-changed=${(e: CustomEvent<{ value: string }>) => {
+          this.backend = {
+            ...this.backend,
+            kind: e.detail.value as VisionBackend["kind"],
+          };
         }}
-      >
-        <option value="openai" ?selected=${!isAiTask}>
-          OpenAI-kompatibler Endpunkt
-        </option>
-        <option value="ai_task" ?selected=${isAiTask}>Home Assistant AI Task</option>
-      </select>
+      ></kustos-vision-select>
 
       ${isAiTask
         ? html`
             <label>AI-Task-Entity</label>
-            <select
-              @change=${(e: Event) =>
+            <kustos-vision-select
+              .options=${[
+                { value: "", label: "Bitte wählen …" },
+                ...this.aiTasks.map((t) => ({
+                  value: t.entity_id,
+                  label: `${t.name}${t.available ? "" : " (nicht verfügbar)"}`,
+                })),
+              ]}
+              .value=${this.backend.entity_id ?? ""}
+              @value-changed=${(e: CustomEvent<{ value: string }>) =>
                 (this.backend = {
                   ...this.backend,
-                  entity_id: (e.target as HTMLSelectElement).value,
+                  entity_id: e.detail.value,
                 })}
-            >
-              <option value="">Bitte wählen …</option>
-              ${this.aiTasks.map(
-                (t) => html`<option
-                  value=${t.entity_id}
-                  ?selected=${this.backend.entity_id === t.entity_id}
-                >
-                  ${t.name}${t.available ? "" : " (nicht verfügbar)"}
-                </option>`,
-              )}
-            </select>
+            ></kustos-vision-select>
             ${this.aiTasks.length === 0
               ? html`<p class="hint">
                   Keine AI-Task-Entity gefunden, die Bilder annimmt. Dafür muss ein
@@ -250,21 +251,14 @@ export class CamwatchVisionEditor extends LitElement {
           </div>
           <div>
             <label>Antworttyp</label>
-            <select
-              @change=${(e: Event) =>
+            <kustos-vision-select
+              .options=${TYPES.map(([value, label]) => ({ value, label }))}
+              .value=${observation.type}
+              @value-changed=${(e: CustomEvent<{ value: string }>) =>
                 this.patchObservation(index, {
-                  type: (e.target as HTMLSelectElement).value as ObservationType,
+                  type: e.detail.value as ObservationType,
                 })}
-            >
-              ${TYPES.map(
-                ([value, label]) => html`<option
-                  value=${value}
-                  ?selected=${observation.type === value}
-                >
-                  ${label}
-                </option>`,
-              )}
-            </select>
+            ></kustos-vision-select>
           </div>
           <div>
             <label>Kennung</label>

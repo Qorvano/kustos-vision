@@ -20,6 +20,7 @@ import type {
   View,
 } from "../types";
 import { capabilityLabel, KIND_LABELS, kindsForEntity } from "../capabilities";
+import "../components/select";
 import { shared } from "../styles";
 
 function slugify(value: string): string {
@@ -375,9 +376,18 @@ export class CamwatchCameraEditor extends LitElement {
           </div>
           <div class="grow">
             <label>Entity</label>
-            <select
-              @change=${(e: Event) => {
-                const entityId = (e.target as HTMLSelectElement).value;
+            <kustos-vision-select
+              search
+              .options=${[
+                { value: "", label: "Bitte wählen …" },
+                ...this.candidates.map((c) => ({
+                  value: c.entity_id,
+                  label: c.name || c.entity_id,
+                })),
+              ]}
+              .value=${chosenEntity}
+              @value-changed=${(e: CustomEvent<{ value: string }>) => {
+                const entityId = e.detail.value;
                 // The kind that was set may be impossible for the new entity,
                 // so it moves to what this one can do rather than staying
                 // behind and failing on save.
@@ -387,35 +397,21 @@ export class CamwatchCameraEditor extends LitElement {
                   ...(first ? { kind: first } : {}),
                 });
               }}
-            >
-              <option value="" ?selected=${!chosenEntity}>Bitte wählen …</option>
-              ${this.candidates.map(
-                (c) => html`<option
-                  value=${c.entity_id}
-                  ?selected=${control.binding.entity_id === c.entity_id}
-                >
-                  ${c.name || c.entity_id}
-                </option>`,
-              )}
-            </select>
+            ></kustos-vision-select>
           </div>
           <div>
             <label>Bedienart</label>
-            <select
-              @change=${(e: Event) =>
+            <kustos-vision-select
+              .options=${kinds.map((value) => ({
+                value,
+                label: KIND_LABELS[value],
+              }))}
+              .value=${control.kind}
+              @value-changed=${(e: CustomEvent<{ value: string }>) =>
                 this.patchControl(index, {
-                  kind: (e.target as HTMLSelectElement).value as ControlKind,
+                  kind: e.detail.value as ControlKind,
                 })}
-            >
-              ${kinds.map(
-                (value) => html`<option
-                  value=${value}
-                  ?selected=${control.kind === value}
-                >
-                  ${KIND_LABELS[value]}
-                </option>`,
-              )}
-            </select>
+            ></kustos-vision-select>
           </div>
           <div>
             <label>Kennung</label>
@@ -472,24 +468,23 @@ export class CamwatchCameraEditor extends LitElement {
               <div class="row">
                 <div class="grow">
                   <label>Angezeigter Stream</label>
-                  <select
-                    @change=${(e: Event) =>
+                  <kustos-vision-select
+                    .options=${[
+                      {
+                        value: "",
+                        label: "automatisch (der nicht aufgezeichnete)",
+                      },
+                      ...this.streams.map((stream) => ({
+                        value: stream.key,
+                        label: stream.key,
+                      })),
+                    ]}
+                    .value=${settings?.stream_key ?? ""}
+                    @value-changed=${(e: CustomEvent<{ value: string }>) =>
                       this.patchView(view.id, {
-                        stream_key: (e.target as HTMLSelectElement).value || null,
+                        stream_key: e.detail.value || null,
                       })}
-                  >
-                    <option value="" ?selected=${!settings?.stream_key}>
-                      automatisch (der nicht aufgezeichnete)
-                    </option>
-                    ${this.streams.map(
-                      (stream) => html`<option
-                        value=${stream.key}
-                        ?selected=${settings?.stream_key === stream.key}
-                      >
-                        ${stream.key}
-                      </option>`,
-                    )}
-                  </select>
+                  ></kustos-vision-select>
                 </div>
               </div>
 
@@ -612,25 +607,21 @@ export class CamwatchCameraEditor extends LitElement {
       <label>
         ${editing ? "Andere Kamera zuordnen" : "Kamera in Home Assistant"}
       </label>
-      <select
-        @change=${(e: Event) => {
-          const target = e.target as HTMLSelectElement;
-          void this.pick(target.value);
-          target.value = "";
+      <kustos-vision-select
+        search
+        .options=${[
+          { value: "", label: editing ? "unverändert lassen" : "Bitte wählen …" },
+          ...this.available.map((c) => ({
+            value: c.entity_id,
+            label: `${c.name ?? c.entity_id}${this.pickerSuffix(c)}`,
+            disabled: c.in_use && !editing,
+          })),
+        ]}
+        .value=${""}
+        @value-changed=${(e: CustomEvent<{ value: string }>) => {
+          if (e.detail.value) void this.pick(e.detail.value);
         }}
-      >
-        <option value="">
-          ${editing ? "unverändert lassen" : "Bitte wählen …"}
-        </option>
-        ${this.available.map(
-          (c) => html`<option
-            value=${c.entity_id}
-            ?disabled=${c.in_use && !editing}
-          >
-            ${c.name ?? c.entity_id}${this.pickerSuffix(c)}
-          </option>`,
-        )}
-      </select>
+      ></kustos-vision-select>
       <p class="hint">
         ${editing
           ? html`Ersetzt Streams und Bedienelemente durch die des gewählten
@@ -706,23 +697,18 @@ export class CamwatchCameraEditor extends LitElement {
                       />
                     </td>
                     <td>
-                      <select
-                        @change=${(e: Event) =>
+                      <kustos-vision-select
+                        .options=${[
+                          { value: "transcode", label: "umwandeln" },
+                          { value: "copy", label: "kopieren" },
+                          { value: "none", label: "ohne" },
+                        ]}
+                        .value=${stream.audio}
+                        @value-changed=${(e: CustomEvent<{ value: string }>) =>
                           this.updateStream(index, {
-                            audio: (e.target as HTMLSelectElement)
-                              .value as StreamConfig["audio"],
+                            audio: e.detail.value as StreamConfig["audio"],
                           })}
-                      >
-                        <option value="transcode" ?selected=${stream.audio === "transcode"}>
-                          umwandeln
-                        </option>
-                        <option value="copy" ?selected=${stream.audio === "copy"}>
-                          kopieren
-                        </option>
-                        <option value="none" ?selected=${stream.audio === "none"}>
-                          ohne
-                        </option>
-                      </select>
+                      ></kustos-vision-select>
                     </td>
                   </tr>
                 `,
@@ -771,18 +757,19 @@ export class CamwatchCameraEditor extends LitElement {
               <tr>
                 <th>${capabilityLabel(key)}</th>
                 <td>
-                  <select @change=${(e: Event) =>
-                    this.setCapability(key, (e.target as HTMLSelectElement).value)}>
-                    <option value="">nicht zugeordnet</option>
-                    ${options.map(
-                      (c) => html`<option
-                        value=${c.entity_id}
-                        ?selected=${this.capabilities[key]?.entity_id === c.entity_id}
-                      >
-                        ${c.name}
-                      </option>`,
-                    )}
-                  </select>
+                  <kustos-vision-select
+                    search
+                    .options=${[
+                      { value: "", label: "nicht zugeordnet" },
+                      ...options.map((c) => ({
+                        value: c.entity_id,
+                        label: c.name,
+                      })),
+                    ]}
+                    .value=${this.capabilities[key]?.entity_id ?? ""}
+                    @value-changed=${(e: CustomEvent<{ value: string }>) =>
+                      this.setCapability(key, e.detail.value)}
+                  ></kustos-vision-select>
                 </td>
               </tr>
             `,

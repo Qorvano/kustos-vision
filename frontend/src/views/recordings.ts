@@ -6,6 +6,7 @@ import { errorText, type CamwatchApi } from "../api";
 import { shared } from "../styles";
 import type { Camera, TimelineBlock, TimelineSegment } from "../types";
 import "../components/player";
+import "../components/select";
 import "../components/timeline";
 
 @customElement("kustos-vision-recordings")
@@ -211,50 +212,44 @@ export class CamwatchRecordings extends LitElement {
           <div class="row">
             <div class="grow">
               <label>Kamera</label>
-              <select
-                @change=${(e: Event) =>
-                  this.selectCamera((e.target as HTMLSelectElement).value)}
-              >
-                ${this.cameras.map(
-                  (c) => html`<option value=${c.slug} ?selected=${c.slug === this.camera}>
-                    ${c.name}
-                  </option>`,
-                )}
-              </select>
+              <kustos-vision-select
+                .options=${this.cameras.map((c) => ({
+                  value: c.slug,
+                  label: c.name,
+                }))}
+                .value=${this.camera}
+                @value-changed=${(e: CustomEvent<{ value: string }>) =>
+                  this.selectCamera(e.detail.value)}
+              ></kustos-vision-select>
             </div>
             <div class="grow">
               <label>Tag</label>
-              <select
-                @change=${(e: Event) => {
-                  this.day = (e.target as HTMLSelectElement).value;
+              <kustos-vision-select
+                .options=${this.days.length === 0
+                  ? [{ value: "", label: "keine Aufnahmen" }]
+                  : this.days.map((d) => ({ value: d, label: d }))}
+                .value=${this.days.length === 0 ? "" : this.day}
+                @value-changed=${(e: CustomEvent<{ value: string }>) => {
+                  if (!e.detail.value) return;
+                  this.day = e.detail.value;
                   void this.loadDay();
                 }}
-              >
-                ${this.days.length === 0
-                  ? html`<option>keine Aufnahmen</option>`
-                  : this.days.map(
-                      (d) => html`<option value=${d} ?selected=${d === this.day}>
-                        ${d}
-                      </option>`,
-                    )}
-              </select>
+              ></kustos-vision-select>
             </div>
             ${keys.length > 1
               ? html`<div class="grow">
                   <label>Stream</label>
-                  <select
-                    @change=${(e: Event) => {
-                      this.stream = (e.target as HTMLSelectElement).value;
+                  <kustos-vision-select
+                    .options=${[
+                      { value: "", label: "alle" },
+                      ...keys.map((k) => ({ value: k, label: k })),
+                    ]}
+                    .value=${this.stream}
+                    @value-changed=${(e: CustomEvent<{ value: string }>) => {
+                      this.stream = e.detail.value;
                       void this.loadDay();
                     }}
-                  >
-                    <option value="">alle</option>
-                    ${keys.map(
-                      (k) => html`<option value=${k} ?selected=${k === this.stream}>
-                        ${k}
-                      </option>`,
-                    )}
-                  </select>
+                  ></kustos-vision-select>
                 </div>`
               : nothing}
           </div>
