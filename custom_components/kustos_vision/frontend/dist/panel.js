@@ -1211,7 +1211,7 @@ const G = R`
     color: var(--secondary-text-color);
     font-size: 0.85em;
   }
-`, fe = "0.6.8", kt = "kustos-vision-built:0.6.8", xt = {
+`, fe = "0.6.9", kt = "kustos-vision-built:0.6.9", xt = {
   ptz_up: "Schwenken hoch",
   ptz_down: "Schwenken runter",
   ptz_left: "Schwenken links",
