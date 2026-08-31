@@ -861,7 +861,7 @@ const re = j`
     color: var(--secondary-text-color);
     font-size: 0.85em;
   }
-`, ge = "0.6.1", yt = {
+`, ge = "0.6.2", yt = {
   ptz_up: "Schwenken hoch",
   ptz_down: "Schwenken runter",
   ptz_left: "Schwenken links",

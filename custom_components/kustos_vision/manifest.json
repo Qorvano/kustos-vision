@@ -18,7 +18,7 @@
   "issue_tracker": "https://github.com/Qorvano/kustos-vision/issues",
   "requirements": [],
   "single_config_entry": true,
-  "version": "0.6.1",
+  "version": "0.6.2",
   "after_dependencies": [
     "ai_task"
   ]

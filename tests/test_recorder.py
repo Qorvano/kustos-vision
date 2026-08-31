@@ -45,17 +45,19 @@ def test_video_is_never_decoded() -> None:
     assert pair_after(args, "-c:v") == "copy"
 
 
-def test_wallclock_timestamps_are_not_used() -> None:
-    """Measured on ffmpeg 8.0.1: -use_wallclock_as_timestamps combined with
-    stream copy collapses a 25 s recording into one segment and emits a
-    non-monotonic DTS warning per frame, because it overwrites the timestamps
-    the segment muxer needs to find its cut points."""
-    assert "-use_wallclock_as_timestamps" not in build_record_args(spec(), BASE)
-
-
-def test_missing_timestamps_are_generated() -> None:
+def test_frames_are_stamped_by_arrival_time() -> None:
+    """The reversal of an earlier finding, both measured. The cameras deliver
+    frames evenly (the live view is smooth) but stamp them uselessly: 36
+    percent of intervals under five milliseconds, duplicates, second-long
+    holes, identical across cameras, streams, day and night. Every
+    timestamp-driven player stutters through that, and desktop decoders
+    refuse the multi-second frame durations the holes produce. The old
+    "wallclock collapses segmentation" result was -segment_atclocktime's
+    fault, not wallclock stamping's."""
     args = build_record_args(spec(), BASE)
-    assert pair_after(args, "-fflags") == "+genpts"
+    assert pair_after(args, "-use_wallclock_as_timestamps") == "1"
+    # Redundant next to wallclock stamping, which sets both timestamps.
+    assert "-fflags" not in args
 
 
 def test_strftime_mkdir_is_not_passed() -> None:
@@ -77,10 +79,13 @@ def test_segments_are_fragmented_mp4() -> None:
     assert "default_base_moof" in options
 
 
-def test_segment_length_and_clock_alignment_are_set() -> None:
+def test_segment_length_is_set_without_clock_alignment() -> None:
+    """Clock-aligned cutting is what actually broke next to wallclock
+    stamping; plain segment_time cuts correctly alongside it, verified
+    against a realtime source."""
     args = build_record_args(spec(segment_seconds=60), BASE)
     assert pair_after(args, "-segment_time") == "60"
-    assert pair_after(args, "-segment_atclocktime") == "1"
+    assert "-segment_atclocktime" not in args
     assert pair_after(args, "-reset_timestamps") == "1"
 
 

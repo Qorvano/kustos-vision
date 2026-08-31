@@ -82,14 +82,18 @@ def _input_args(source_url: str) -> list[str]:
     args: list[str] = []
     if source_url.lower().startswith("rtsp://"):
         args += ["-rtsp_transport", "tcp"]
-    # Fills in timestamps the source omits, which RTSP cameras do after a
-    # reconnect. Deliberately NOT -use_wallclock_as_timestamps: measured
-    # against ffmpeg 8.0.1, that option combined with stream copy collapses
-    # a 25 s recording into a single segment and emits a non-monotonic DTS
-    # warning per frame, because it overwrites timestamps the segment muxer
-    # needs to find its cut points. The wall-clock truth the timeline needs
-    # comes from the strftime file name, not from the stream timestamps.
-    args += ["-fflags", "+genpts"]
+    # Arrival time as the clock, not the stream's own timestamps. The
+    # reversal of an earlier finding, both measured: these cameras deliver
+    # frames evenly (the live view is smooth) but stamp them uselessly, with
+    # 36 percent of intervals under five milliseconds, duplicates the muxer
+    # spreads one tick apart, and second-long holes, identically across
+    # cameras, streams, day and night. Every player that renders by
+    # timestamp stutters through that, and desktop decoders refuse the
+    # multi-second frame durations the holes produce. The old "wallclock
+    # collapses segmentation" result was the fault of -segment_atclocktime
+    # next to it, not of wallclock stamping itself; see build_record_args.
+    # genpts went with it, redundant next to stamping both timestamps.
+    args += ["-use_wallclock_as_timestamps", "1"]
     args += ["-i", source_url]
     return args
 
@@ -121,10 +125,13 @@ def build_record_args(spec: StreamSpec, base: Path) -> list[str]:
         Every segment starts at zero, so a single file plays on its own. The
         player shifts it into place with its own timestamp offset.
 
-    ``-segment_atclocktime 1``
-        Cuts on round wall-clock times, so file names are predictable and the
-        timeline has no drift against the clock. Segment durations still vary
-        by a few seconds because a cut can only land on a keyframe.
+    No ``-segment_atclocktime``
+        Combined with wallclock timestamps it collapsed recording into one
+        endless segment, which an early measurement blamed on the wallclock
+        option. Plain ``-segment_time`` cuts correctly alongside wallclock
+        stamping, verified against a realtime source. Only round boundary
+        times are lost, and nothing depends on them: file names carry the
+        true start via strftime.
 
     The day directory is NOT created here. Unlike the hls and image2 muxers,
     the segment muxer has no ``strftime_mkdir`` option, and it aborts the whole
@@ -144,8 +151,6 @@ def build_record_args(spec: StreamSpec, base: Path) -> list[str]:
         "segment",
         "-segment_time",
         str(spec.segment_seconds),
-        "-segment_atclocktime",
-        "1",
         "-segment_format",
         "mp4",
         "-segment_format_options",
