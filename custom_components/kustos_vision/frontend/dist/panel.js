@@ -882,7 +882,7 @@ const re = j`
     color: var(--secondary-text-color);
     font-size: 0.85em;
   }
-`, me = "0.6.4", $t = "kustos-vision-built:0.6.4", wt = {
+`, me = "0.6.5", $t = "kustos-vision-built:0.6.5", wt = {
   ptz_up: "Schwenken hoch",
   ptz_down: "Schwenken runter",
   ptz_left: "Schwenken links",
