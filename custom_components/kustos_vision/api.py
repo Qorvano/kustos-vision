@@ -13,6 +13,7 @@ requires an admin, because it changes what gets recorded and where.
 from __future__ import annotations
 
 import logging
+from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
@@ -45,6 +46,7 @@ from .core.config import (
     VisionProfile,
 )
 from .core.index import blocks_from_segments
+from .core.mp4 import fragment_index
 from .core.observations import ObservationError
 from .panel import disk_fingerprint, registered_fingerprint
 from .version import integration_version
@@ -70,6 +72,7 @@ def async_register(hass: HomeAssistant) -> None:
         ws_rebuild_index,
         ws_recording_days,
         ws_timeline,
+        ws_fragments,
         ws_set_vision,
         ws_delete_vision,
         ws_analyse_now,
@@ -1016,3 +1019,67 @@ async def ws_vision_backends(
                 }
             )
     connection.send_result(msg["id"], {"ai_task": entities})
+
+
+@websocket_api.websocket_command(
+    {
+        vol.Required("type"): f"{DOMAIN}/recordings/fragments",
+        vol.Required("path"): str,
+    }
+)
+@websocket_api.async_response
+async def ws_fragments(
+    hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict
+) -> None:
+    """The byte offsets of one segment's fragments.
+
+    What lets the player fetch a segment from the middle: a click deep into a
+    daylight segment used to download up to 170 megabytes of prefix before
+    playback could start at the clicked moment. Only files the index knows
+    are answered, the same ownership rule the file endpoints enforce.
+    """
+    if (coordinator := _require(hass, connection, msg)) is None:
+        return
+    relative = msg["path"]
+    if not await hass.async_add_executor_job(coordinator.index.knows, relative):
+        connection.send_error(msg["id"], "unknown_segment", "not a recording")
+        return
+    base = Path(coordinator.config.storage.base_path)
+    result = await hass.async_add_executor_job(
+        _cached_fragment_index, str(base / relative)
+    )
+    if result is None:
+        connection.send_error(
+            msg["id"], "no_fragments", "the file carries no readable fragments"
+        )
+        return
+    connection.send_result(
+        msg["id"],
+        {
+            "init_end": result.init_end,
+            "data_end": result.data_end,
+            "fragments": [
+                {"offset": f.offset, "start": f.start_seconds}
+                for f in result.fragments
+            ],
+        },
+    )
+
+
+def _cached_fragment_index(path: str):
+    """One box walk per finished file.
+
+    Finished segments never change, but the newest one can still be growing
+    when first asked about, so the cache key carries the size: a grown file
+    is walked again instead of serving the stale map.
+    """
+    try:
+        size = Path(path).stat().st_size
+    except OSError:
+        return None
+    return _fragment_index_sized(path, size)
+
+
+@lru_cache(maxsize=256)
+def _fragment_index_sized(path: str, size: int):
+    return fragment_index(Path(path))

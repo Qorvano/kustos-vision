@@ -175,3 +175,145 @@ def playable_length(path: Path) -> int:
     if walked_to_end and not dangling_moof:
         return file_size
     return last_pair_end
+
+
+def _children(data: bytes, start: int, end: int):
+    """Walk the child boxes of a container within already-read bytes."""
+    offset = start
+    while offset + 8 <= end:
+        declared = int.from_bytes(data[offset : offset + 4], "big")
+        kind = data[offset + 4 : offset + 8].decode("latin-1")
+        if declared == 1:
+            declared = int.from_bytes(data[offset + 8 : offset + 16], "big")
+        elif declared == 0:
+            declared = end - offset
+        if declared < 8 or offset + declared > end:
+            return
+        yield kind, offset + 8, offset + declared
+        offset += declared
+
+
+@dataclass(frozen=True, slots=True)
+class Fragment:
+    """One moof/mdat pair: where it starts and when its footage begins."""
+
+    offset: int
+    start_seconds: float
+
+
+@dataclass(frozen=True, slots=True)
+class FragmentIndex:
+    """Everything a player needs to fetch a segment from the middle.
+
+    ``init_end`` is where ftyp and moov stop: those bytes plus any run of
+    fragments form a valid stream, which is what makes a ranged fetch work at
+    all. ``data_end`` stops at the last complete fragment, so a tail torn off
+    mid-write never reaches a parser that treats it as fatal.
+    """
+
+    init_end: int
+    data_end: int
+    fragments: tuple[Fragment, ...]
+
+
+def _video_track(moov: bytes) -> tuple[int, int] | None:
+    """The video track's id and timescale, from tkhd and mdhd.
+
+    The video track is the one whose header carries a nonzero width; the
+    audio track stores zeros there.
+    """
+    for kind, payload, end in _children(moov, 8, len(moov)):
+        if kind != "trak":
+            continue
+        track_id = None
+        width = 0
+        timescale = None
+        for k2, p2, e2 in _children(moov, payload, end):
+            if k2 == "tkhd":
+                version = moov[p2]
+                at = p2 + (20 if version == 1 else 12)
+                track_id = int.from_bytes(moov[at : at + 4], "big")
+                wat = p2 + (88 if version == 1 else 76)
+                width = int.from_bytes(moov[wat : wat + 4], "big") >> 16
+            elif k2 == "mdia":
+                for k3, p3, _ in _children(moov, p2, e2):
+                    if k3 == "mdhd":
+                        version = moov[p3]
+                        at = p3 + (20 if version == 1 else 12)
+                        timescale = int.from_bytes(moov[at : at + 4], "big")
+        if width and track_id is not None and timescale:
+            return track_id, timescale
+    return None
+
+
+def _fragment_start(moof: bytes, track_id: int, timescale: int) -> float | None:
+    """When a fragment's footage begins, from the video traf's tfdt."""
+    for kind, payload, end in _children(moof, 8, len(moof)):
+        if kind != "traf":
+            continue
+        this_track = None
+        base_time = None
+        for k2, p2, _ in _children(moof, payload, end):
+            if k2 == "tfhd":
+                this_track = int.from_bytes(moof[p2 + 4 : p2 + 8], "big")
+            elif k2 == "tfdt":
+                version = moof[p2]
+                length = 8 if version == 1 else 4
+                base_time = int.from_bytes(moof[p2 + 4 : p2 + 4 + length], "big")
+        if this_track == track_id and base_time is not None:
+            return base_time / timescale
+    return None
+
+
+def fragment_index(path: Path) -> FragmentIndex | None:
+    """Map a fragmented MP4's time axis onto byte offsets.
+
+    Exists so a click into the middle of a segment costs the bytes from the
+    right fragment onward instead of the whole prefix: a daylight segment of
+    these cameras measures 150 to 170 megabytes, and playback used to wait
+    for all of it. Only box headers and the small moof boxes are read.
+    """
+    file_size = path.stat().st_size
+    with path.open("rb") as fh:
+        boxes = top_level_boxes(fh, file_size)
+        moov = next((b for b in boxes if b.kind == "moov" and b.complete), None)
+        if moov is None:
+            return None
+        fh.seek(moov.offset)
+        track = _video_track(fh.read(moov.size))
+        if track is None:
+            return None
+        track_id, timescale = track
+
+        fragments: list[Fragment] = []
+        data_end = moov.end
+        for previous, box in pairwise(boxes):
+            if (
+                box.kind != "mdat"
+                or not box.complete
+                or previous.kind != "moof"
+                or not previous.complete
+            ):
+                continue
+            # Every complete pair extends the safe range, including a final
+            # audio-only flush that carries no video traf; measured on a real
+            # file whose last 2.8 kilobytes were exactly that. Only pairs
+            # with a video time become seek targets.
+            data_end = box.end
+            fh.seek(previous.offset)
+            start = _fragment_start(fh.read(previous.size), track_id, timescale)
+            if start is None:
+                continue
+            fragments.append(Fragment(offset=previous.offset, start_seconds=start))
+    if not fragments:
+        return None
+    walked_to_end = boxes[-1].end == file_size and all(b.complete for b in boxes)
+    dangling_moof = any(b.kind == "moof" and b.offset >= data_end for b in boxes)
+    if walked_to_end and not dangling_moof:
+        # Same rule as playable_length: an intact file is served whole. The
+        # measured real file ended in 2.8 kilobytes of complete boxes that
+        # form no pair, and clipping those would clip valid data.
+        data_end = file_size
+    return FragmentIndex(
+        init_end=moov.end, data_end=data_end, fragments=tuple(fragments)
+    )

@@ -579,3 +579,31 @@ describe("surviving a refused frame", () => {
     expect(source).toMatch(/this\.recoveries = 0;\s*\n\s*this\.jump/);
   });
 });
+
+describe("seeking by fragments", () => {
+  const read = (name: string) =>
+    readFileSync(new URL(`../src/${name}`, import.meta.url), "utf8");
+
+  it("a mid-segment click fetches from the right fragment", () => {
+    // Regression: playback into the middle of a 170 MB daylight segment
+    // downloaded the whole prefix before the first played frame.
+    const source = read("components/player.ts");
+    expect(source).toContain("fetchRanged");
+    expect(source).toMatch(/Range: `bytes=\$\{from\.offset\}/);
+  });
+
+  it("the range never includes a torn tail", () => {
+    expect(read("components/player.ts")).toContain("map.data_end - 1");
+  });
+
+
+  it("a range answered with the whole file falls back instead", () => {
+    // A proxy that strips Range answers 200; reading 158 MB as the init
+    // segment is not an option.
+    expect(read("components/player.ts")).toContain("status !== 206");
+  });
+
+  it("fragment maps are cached per path", () => {
+    expect(read("api.ts")).toContain("fragmentMaps");
+  });
+});

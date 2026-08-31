@@ -19,6 +19,13 @@ import type {
 
 const DOMAIN = "kustos_vision";
 
+/** The byte layout of a fragmented segment, from the server's box walk. */
+export interface FragmentMap {
+  init_end: number;
+  data_end: number;
+  fragments: { offset: number; start: number }[];
+}
+
 // How long a signed URL stays valid.
 //
 // Home Assistant defaults to 30 seconds, which is meant for a URL that is
@@ -54,6 +61,7 @@ interface Signature {
 
 export class CamwatchApi {
   private readonly signatures = new Map<string, Signature>();
+  private readonly fragmentMaps = new Map<string, Promise<FragmentMap>>();
 
   constructor(private hass: HomeAssistant) {}
 
@@ -232,6 +240,26 @@ export class CamwatchApi {
   /** Ask the Supervisor to reconnect the mount behind the recordings. */
   reconnectStorage(): Promise<Snapshot> {
     return this.hass.callWS({ type: `${DOMAIN}/storage/reconnect` });
+  }
+
+  /**
+   * The byte map of one segment, so playback can start mid-file.
+   *
+   * Cached per path: finished segments never change, and a seek that hops
+   * around one file must not walk its boxes on the server every time.
+   */
+  fragments(path: string): Promise<FragmentMap> {
+    const cached = this.fragmentMaps.get(path);
+    if (cached) return cached;
+    const promise = this.hass
+      .callWS<FragmentMap>({ type: `${DOMAIN}/recordings/fragments`, path })
+      .catch((err) => {
+        // A failed lookup must not poison the cache.
+        this.fragmentMaps.delete(path);
+        throw err;
+      });
+    this.fragmentMaps.set(path, promise);
+    return promise;
   }
 
   rebuildIndex(): Promise<Snapshot> {

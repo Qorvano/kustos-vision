@@ -18,10 +18,10 @@ if (customElements.get("kustos-vision-panel") !== void 0) {
  * Copyright 2019 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
  */
-const le = globalThis, be = le.ShadowRoot && (le.ShadyCSS === void 0 || le.ShadyCSS.nativeShadow) && "adoptedStyleSheets" in Document.prototype && "replace" in CSSStyleSheet.prototype, ve = Symbol(), ke = /* @__PURE__ */ new WeakMap();
+const le = globalThis, be = le.ShadowRoot && (le.ShadyCSS === void 0 || le.ShadyCSS.nativeShadow) && "adoptedStyleSheets" in Document.prototype && "replace" in CSSStyleSheet.prototype, fe = Symbol(), ke = /* @__PURE__ */ new WeakMap();
 let Ke = class {
   constructor(e, s, i) {
-    if (this._$cssResult$ = !0, i !== ve) throw Error("CSSResult is not constructable. Use `unsafeCSS` or `css` instead.");
+    if (this._$cssResult$ = !0, i !== fe) throw Error("CSSResult is not constructable. Use `unsafeCSS` or `css` instead.");
     this.cssText = e, this.t = s;
   }
   get styleSheet() {
@@ -37,13 +37,13 @@ let Ke = class {
     return this.cssText;
   }
 };
-const qe = (t) => new Ke(typeof t == "string" ? t : t + "", void 0, ve), j = (t, ...e) => {
+const qe = (t) => new Ke(typeof t == "string" ? t : t + "", void 0, fe), j = (t, ...e) => {
   const s = t.length === 1 ? t[0] : e.reduce((i, r, n) => i + ((a) => {
     if (a._$cssResult$ === !0) return a.cssText;
     if (typeof a == "number") return a;
     throw Error("Value passed to 'css' function must be a 'css' function result: " + a + ". Use 'unsafeCSS' to pass non-literal values, but take care to ensure page security.");
   })(r) + t[n + 1], t[0]);
-  return new Ke(s, t, ve);
+  return new Ke(s, t, fe);
 }, Ze = (t, e) => {
   if (be) t.adoptedStyleSheets = e.map((s) => s instanceof CSSStyleSheet ? s : s.styleSheet);
   else for (const s of e) {
@@ -88,7 +88,7 @@ const { is: Je, defineProperty: Ye, getOwnPropertyDescriptor: Xe, getOwnProperty
       }
   }
   return s;
-} }, fe = (t, e) => !Je(t, e), Ae = { attribute: !0, type: String, converter: he, reflect: !1, useDefault: !1, hasChanged: fe };
+} }, ve = (t, e) => !Je(t, e), Ae = { attribute: !0, type: String, converter: he, reflect: !1, useDefault: !1, hasChanged: ve };
 Symbol.metadata ??= Symbol("metadata"), de.litPropertyMetadata ??= /* @__PURE__ */ new WeakMap();
 let G = class extends HTMLElement {
   static addInitializer(e) {
@@ -203,7 +203,7 @@ let G = class extends HTMLElement {
   requestUpdate(e, s, i, r = !1, n) {
     if (e !== void 0) {
       const a = this.constructor;
-      if (r === !1 && (n = this[e]), i ??= a.getPropertyOptions(e), !((i.hasChanged ?? fe)(n, s) || i.useDefault && i.reflect && n === this._$Ej?.get(e) && !this.hasAttribute(a._$Eu(e, i)))) return;
+      if (r === !1 && (n = this[e]), i ??= a.getPropertyOptions(e), !((i.hasChanged ?? ve)(n, s) || i.useDefault && i.reflect && n === this._$Ej?.get(e) && !this.hasAttribute(a._$Eu(e, i)))) return;
       this.C(e, s, i);
     }
     this.isUpdatePending === !1 && (this._$ES = this._$EP());
@@ -309,8 +309,8 @@ class se {
     for (; (r = L.nextNode()) !== null && d.length < l; ) {
       if (r.nodeType === 1) {
         if (r.hasAttributes()) for (const u of r.getAttributeNames()) if (u.endsWith(Le)) {
-          const A = m[a++], _ = r.getAttribute(u).split(M), U = /([.?@])?(.*)/.exec(A);
-          d.push({ type: 1, index: n, name: U[2], strings: _, ctor: U[1] === "." ? ht : U[1] === "?" ? ct : U[1] === "@" ? dt : pe }), r.removeAttribute(u);
+          const A = m[a++], _ = r.getAttribute(u).split(M), N = /([.?@])?(.*)/.exec(A);
+          d.push({ type: 1, index: n, name: N[2], strings: _, ctor: N[1] === "." ? ht : N[1] === "?" ? ct : N[1] === "@" ? dt : pe }), r.removeAttribute(u);
         } else u.startsWith(M) && (d.push({ type: 6, index: n }), r.removeAttribute(u));
         if (Ve.test(r.tagName)) {
           const u = r.textContent.split(M), A = u.length - 1;
@@ -549,7 +549,7 @@ const z = (t) => (e, s) => {
  * Copyright 2017 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
  */
-const bt = { attribute: !0, type: String, converter: he, reflect: !1, hasChanged: fe }, vt = (t = bt, e, s) => {
+const bt = { attribute: !0, type: String, converter: he, reflect: !1, hasChanged: ve }, ft = (t = bt, e, s) => {
   const { kind: i, metadata: r } = s;
   let n = globalThis.litPropertyMetadata.get(r);
   if (n === void 0 && globalThis.litPropertyMetadata.set(r, n = /* @__PURE__ */ new Map()), i === "setter" && ((t = Object.create(t)).wrapped = !0), n.set(s.name, t), i === "accessor") {
@@ -571,7 +571,7 @@ const bt = { attribute: !0, type: String, converter: he, reflect: !1, hasChanged
   throw Error("Unsupported decorator location: " + i);
 };
 function p(t) {
-  return (e, s) => typeof s == "object" ? vt(t, e, s) : ((i, r, n) => {
+  return (e, s) => typeof s == "object" ? ft(t, e, s) : ((i, r, n) => {
     const a = r.hasOwnProperty(n);
     return r.constructor.createProperty(n, i), a ? Object.getOwnPropertyDescriptor(r, n) : void 0;
   })(t, e, s);
@@ -584,10 +584,10 @@ function p(t) {
 function c(t) {
   return p({ ...t, state: !0, attribute: !1 });
 }
-const f = "kustos_vision", Be = 3600, ft = 60;
+const f = "kustos_vision", Be = 3600, vt = 60;
 class Re {
   constructor(e) {
-    this.hass = e, this.signatures = /* @__PURE__ */ new Map();
+    this.hass = e, this.signatures = /* @__PURE__ */ new Map(), this.fragmentMaps = /* @__PURE__ */ new Map();
   }
   getConfig() {
     return this.hass.callWS({ type: `${f}/config/get` });
@@ -673,7 +673,7 @@ class Re {
     });
     return this.signatures.set(e, {
       url: r,
-      usableUntil: i + (Be - ft) * 1e3
+      usableUntil: i + (Be - vt) * 1e3
     }), r;
   }
   recordingDays(e) {
@@ -715,6 +715,20 @@ class Re {
   /** Ask the Supervisor to reconnect the mount behind the recordings. */
   reconnectStorage() {
     return this.hass.callWS({ type: `${f}/storage/reconnect` });
+  }
+  /**
+   * The byte map of one segment, so playback can start mid-file.
+   *
+   * Cached per path: finished segments never change, and a seek that hops
+   * around one file must not walk its boxes on the server every time.
+   */
+  fragments(e) {
+    const s = this.fragmentMaps.get(e);
+    if (s) return s;
+    const i = this.hass.callWS({ type: `${f}/recordings/fragments`, path: e }).catch((r) => {
+      throw this.fragmentMaps.delete(e), r;
+    });
+    return this.fragmentMaps.set(e, i), i;
   }
   rebuildIndex() {
     return this.hass.callWS({ type: `${f}/index/rebuild` });
@@ -847,7 +861,7 @@ const re = j`
     color: var(--secondary-text-color);
     font-size: 0.85em;
   }
-`, ge = "0.5.6", yt = {
+`, ge = "0.6.0", yt = {
   ptz_up: "Schwenken hoch",
   ptz_down: "Schwenken runter",
   ptz_left: "Schwenken links",
@@ -875,7 +889,7 @@ const $t = {
   ptz_left: "◀",
   ptz_right: "▶"
 };
-function Ne(t) {
+function Ue(t) {
   return !t || !t.includes(".") ? [] : {
     button: ["button"],
     scene: ["button"],
@@ -897,12 +911,12 @@ const wt = {
   select: "Auswahl",
   number: "Wert"
 };
-var _t = Object.defineProperty, kt = Object.getOwnPropertyDescriptor, N = (t, e, s, i) => {
+var _t = Object.defineProperty, kt = Object.getOwnPropertyDescriptor, U = (t, e, s, i) => {
   for (var r = i > 1 ? void 0 : i ? kt(e, s) : e, n = t.length - 1, a; n >= 0; n--)
     (a = t[n]) && (r = (i ? a(e, s, r) : a(r)) || r);
   return i && r && _t(e, s, r), r;
 };
-const St = 2, Ue = 1024 * 1024, Me = 3, je = 8, xt = "mp4a.40.2";
+const St = 2, Ne = 1024 * 1024, Me = 3, je = 8, xt = "mp4a.40.2";
 function At(t, e, s) {
   const i = [...t].sort((l, d) => l.start - d.start), r = i.filter(
     (l) => l.start <= e && e < l.start + l.duration
@@ -1117,7 +1131,11 @@ let O = class extends x {
     const n = this.video();
     this.startup = {
       mediaTime: Et(this.placed, r),
-      resume: s || n !== null && !n.paused
+      resume: s || n !== null && !n.paused,
+      // After a decode refusal the ranged fetch must not start at the
+      // refused keyframe again: measured, that costs one futile recovery
+      // per skip until the skips outgrow the frame's multi-second span.
+      pastRefusal: s
     };
     let a;
     try {
@@ -1151,8 +1169,8 @@ let O = class extends x {
           try {
             const _ = u.addSourceBuffer(m);
             _.mode = "segments", this.buffer = _, _.addEventListener("updateend", () => void this.pump());
-            const U = this.placed[this.placed.length - 1];
-            U && (u.duration = U.mediaStart + U.segment.duration), this.pump();
+            const N = this.placed[this.placed.length - 1];
+            N && (u.duration = N.mediaStart + N.segment.duration), this.pump();
           } catch (_) {
             this.message = k(_);
           }
@@ -1173,6 +1191,44 @@ let O = class extends x {
   }
   urlFor(t) {
     return `${this.segmentUrlBase}/${t.path}`;
+  }
+  /**
+   * Fetch init plus the fragments from the wanted second onward.
+   *
+   * Falls back to null when the server cannot map the file, in which case
+   * the caller downloads it whole as before. The returned range also ends at
+   * the last complete fragment, so a tail torn off mid-write, the thing a
+   * crashed recorder leaves behind, never reaches the parser at all.
+   */
+  async fetchRanged(t, e, s = !1) {
+    if (!this.api) return null;
+    let i;
+    try {
+      i = await this.api.fragments(t.path);
+    } catch {
+      return null;
+    }
+    if (!i || i.fragments.length === 0) return null;
+    let r = i.fragments[0];
+    for (const l of i.fragments)
+      if (l.start <= e) r = l;
+      else break;
+    if (s && e > 0) {
+      const l = i.fragments.indexOf(r);
+      l >= 0 && l + 1 < i.fragments.length && (r = i.fragments[l + 1]);
+    }
+    const [n, a] = await Promise.all([
+      this.api.authorizedFetch(this.urlFor(t), {
+        headers: { Range: `bytes=0-${i.init_end - 1}` }
+      }),
+      this.api.authorizedFetch(this.urlFor(t), {
+        headers: { Range: `bytes=${r.offset}-${i.data_end - 1}` }
+      })
+    ]);
+    return n.status !== 206 || a.status !== 206 ? null : {
+      init: new Uint8Array(await n.arrayBuffer()),
+      data: a
+    };
   }
   /** Fetch a segment with credentials, which the endpoint insists on. */
   fetchSegment(t, e) {
@@ -1237,17 +1293,30 @@ let O = class extends x {
       const r = this.generation;
       this.loading = !0;
       try {
-        const n = await this.fetchSegment(i.segment);
-        if (!n.ok) throw new Error(`HTTP ${n.status}`);
-        if (r !== this.generation || !this.buffer || e.readyState !== "open" || (this.accepted > 0 && this.buffer.abort(), this.buffer.timestampOffset = i.mediaStart, this.appended.add(i.segment.path), this.carry = {
+        const n = this.startup !== void 0 ? Math.max(0, this.startup.mediaTime - i.mediaStart) : 0, a = await this.fetchRanged(
+          i.segment,
+          n,
+          this.startup?.pastRefusal ?? !1
+        );
+        let l, d = null;
+        if (a ? (l = a.data, d = a.init) : l = await this.fetchSegment(i.segment), !l.ok) throw new Error(`HTTP ${l.status}`);
+        if (r !== this.generation || !this.buffer || e.readyState !== "open")
+          return;
+        if (this.accepted > 0 && this.buffer.abort(), this.buffer.timestampOffset = i.mediaStart, this.appended.add(i.segment.path), this.carry = {
           path: i.segment.path,
           // Streamed on purpose: waiting for a whole high-resolution segment
           // to download before the first append kept the screen black for
           // the length of a fifty-megabyte transfer after every click.
-          reader: n.body ? n.body.getReader() : null,
-          pending: n.body ? new Uint8Array(0) : new Uint8Array(await n.arrayBuffer()),
+          reader: l.body ? l.body.getReader() : null,
+          // A ranged fetch starts mid-file, so the init segment the parser
+          // needs first is prepended here.
+          pending: d ?? (l.body ? new Uint8Array(0) : new Uint8Array(await l.arrayBuffer())),
           firstOfSegment: !0
-        }, r !== this.generation)) return;
+        }, d && !l.body) {
+          const g = new Uint8Array(await l.arrayBuffer()), m = new Uint8Array(d.length + g.length);
+          m.set(d), m.set(g, d.length), this.carry.pending = m;
+        }
+        if (r !== this.generation) return;
       } catch (n) {
         this.appended.add(i.segment.path), console.warn(
           "kustos_vision: segment could not be fetched",
@@ -1273,8 +1342,8 @@ let O = class extends x {
     try {
       for (; ; ) {
         const i = e.reader === null && e.pending.length > 0;
-        if (e.pending.length >= Ue || i) {
-          const r = e.pending.subarray(0, Ue);
+        if (e.pending.length >= Ne || i) {
+          const r = e.pending.subarray(0, Ne);
           try {
             await this.appendOnce(r);
           } catch (n) {
@@ -1410,31 +1479,31 @@ O.styles = j`
       padding: 12px;
     }
   `;
-N([
+U([
   p({ attribute: !1 })
 ], O.prototype, "api", 2);
-N([
+U([
   p({ attribute: !1 })
 ], O.prototype, "segments", 2);
-N([
+U([
   p({ type: Number })
 ], O.prototype, "seekTo", 2);
-N([
+U([
   p()
 ], O.prototype, "segmentUrlBase", 2);
-N([
+U([
   c()
 ], O.prototype, "message", 2);
-N([
+U([
   c()
 ], O.prototype, "gapAt", 2);
-N([
+U([
   c()
 ], O.prototype, "clockUtc", 2);
-N([
+U([
   c()
 ], O.prototype, "loadingRun", 2);
-O = N([
+O = U([
   z("kustos-vision-player")
 ], O);
 var Pt = Object.defineProperty, zt = Object.getOwnPropertyDescriptor, W = (t, e, s, i) => {
@@ -1657,7 +1726,7 @@ var Dt = Object.defineProperty, Bt = Object.getOwnPropertyDescriptor, F = (t, e,
     (a = t[n]) && (r = (i ? a(e, s, r) : a(r)) || r);
   return i && r && Dt(e, s, r), r;
 };
-const Rt = ["ptz_up", "ptz_left", "ptz_right", "ptz_down", "siren_on", "siren_off"], Nt = ["light", "siren", "privacy_mode"];
+const Rt = ["ptz_up", "ptz_left", "ptz_right", "ptz_down", "siren_on", "siren_off"], Ut = ["light", "siren", "privacy_mode"];
 let R = class extends x {
   constructor() {
     super(...arguments), this.viewId = "", this.busy = "", this.error = "";
@@ -1756,7 +1825,7 @@ let R = class extends x {
     const s = [];
     for (const i of Rt)
       t.includes(i) && s.push(this.renderButton(i, $t[i] ?? q(i)));
-    for (const i of Nt)
+    for (const i of Ut)
       t.includes(i) && s.push(
         this.renderButton(i, `${q(i)} an`, !0),
         this.renderButton(i, `${q(i)} aus`, !1)
@@ -1889,10 +1958,10 @@ F([
 R = F([
   z("kustos-vision-camera-tile")
 ], R);
-var Ut = Object.defineProperty, Mt = Object.getOwnPropertyDescriptor, ne = (t, e, s, i) => {
+var Nt = Object.defineProperty, Mt = Object.getOwnPropertyDescriptor, ne = (t, e, s, i) => {
   for (var r = i > 1 ? void 0 : i ? Mt(e, s) : e, n = t.length - 1, a; n >= 0; n--)
     (a = t[n]) && (r = (i ? a(e, s, r) : a(r)) || r);
-  return i && r && Ut(e, s, r), r;
+  return i && r && Nt(e, s, r), r;
 };
 let V = class extends x {
   constructor() {
@@ -2706,7 +2775,7 @@ let b = class extends x {
     }
   }
   renderControlRow(t, e) {
-    const s = Ne(t.binding.entity_id), i = s.length ? s : ["button", "switch", "select", "number"], r = t.binding.entity_id;
+    const s = Ue(t.binding.entity_id), i = s.length ? s : ["button", "switch", "select", "number"], r = t.binding.entity_id;
     return o`
       <div style="border-bottom:1px solid var(--divider-color,#eee);padding:12px 0">
         <div class="row">
@@ -2724,7 +2793,7 @@ let b = class extends x {
             <label>Entity</label>
             <select
               @change=${(n) => {
-      const a = n.target.value, [l] = Ne(a);
+      const a = n.target.value, [l] = Ue(a);
       this.patchControl(e, {
         binding: { entity_id: a },
         ...l ? { kind: l } : {}

@@ -630,3 +630,57 @@ async def test_a_stampless_ffmpeg_refuses_honestly(
     response = await client.get(f"/api/{DOMAIN}/export?{query}")
     assert response.status == 400
     assert "drawtext" in await response.text()
+
+
+async def test_fragments_map_a_segment_for_mid_file_seeks(
+    hass: HomeAssistant, hass_ws_client, recorded, tmp_path: Path
+) -> None:
+    """A click deep into a daylight segment used to download up to 170 MB of
+    prefix; the map lets the player start at the right fragment."""
+    import struct
+
+    def box(kind: bytes, payload: bytes) -> bytes:
+        return struct.pack(">I4s", 8 + len(payload), kind) + payload
+
+    def full(kind: bytes, version: int, payload: bytes) -> bytes:
+        return box(kind, bytes([version, 0, 0, 0]) + payload)
+
+    tkhd = full(b"tkhd", 0, b"\0" * 8 + (1).to_bytes(4, "big") + b"\0" * 56
+                + (640 << 16).to_bytes(4, "big") + (360 << 16).to_bytes(4, "big"))
+    mdhd = full(b"mdhd", 0, b"\0" * 8 + (1000).to_bytes(4, "big") + b"\0" * 4)
+    moov = box(b"moov", box(b"trak", tkhd + box(b"mdia", mdhd)))
+    ftyp = box(b"ftyp", b"iso5" * 3)
+
+    def moof(base: int) -> bytes:
+        return box(b"moof", box(b"traf",
+            full(b"tfhd", 0, (1).to_bytes(4, "big"))
+            + full(b"tfdt", 1, base.to_bytes(8, "big"))))
+
+    mdat = box(b"mdat", b"\0" * 500)
+    _entry, _base, files, _ = recorded
+    target = files[0][1]
+    target.write_bytes(ftyp + moov + moof(0) + mdat + moof(4000) + mdat)
+    # Der Index kennt die Datei bereits (recorded-Fixture).
+
+    client = await hass_ws_client(hass)
+    await client.send_json_auto_id(
+        {"type": f"{DOMAIN}/recordings/fragments", "path": files[0][0]}
+    )
+    result = await client.receive_json()
+    assert result["success"], result
+    body = result["result"]
+    assert body["init_end"] == len(ftyp) + len(moov)
+    assert [f["start"] for f in body["fragments"]] == [0.0, 4.0]
+    assert body["data_end"] == target.stat().st_size
+
+
+async def test_fragments_refuse_paths_the_index_does_not_know(
+    hass: HomeAssistant, hass_ws_client, recorded
+) -> None:
+    client = await hass_ws_client(hass)
+    await client.send_json_auto_id(
+        {"type": f"{DOMAIN}/recordings/fragments", "path": "x/2026-01-01/a.mp4"}
+    )
+    result = await client.receive_json()
+    assert not result["success"]
+    assert result["error"]["code"] == "unknown_segment"

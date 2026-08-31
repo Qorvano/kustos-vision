@@ -117,3 +117,95 @@ def test_no_video_track_means_no_size(tmp_path: Path) -> None:
     from custom_components.kustos_vision.core.mp4 import video_size
 
     assert video_size(write(tmp_path, fragmented(FTYP, MOOV, MOOF, MDAT))) is None
+
+
+# ----------------------------------------------------------------------
+# The fragment index behind mid-segment seeking
+# ----------------------------------------------------------------------
+
+
+def full_box(kind: str, version: int, payload: bytes) -> bytes:
+    return box(kind, bytes([version, 0, 0, 0]) + payload)
+
+
+def make_moov(track_id: int = 1, timescale: int = 90000, width: int = 640) -> bytes:
+    # Payload layout per spec (v0): 8 bytes of times, the track id, then 60
+    # bytes of reserved fields, layer/group/volume and the matrix before
+    # width and height land at payload offset 76.
+    tkhd = full_box(
+        "tkhd",
+        0,
+        b"\0" * 8
+        + track_id.to_bytes(4, "big")
+        + b"\0" * 60
+        + (width << 16).to_bytes(4, "big")
+        + (360 << 16).to_bytes(4, "big"),
+    )
+    mdhd = full_box("mdhd", 0, b"\0" * 8 + timescale.to_bytes(4, "big") + b"\0" * 4)
+    mdia = box("mdia", mdhd)
+    return box("moov", box("trak", tkhd + mdia))
+
+
+def make_moof(track_id: int, base_time: int) -> bytes:
+    tfhd = full_box("tfhd", 0, track_id.to_bytes(4, "big"))
+    tfdt = full_box("tfdt", 1, base_time.to_bytes(8, "big"))
+    return box("moof", box("traf", tfhd + tfdt))
+
+
+def test_the_fragment_index_maps_time_to_bytes(tmp_path: Path) -> None:
+    from custom_components.kustos_vision.core.mp4 import fragment_index
+
+    data = fragmented(
+        FTYP,
+        make_moov(timescale=1000),
+        make_moof(1, 0),
+        MDAT,
+        make_moof(1, 2000),
+        MDAT,
+    )
+    path = write(tmp_path, data)
+    index = fragment_index(path)
+    assert index is not None
+    assert index.init_end == len(FTYP) + len(make_moov(timescale=1000))
+    assert [f.start_seconds for f in index.fragments] == [0.0, 2.0]
+    assert index.fragments[0].offset == index.init_end
+    assert index.data_end == len(data)
+
+
+def test_the_index_stops_at_a_torn_tail(tmp_path: Path) -> None:
+    """The ranged fetch this feeds must never hand a parser the torn bytes."""
+    from custom_components.kustos_vision.core.mp4 import fragment_index
+
+    good = fragmented(FTYP, make_moov(timescale=1000), make_moof(1, 0), MDAT)
+    torn = make_moof(1, 1000) + MDAT[: len(MDAT) // 2]
+    index = fragment_index(write(tmp_path, good + torn))
+    assert index is not None
+    assert len(index.fragments) == 1
+    assert index.data_end == len(good)
+
+
+def test_the_audio_traf_is_not_mistaken_for_video(tmp_path: Path) -> None:
+    from custom_components.kustos_vision.core.mp4 import fragment_index
+
+    audio_traf = box(
+        "traf",
+        full_box("tfhd", 0, (2).to_bytes(4, "big"))
+        + full_box("tfdt", 1, (999_000).to_bytes(8, "big")),
+    )
+    video_traf = box(
+        "traf",
+        full_box("tfhd", 0, (1).to_bytes(4, "big"))
+        + full_box("tfdt", 1, (3000).to_bytes(8, "big")),
+    )
+    moof = box("moof", audio_traf + video_traf)
+    data = fragmented(FTYP, make_moov(timescale=1000), moof, MDAT)
+    index = fragment_index(write(tmp_path, data))
+    assert index is not None
+    assert index.fragments[0].start_seconds == 3.0
+
+
+def test_no_video_track_means_no_index(tmp_path: Path) -> None:
+    from custom_components.kustos_vision.core.mp4 import fragment_index
+
+    data = fragmented(FTYP, make_moov(width=0), make_moof(1, 0), MDAT)
+    assert fragment_index(write(tmp_path, data)) is None

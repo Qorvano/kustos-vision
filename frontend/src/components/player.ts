@@ -263,7 +263,7 @@ export class CamwatchPlayer extends LitElement {
     firstOfSegment: boolean;
   };
   /** Where a freshly loaded run starts, and whether it resumes playing. */
-  private startup?: { mediaTime: number; resume: boolean };
+  private startup?: { mediaTime: number; resume: boolean; pastRefusal: boolean };
   private loading = false;
   private generation = 0;
   private wired = false;
@@ -570,6 +570,10 @@ export class CamwatchPlayer extends LitElement {
     this.startup = {
       mediaTime: mediaTimeFor(this.placed, startAt),
       resume: forceResume || (previous !== null && !previous.paused),
+      // After a decode refusal the ranged fetch must not start at the
+      // refused keyframe again: measured, that costs one futile recovery
+      // per skip until the skips outgrow the frame's multi-second span.
+      pastRefusal: forceResume,
     };
 
     let codec: string | null;
@@ -671,6 +675,62 @@ export class CamwatchPlayer extends LitElement {
 
   private urlFor(segment: PlayableSegment): string {
     return `${this.segmentUrlBase}/${segment.path}`;
+  }
+
+  /**
+   * Fetch init plus the fragments from the wanted second onward.
+   *
+   * Falls back to null when the server cannot map the file, in which case
+   * the caller downloads it whole as before. The returned range also ends at
+   * the last complete fragment, so a tail torn off mid-write, the thing a
+   * crashed recorder leaves behind, never reaches the parser at all.
+   */
+  private async fetchRanged(
+    segment: PlayableSegment,
+    wantedSeconds: number,
+    pastRefusal = false,
+  ): Promise<{ init: Uint8Array; data: Response } | null> {
+    if (!this.api) return null;
+    let map;
+    try {
+      map = await this.api.fragments(segment.path);
+    } catch {
+      return null;
+    }
+    if (!map || map.fragments.length === 0) return null;
+    let from = map.fragments[0];
+    for (const fragment of map.fragments) {
+      if (fragment.start <= wantedSeconds) from = fragment;
+      else break;
+    }
+    if (pastRefusal && wantedSeconds > 0) {
+      // The wanted moment lies inside the refused keyframe's span; the next
+      // fragment is the first one the decoder has not already rejected.
+      const index = map.fragments.indexOf(from);
+      if (index >= 0 && index + 1 < map.fragments.length) {
+        from = map.fragments[index + 1];
+      }
+    }
+    const [initResponse, dataResponse] = await Promise.all([
+      this.api.authorizedFetch(this.urlFor(segment), {
+        headers: { Range: `bytes=0-${map.init_end - 1}` },
+      }),
+      this.api.authorizedFetch(this.urlFor(segment), {
+        headers: { Range: `bytes=${from.offset}-${map.data_end - 1}` },
+      }),
+    ]);
+    if (initResponse.status !== 206 || dataResponse.status !== 206) {
+      // A server or proxy that ignores Range answers 200 with the whole
+      // file; treating that as the requested slice would read the entire
+      // segment into memory as "the init segment". Measured against a
+      // Range-less server: three full transfers of a 158 MB file for one
+      // click. Falling back to the plain streamed download is always right.
+      return null;
+    }
+    return {
+      init: new Uint8Array(await initResponse.arrayBuffer()),
+      data: dataResponse,
+    };
   }
 
   /** Fetch a segment with credentials, which the endpoint insists on. */
@@ -777,7 +837,27 @@ export class CamwatchPlayer extends LitElement {
       const generation = this.generation;
       this.loading = true;
       try {
-        const response = await this.fetchSegment(next.segment);
+        // Where inside the file playback wants to begin, so the fetch can
+        // start at the right fragment instead of downloading the prefix: a
+        // daylight segment measures up to 170 megabytes, and a click into
+        // its middle used to wait for most of that.
+        const wanted =
+          this.startup !== undefined
+            ? Math.max(0, this.startup.mediaTime - next.mediaStart)
+            : 0;
+        const ranged = await this.fetchRanged(
+          next.segment,
+          wanted,
+          this.startup?.pastRefusal ?? false,
+        );
+        let response: Response;
+        let head: Uint8Array | null = null;
+        if (ranged) {
+          response = ranged.data;
+          head = ranged.init;
+        } else {
+          response = await this.fetchSegment(next.segment);
+        }
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         if (generation !== this.generation || !this.buffer) return;
         if (media.readyState !== "open") {
@@ -799,11 +879,20 @@ export class CamwatchPlayer extends LitElement {
           // to download before the first append kept the screen black for
           // the length of a fifty-megabyte transfer after every click.
           reader: response.body ? response.body.getReader() : null,
-          pending: response.body
+          // A ranged fetch starts mid-file, so the init segment the parser
+          // needs first is prepended here.
+          pending: head ?? (response.body
             ? new Uint8Array(0)
-            : new Uint8Array(await response.arrayBuffer()),
+            : new Uint8Array(await response.arrayBuffer())),
           firstOfSegment: true,
         };
+        if (head && !response.body) {
+          const rest = new Uint8Array(await response.arrayBuffer());
+          const joined = new Uint8Array(head.length + rest.length);
+          joined.set(head);
+          joined.set(rest, head.length);
+          this.carry.pending = joined;
+        }
         if (generation !== this.generation) return;
       } catch (err) {
         // One unreadable segment must not end the playback: it is skipped and
