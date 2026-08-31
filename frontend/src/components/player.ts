@@ -53,6 +53,23 @@ const LOOKAHEAD_SEGMENTS = 2;
 // while the rest is still arriving.
 const APPEND_CHUNK_BYTES = 1024 * 1024;
 
+// How playback recovers from a frame the decoder refuses. Real recordings
+// contain such frames: measured ones carried multi-second stalls and bursts
+// of near-identical timestamps from the camera, structurally valid H.264
+// that both Blink and WebKit answer with a fatal media error. Skipping a
+// couple of seconds past the refusal turns a dead player into a visible
+// jump, which is what the footage actually contains there anyway.
+// The skip grows with each attempt, because decoding restarts at the
+// nearest keyframe BEFORE the target: a fixed skip lands on the same refused
+// keyframe for as long as its duration reaches, measured at over ten
+// seconds, and every extra attempt refetches the segment from the start.
+const RECOVERY_SKIP_SECONDS = 3;
+
+// Recoveries per run before giving up and showing the error. Guards against
+// footage so damaged that every skip lands on the next refusal; each retry
+// re-fetches from the network, so this must not loop unbounded.
+const MAX_RECOVERIES = 8;
+
 // When there is an audio track it is AAC-LC, because the recorder either
 // encodes it that way or drops it entirely. Whether there is one at all has to
 // be read from the file: a camera recorded with audio switched off produces
@@ -250,6 +267,8 @@ export class CamwatchPlayer extends LitElement {
   private loading = false;
   private generation = 0;
   private wired = false;
+  /** Fatal-error recoveries used up by the current viewing, see wire(). */
+  private recoveries = 0;
 
   static override styles = css`
     :host {
@@ -310,11 +329,13 @@ export class CamwatchPlayer extends LitElement {
 
   override updated(changed: Map<string, unknown>): void {
     if (changed.has("segments")) {
+      this.recoveries = 0;
       void this.load();
     } else if (changed.has("seekTo")) {
       // Deliberately without any further condition. This used to require a
       // live buffer, so once a load had failed, every following click on the
       // timeline was silently ignored and the player looked dead.
+      this.recoveries = 0;
       this.jump(this.seekTo);
     }
   }
@@ -356,7 +377,25 @@ export class CamwatchPlayer extends LitElement {
     video.addEventListener("waiting", () => this.skipHole());
     video.addEventListener("error", () => {
       const err = video.error;
-      if (err && !this.message) {
+      if (!err) return;
+      // A media error is fatal for the element, but not for the viewing.
+      // Reload just past the refused frame and keep going; only when the
+      // budget is spent does the error reach the screen.
+      if (this.recoveries < MAX_RECOVERIES && this.placed.length > 0) {
+        this.recoveries += 1;
+        const resumeAt =
+          utcFor(this.placed, video.currentTime) +
+          RECOVERY_SKIP_SECONDS * this.recoveries;
+        // eslint-disable-next-line no-console
+        console.warn(
+          `kustos_vision: decoder refused playback (${err.message || err.code}), ` +
+            `skipping ${RECOVERY_SKIP_SECONDS * this.recoveries}s ahead ` +
+            `(${this.recoveries}/${MAX_RECOVERIES})`,
+        );
+        void this.load(resumeAt, this.placed[0]?.segment.stream_key, true);
+        return;
+      }
+      if (!this.message) {
         this.message = `Der Browser meldet einen Wiedergabefehler${
           err.message ? `: ${err.message}` : ` (Code ${err.code})`
         }.`;
@@ -497,7 +536,11 @@ export class CamwatchPlayer extends LitElement {
     this.loading = false;
   }
 
-  private async load(from?: number, preferStream?: string): Promise<void> {
+  private async load(
+    from?: number,
+    preferStream?: string,
+    forceResume = false,
+  ): Promise<void> {
     this.teardown();
     const generation = this.generation;
     this.message = "";
@@ -526,7 +569,7 @@ export class CamwatchPlayer extends LitElement {
     const previous = this.video();
     this.startup = {
       mediaTime: mediaTimeFor(this.placed, startAt),
-      resume: previous !== null && !previous.paused,
+      resume: forceResume || (previous !== null && !previous.paused),
     };
 
     let codec: string | null;

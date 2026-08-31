@@ -559,3 +559,23 @@ describe("streaming the segments", () => {
     expect(source).toContain("nudgePlayback");
   });
 });
+
+describe("surviving a refused frame", () => {
+  const source = readFileSync(
+    new URL("../src/components/player.ts", import.meta.url),
+    "utf8",
+  );
+
+  it("a media error skips ahead instead of ending the viewing", () => {
+    // Real recordings contain frames both engines refuse (camera stalls with
+    // multi-second packet durations); dying there froze the player at, for
+    // example, 08:48:33 with "Media failed to decode".
+    expect(source).toContain("RECOVERY_SKIP_SECONDS");
+    expect(source).toMatch(/recoveries \+= 1/);
+    expect(source).toContain("MAX_RECOVERIES");
+  });
+
+  it("a fresh click starts with a fresh recovery budget", () => {
+    expect(source).toMatch(/this\.recoveries = 0;\s*\n\s*this\.jump/);
+  });
+});
