@@ -95,6 +95,10 @@ export class CamwatchCameraTile extends LitElement {
         max-width: 130px;
         padding: 4px 8px;
       }
+      label.inline select {
+        /* Room for the shared chevron on the compact size. */
+        padding-right: 28px;
+      }
       .error {
         /* shared only supplies the colour. */
         padding: 0 12px 10px;

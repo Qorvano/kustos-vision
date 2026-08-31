@@ -76,9 +76,30 @@ export class CamwatchSettings extends LitElement {
   // Cameras
   // ------------------------------------------------------------------
 
+  /** The subpage title row: back arrow plus the name, like hass-subpage. */
+  private renderSubpageHeader(title: string, back: () => void) {
+    return html`<div class="subpage-header">
+      <button class="back" title="Zurück" @click=${back}>
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor" aria-hidden="true">
+          <path
+            d="M20,11V13H8L13.5,18.5L12.08,19.92L4.16,12L12.08,4.08L13.5,5.5L8,11H20Z"
+          />
+        </svg>
+      </button>
+      <h2>${title}</h2>
+    </div>`;
+  }
+
   private renderCameras() {
     if (this.adding || this.editing) {
-      return html`<kustos-vision-camera-editor
+      return html`${this.renderSubpageHeader(
+        this.editing ? `${this.editing.name} bearbeiten` : "Kamera hinzufügen",
+        () => {
+          this.adding = false;
+          this.editing = undefined;
+        },
+      )}
+      <kustos-vision-camera-editor
         .api=${this.api}
         .camera=${this.editing}
         .capabilityKeys=${this.snapshot.capability_keys}
@@ -198,7 +219,11 @@ export class CamwatchSettings extends LitElement {
 
   private renderVision() {
     if (this.visionFor) {
-      return html`<kustos-vision-vision-editor
+      return html`${this.renderSubpageHeader(
+        `Bilderkennung für ${this.visionFor.name}`,
+        () => (this.visionFor = undefined),
+      )}
+      <kustos-vision-vision-editor
         .api=${this.api}
         .camera=${this.visionFor}
         .profile=${this.snapshot.vision.find(

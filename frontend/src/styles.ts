@@ -135,6 +135,34 @@ export const shared = css`
     );
     color: var(--primary-text-color, FieldText);
   }
+  select {
+    /* Without this the browser draws its own menulist chrome and ignores
+       the field styling above, which stood out as a different box right
+       next to identically styled inputs. */
+    appearance: none;
+    -webkit-appearance: none;
+    padding-right: 32px;
+    /* The dropdown chevron, drawn from two gradients so it follows the
+       theme's text colour, which an image URL could not. */
+    background-image:
+      linear-gradient(45deg, transparent 50%, var(--secondary-text-color) 50%),
+      linear-gradient(135deg, var(--secondary-text-color) 50%, transparent 50%);
+    background-position:
+      calc(100% - 18px) 50%,
+      calc(100% - 13px) 50%;
+    background-size: 5px 5px;
+    background-repeat: no-repeat;
+  }
+  /* Number fields without the browser's stepper, like ha-textfield. */
+  input[type="number"] {
+    appearance: textfield;
+    -moz-appearance: textfield;
+  }
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
   input:not([type="checkbox"]):focus,
   select:focus {
     outline: none;
@@ -214,6 +242,46 @@ export const shared = css`
   }
   .error {
     color: var(--error-color, #db4437);
+  }
+  /* The subpage title row, a back arrow in front of the name the way
+     hass-subpage draws it. */
+  .subpage-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 4px 0 12px;
+  }
+  .subpage-header .back {
+    background: none;
+    border: none;
+    border-radius: 50%;
+    min-height: 0;
+    width: 40px;
+    height: 40px;
+    padding: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--primary-text-color);
+    flex: none;
+  }
+  .subpage-header h2 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 400;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  /* The grip Home Assistant puts on sortable rows. */
+  .drag-handle {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px;
+    color: var(--secondary-text-color);
+    cursor: grab;
+    /* The browser must not scroll while a finger drags a row. */
+    touch-action: none;
   }
   /* A list row with the divider the settings lists repeat. */
   .divided {

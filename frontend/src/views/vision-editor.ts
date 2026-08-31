@@ -385,7 +385,6 @@ export class CamwatchVisionEditor extends LitElement {
     const state = this.profile?.state;
     return html`
       <div class="card">
-        <h2>Bilderkennung für ${this.camera.name}</h2>
         <p class="hint">
           Ein Standbild wird an das gewählte Modell geschickt, sobald ein
           Auslöser meldet. Aus jeder Frage wird ein Sensor.

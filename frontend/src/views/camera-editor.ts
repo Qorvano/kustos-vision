@@ -5,7 +5,7 @@
 // pan, tilt, light and so on. Every proposal is editable, because the proposal
 // is a heuristic and the assignment is the truth.
 
-import { LitElement, html, nothing } from "lit";
+import { LitElement, css, html, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import { errorText, type CamwatchApi } from "../api";
 import type {
@@ -57,7 +57,15 @@ export class CamwatchCameraEditor extends LitElement {
   @state() private busy = false;
   @state() private error = "";
 
-  static override styles = shared;
+  static override styles = [
+    shared,
+    css`
+      /* The row travelling with the pointer, dimmed like HA's sortables. */
+      tr.dragging td {
+        opacity: 0.6;
+      }
+    `,
+  ];
 
   override connectedCallback(): void {
     super.connectedCallback();
@@ -205,10 +213,7 @@ export class CamwatchCameraEditor extends LitElement {
     return [...others, { slug: this.slug, name: this.name || this.slug }];
   }
 
-  private async moveInView(view: View, index: number, delta: number): Promise<void> {
-    const order = this.membersOf(view).map((m) => m.slug);
-    const [moved] = order.splice(index, 1);
-    order.splice(index + delta, 0, moved);
+  private async applyOrder(view: View, order: string[]): Promise<void> {
     this.busy = true;
     this.error = "";
     try {
@@ -229,6 +234,84 @@ export class CamwatchCameraEditor extends LitElement {
     } finally {
       this.busy = false;
     }
+  }
+
+  /**
+   * Sorting by pointer, the way Home Assistant's drag grips behave.
+   *
+   * Rows are the same height, so the drop position follows from how many
+   * row heights the pointer has travelled; the height is measured from the
+   * grabbed row, never assumed. The move is previewed while dragging and
+   * stored once on release, through the same path the arrow buttons used.
+   */
+  private dragging?: {
+    viewId: string;
+    slug: string;
+    startIndex: number;
+    currentIndex: number;
+    startY: number;
+    rowHeight: number;
+    order: string[];
+  };
+
+  private onDragStart(view: View, index: number, event: PointerEvent): void {
+    if (this.busy || !this.camera) return;
+    const handle = event.currentTarget as HTMLElement;
+    const row = handle.closest("tr");
+    if (!row) return;
+    event.preventDefault();
+    handle.setPointerCapture(event.pointerId);
+    const order = this.membersOf(view).map((m) => m.slug);
+    this.dragging = {
+      viewId: view.id,
+      slug: order[index],
+      startIndex: index,
+      currentIndex: index,
+      startY: event.clientY,
+      rowHeight: row.getBoundingClientRect().height,
+      order,
+    };
+    this.requestUpdate();
+  }
+
+  private onDragMove(event: PointerEvent): void {
+    const drag = this.dragging;
+    if (!drag || drag.rowHeight <= 0) return;
+    const travelled = Math.round((event.clientY - drag.startY) / drag.rowHeight);
+    const index = Math.min(
+      Math.max(drag.startIndex + travelled, 0),
+      drag.order.length - 1,
+    );
+    if (index !== drag.currentIndex) {
+      this.dragging = { ...drag, currentIndex: index };
+      this.requestUpdate();
+    }
+  }
+
+  private async onDragEnd(view: View): Promise<void> {
+    const drag = this.dragging;
+    this.dragging = undefined;
+    this.requestUpdate();
+    if (!drag || drag.currentIndex === drag.startIndex) return;
+    await this.applyOrder(view, this.orderedSlugs(drag));
+  }
+
+  private orderedSlugs(drag: NonNullable<typeof this.dragging>): string[] {
+    const order = [...drag.order];
+    const [moved] = order.splice(drag.startIndex, 1);
+    order.splice(drag.currentIndex, 0, moved);
+    return order;
+  }
+
+  /** The member list, rearranged live while a row is being dragged. */
+  private orderedMembers(view: View): { slug: string; name: string }[] {
+    const members = this.membersOf(view);
+    const drag = this.dragging;
+    if (!drag || drag.viewId !== view.id) return members;
+    const bySlug = new Map(members.map((m) => [m.slug, m]));
+    return this.orderedSlugs(drag)
+      .map((slug) => bySlug.get(slug))
+      .filter((m): m is { slug: string; name: string } => m !== undefined);
   }
 
   private patchControl(index: number, patch: Partial<CustomControl>): void {
@@ -362,7 +445,7 @@ export class CamwatchCameraEditor extends LitElement {
   private renderViewBlock(view: View) {
     const settings = this.viewSettings[view.id];
     const shown = settings?.visible ?? false;
-    const members = this.membersOf(view);
+    const members = this.orderedMembers(view);
     const chosen = settings?.capabilities ?? null;
     const bound = [
       ...Object.keys(this.capabilities),
@@ -462,27 +545,41 @@ export class CamwatchCameraEditor extends LitElement {
               <table>
                 ${members.map(
                   (member, index) => html`
-                    <tr>
+                    <tr
+                      class=${this.dragging?.viewId === view.id &&
+                      this.dragging.slug === member.slug
+                        ? "dragging"
+                        : ""}
+                    >
                       <td class=${member.slug === this.slug ? "" : "muted"}>
                         ${index + 1}. ${member.name}
                       </td>
                       <td style="width:1%;white-space:nowrap">
-                        <button
-                          class="secondary"
-                          ?disabled=${index === 0 || this.busy || !this.camera}
-                          @click=${() => this.moveInView(view, index, -1)}
-                        >
-                          ↑
-                        </button>
-                        <button
-                          class="secondary"
-                          ?disabled=${index === members.length - 1 ||
-                          this.busy ||
-                          !this.camera}
-                          @click=${() => this.moveInView(view, index, 1)}
-                        >
-                          ↓
-                        </button>
+                        ${this.camera
+                          ? html`<span
+                              class="drag-handle"
+                              title="Ziehen zum Verschieben"
+                              @pointerdown=${(e: PointerEvent) =>
+                                this.onDragStart(view, index, e)}
+                              @pointermove=${(e: PointerEvent) =>
+                                this.onDragMove(e)}
+                              @pointerup=${() => this.onDragEnd(view)}
+                              @pointercancel=${() => {
+                                this.dragging = undefined;
+                                this.requestUpdate();
+                              }}
+                            >
+                              <svg
+                                viewBox="0 0 24 24"
+                                width="20"
+                                height="20"
+                                fill="currentColor"
+                                aria-hidden="true"
+                              >
+                                <path d="M4 9h16v2H4zM4 13h16v2H4z" />
+                              </svg>
+                            </span>`
+                          : nothing}
                       </td>
                     </tr>
                   `,
@@ -555,7 +652,6 @@ export class CamwatchCameraEditor extends LitElement {
 
     return html`
       <div class="card">
-        <h2>${this.camera ? `${this.camera.name} bearbeiten` : "Kamera hinzufügen"}</h2>
         ${this.renderPicker()}
 
         <div class="row">

@@ -19,7 +19,7 @@ type EditorInternals = {
   views: View[];
   viewSettings: Record<string, CameraViewSettings>;
   patchView(viewId: string, patch: Partial<CameraViewSettings>): void;
-  moveInView(view: View, index: number, delta: number): Promise<void>;
+  applyOrder(view: View, order: string[]): Promise<void>;
 };
 
 function editor(cameras: string[]): EditorInternals {
@@ -50,7 +50,7 @@ describe("the editor keeps its positions in step with the stored order", () => {
     expect(el.viewSettings["alle"].position).toBe(1);
   });
 
-  it("adopts the position an arrow move just stored", async () => {
+  it("adopts the position a reorder just stored", async () => {
     const el = editor(["kamera_neu", "a", "b", "c"]);
     el.viewSettings = { alle: { visible: true, position: 0 } };
     const orders: string[][] = [];
@@ -60,7 +60,7 @@ describe("the editor keeps its positions in step with the stored order", () => {
       },
     } as unknown as CamwatchApi;
 
-    await el.moveInView(el.views[0], 0, 1);
+    await el.applyOrder(el.views[0], ["a", "kamera_neu", "b", "c"]);
 
     expect(orders).toEqual([["a", "kamera_neu", "b", "c"]]);
     // What save() will write matches what view/order just stored.
