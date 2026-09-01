@@ -243,7 +243,11 @@ export class CamwatchRecordings extends LitElement {
       );
       this.blocks = result.blocks;
       this.segments = result.segments;
-      this.position = result.segments[0]?.start ?? from;
+      // Never before the bar's own zero: the day's first segment usually
+      // started BEFORE midnight (it merely overlaps the day), and a cursor
+      // parked before `from` fails the timeline's range check and simply
+      // is not drawn - the tab opened with no cursor at all.
+      this.position = Math.max(result.segments[0]?.start ?? from, from);
       this.seekTo = this.position;
     } catch (err) {
       this.error = errorText(err);

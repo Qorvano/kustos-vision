@@ -60,7 +60,7 @@ const Ct = (t) => new pt(typeof t == "string" ? t : t + "", void 0, ze), H = (t,
  * Copyright 2017 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
  */
-const { is: Dt, defineProperty: zt, getOwnPropertyDescriptor: Ot, getOwnPropertyNames: Pt, getOwnPropertySymbols: Bt, getPrototypeOf: Mt } = Object, ke = globalThis, Ue = ke.trustedTypes, Rt = Ue ? Ue.emptyScript : "", Lt = ke.reactiveElementPolyfillSupport, ce = (t, e) => t, ye = { toAttribute(t, e) {
+const { is: Dt, defineProperty: zt, getOwnPropertyDescriptor: Ot, getOwnPropertyNames: Pt, getOwnPropertySymbols: Mt, getPrototypeOf: Bt } = Object, ke = globalThis, Ue = ke.trustedTypes, Rt = Ue ? Ue.emptyScript : "", Lt = ke.reactiveElementPolyfillSupport, ce = (t, e) => t, ye = { toAttribute(t, e) {
   switch (e) {
     case Boolean:
       t = t ? Rt : null;
@@ -119,13 +119,13 @@ let se = class extends HTMLElement {
   }
   static _$Ei() {
     if (this.hasOwnProperty(ce("elementProperties"))) return;
-    const e = Mt(this);
+    const e = Bt(this);
     e.finalize(), e.l !== void 0 && (this.l = [...e.l]), this.elementProperties = new Map(e.elementProperties);
   }
   static finalize() {
     if (this.hasOwnProperty(ce("finalized"))) return;
     if (this.finalized = !0, this._$Ei(), this.hasOwnProperty(ce("properties"))) {
-      const s = this.properties, i = [...Pt(s), ...Bt(s)];
+      const s = this.properties, i = [...Pt(s), ...Mt(s)];
       for (const r of i) this.createProperty(r, s[r]);
     }
     const e = this[Symbol.metadata];
@@ -277,11 +277,11 @@ se.elementStyles = [], se.shadowRootOptions = { mode: "open" }, se[ce("elementPr
  * Copyright 2017 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
  */
-const Pe = globalThis, je = (t) => t, $e = Pe.trustedTypes, We = $e ? $e.createPolicy("lit-html", { createHTML: (t) => t }) : void 0, gt = "$lit$", j = `lit$${Math.random().toFixed(9).slice(2)}$`, mt = "?" + j, Ht = `<${mt}>`, ee = document, pe = () => ee.createComment(""), ge = (t) => t === null || typeof t != "object" && typeof t != "function", Be = Array.isArray, It = (t) => Be(t) || typeof t?.[Symbol.iterator] == "function", Ae = `[ 	
+const Pe = globalThis, je = (t) => t, $e = Pe.trustedTypes, We = $e ? $e.createPolicy("lit-html", { createHTML: (t) => t }) : void 0, gt = "$lit$", j = `lit$${Math.random().toFixed(9).slice(2)}$`, mt = "?" + j, Ht = `<${mt}>`, ee = document, pe = () => ee.createComment(""), ge = (t) => t === null || typeof t != "object" && typeof t != "function", Me = Array.isArray, It = (t) => Me(t) || typeof t?.[Symbol.iterator] == "function", Ae = `[ 	
 \f\r]`, oe = /<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g, Ke = /-->/g, qe = />/g, Z = RegExp(`>|${Ae}(?:([^\\s"'>=/]+)(${Ae}*=${Ae}*(?:[^ 	
 \f\r"'\`<>=]|("|')|))|$)`, "g"), Ge = /'/g, Ze = /"/g, vt = /^(?:script|style|textarea|title)$/i, Vt = (t) => (e, ...s) => ({ _$litType$: t, strings: e, values: s }), o = Vt(1), te = Symbol.for("lit-noChange"), c = Symbol.for("lit-nothing"), Je = /* @__PURE__ */ new WeakMap(), Q = ee.createTreeWalker(ee, 129);
 function bt(t, e) {
-  if (!Be(t) || !t.hasOwnProperty("raw")) throw Error("invalid template strings array");
+  if (!Me(t) || !t.hasOwnProperty("raw")) throw Error("invalid template strings array");
   return We !== void 0 ? We.createHTML(e) : e;
 }
 const Nt = (t, e) => {
@@ -410,7 +410,7 @@ class ne {
     return s === void 0 && Je.set(e.strings, s = new me(e)), s;
   }
   k(e) {
-    Be(this._$AH) || (this._$AH = [], this._$AR());
+    Me(this._$AH) || (this._$AH = [], this._$AR());
     const s = this._$AH;
     let i, r = 0;
     for (const n of e) r === s.length ? s.push(i = new ne(this.O(pe()), this.O(pe()), this, this.options)) : i = s[r], i._$AI(n), r++;
@@ -507,7 +507,7 @@ const Zt = (t, e, s) => {
  * Copyright 2017 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
  */
-const Me = globalThis;
+const Be = globalThis;
 let C = class extends se {
   constructor() {
     super(...arguments), this.renderOptions = { host: this }, this._$Do = void 0;
@@ -530,16 +530,16 @@ let C = class extends se {
     return te;
   }
 };
-C._$litElement$ = !0, C.finalized = !0, Me.litElementHydrateSupport?.({ LitElement: C });
-const Jt = Me.litElementPolyfillSupport;
+C._$litElement$ = !0, C.finalized = !0, Be.litElementHydrateSupport?.({ LitElement: C });
+const Jt = Be.litElementPolyfillSupport;
 Jt?.({ LitElement: C });
-(Me.litElementVersions ??= []).push("4.2.2");
+(Be.litElementVersions ??= []).push("4.2.2");
 /**
  * @license
  * Copyright 2017 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
  */
-const B = (t) => (e, s) => {
+const M = (t) => (e, s) => {
   s !== void 0 ? s.addInitializer(() => {
     customElements.define(t, e);
   }) : customElements.define(t, e);
@@ -1604,7 +1604,7 @@ U([
   d()
 ], R.prototype, "drop", 2);
 R = U([
-  B("kustos-vision-select")
+  M("kustos-vision-select")
 ], R);
 var rs = Object.defineProperty, ns = Object.getOwnPropertyDescriptor, yt = (t, e, s, i) => {
   for (var r = i > 1 ? void 0 : i ? ns(e, s) : e, n = t.length - 1, a; n >= 0; n--)
@@ -1710,7 +1710,7 @@ yt([
   d()
 ], xe.prototype, "open", 2);
 xe = yt([
-  B("kustos-vision-unsaved-dialog")
+  M("kustos-vision-unsaved-dialog")
 ], xe);
 const ve = [];
 function Re(t) {
@@ -2394,7 +2394,7 @@ F([
   d()
 ], L.prototype, "loadingRun", 2);
 L = F([
-  B("kustos-vision-player")
+  M("kustos-vision-player")
 ], L);
 var $s = Object.defineProperty, xs = Object.getOwnPropertyDescriptor, V = (t, e, s, i) => {
   for (var r = i > 1 ? void 0 : i ? xs(e, s) : e, n = t.length - 1, a; n >= 0; n--)
@@ -2878,7 +2878,7 @@ V([
   d()
 ], O.prototype, "zoom", 2);
 O = V([
-  B("kustos-vision-live-stream")
+  M("kustos-vision-live-stream")
 ], O);
 var ks = Object.defineProperty, _s = Object.getOwnPropertyDescriptor, q = (t, e, s, i) => {
   for (var r = i > 1 ? void 0 : i ? _s(e, s) : e, n = t.length - 1, a; n >= 0; n--)
@@ -3165,7 +3165,7 @@ q([
   d()
 ], I.prototype, "error", 2);
 I = q([
-  B("kustos-vision-camera-tile")
+  M("kustos-vision-camera-tile")
 ], I);
 var Es = Object.defineProperty, Cs = Object.getOwnPropertyDescriptor, ae = (t, e, s, i) => {
   for (var r = i > 1 ? void 0 : i ? Cs(e, s) : e, n = t.length - 1, a; n >= 0; n--)
@@ -3270,9 +3270,9 @@ ae([
   u({ type: Boolean })
 ], W.prototype, "narrow", 2);
 W = ae([
-  B("kustos-vision-live-view")
+  M("kustos-vision-live-view")
 ], W);
-var Ts = Object.defineProperty, Ds = Object.getOwnPropertyDescriptor, M = (t, e, s, i) => {
+var Ts = Object.defineProperty, Ds = Object.getOwnPropertyDescriptor, B = (t, e, s, i) => {
   for (var r = i > 1 ? void 0 : i ? Ds(e, s) : e, n = t.length - 1, a; n >= 0; n--)
     (a = t[n]) && (r = (i ? a(e, s, r) : a(r)) || r);
   return i && r && Ts(e, s, r), r;
@@ -3286,7 +3286,7 @@ function Ps(t, e, s, i = 4) {
   const r = s / 2, n = Math.min(r + i, e / 2), a = Math.max(e - r - i, e / 2);
   return Math.min(Math.max(t, n), a);
 }
-const Bs = 168;
+const Ms = 168;
 let D = class extends C {
   constructor() {
     super(...arguments), this.from = 0, this.to = 0, this.blocks = [], this.segments = [], this.position = 0, this.thumbnailUrlBase = "/api/kustos_vision/thumbnail", this.dragging = !1, this.barWidth = 0;
@@ -3417,7 +3417,7 @@ let D = class extends C {
               style="left:${this.barWidth ? Ps(
       this.hover.x / 100 * this.barWidth,
       this.barWidth,
-      Math.min(Bs, this.barWidth)
+      Math.min(Ms, this.barWidth)
     ) + "px" : `${this.hover.x}%`}"
             >
               ${this.preview && this.preview.path === this.hover.segment?.path ? o`<img alt="" src=${this.preview.url} />` : c}
@@ -3578,46 +3578,46 @@ D.styles = H`
       font-size: 0.85em;
     }
   `;
-M([
+B([
   u({ type: Number })
 ], D.prototype, "from", 2);
-M([
+B([
   u({ type: Number })
 ], D.prototype, "to", 2);
-M([
+B([
   u({ attribute: !1 })
 ], D.prototype, "blocks", 2);
-M([
+B([
   u({ attribute: !1 })
 ], D.prototype, "segments", 2);
-M([
+B([
   u({ type: Number })
 ], D.prototype, "position", 2);
-M([
+B([
   u()
 ], D.prototype, "thumbnailUrlBase", 2);
-M([
+B([
   u({ attribute: !1 })
 ], D.prototype, "api", 2);
-M([
+B([
   d()
 ], D.prototype, "hover", 2);
-M([
+B([
   d()
 ], D.prototype, "dragging", 2);
-M([
+B([
   d()
 ], D.prototype, "preview", 2);
-M([
+B([
   d()
 ], D.prototype, "barWidth", 2);
-D = M([
-  B("kustos-vision-timeline")
+D = B([
+  M("kustos-vision-timeline")
 ], D);
-var Ms = Object.defineProperty, Rs = Object.getOwnPropertyDescriptor, y = (t, e, s, i) => {
+var Bs = Object.defineProperty, Rs = Object.getOwnPropertyDescriptor, y = (t, e, s, i) => {
   for (var r = i > 1 ? void 0 : i ? Rs(e, s) : e, n = t.length - 1, a; n >= 0; n--)
     (a = t[n]) && (r = (i ? a(e, s, r) : a(r)) || r);
-  return i && r && Ms(e, s, r), r;
+  return i && r && Bs(e, s, r), r;
 };
 const at = 25, Ee = [
   { value: "high", label: "Beste Qualität", share: "etwa 120 %" },
@@ -3669,7 +3669,7 @@ let f = class extends C {
         e,
         this.stream || void 0
       );
-      this.blocks = s.blocks, this.segments = s.segments, this.position = s.segments[0]?.start ?? t, this.seekTo = this.position;
+      this.blocks = s.blocks, this.segments = s.segments, this.position = Math.max(s.segments[0]?.start ?? t, t), this.seekTo = this.position;
     } catch (s) {
       this.error = E(s);
     } finally {
@@ -4129,7 +4129,7 @@ y([
   d()
 ], f.prototype, "rangeToTime", 2);
 f = y([
-  B("kustos-vision-recordings")
+  M("kustos-vision-recordings")
 ], f);
 /**
  * @license
@@ -5004,7 +5004,7 @@ _([
   d()
 ], $.prototype, "error", 2);
 $ = _([
-  B("kustos-vision-camera-editor")
+  M("kustos-vision-camera-editor")
 ], $);
 var Gs = Object.defineProperty, Zs = Object.getOwnPropertyDescriptor, A = (t, e, s, i) => {
   for (var r = i > 1 ? void 0 : i ? Zs(e, s) : e, n = t.length - 1, a; n >= 0; n--)
@@ -5526,7 +5526,7 @@ A([
   d()
 ], x.prototype, "error", 2);
 x = A([
-  B("kustos-vision-vision-editor")
+  M("kustos-vision-vision-editor")
 ], x);
 var Ys = Object.defineProperty, Xs = Object.getOwnPropertyDescriptor, z = (t, e, s, i) => {
   for (var r = i > 1 ? void 0 : i ? Xs(e, s) : e, n = t.length - 1, a; n >= 0; n--)
@@ -6184,7 +6184,7 @@ z([
   d()
 ], T.prototype, "viewDrag", 2);
 T = z([
-  B("kustos-vision-settings")
+  M("kustos-vision-settings")
 ], T);
 var ei = Object.defineProperty, ti = Object.getOwnPropertyDescriptor, N = (t, e, s, i) => {
   for (var r = i > 1 ? void 0 : i ? ti(e, s) : e, n = t.length - 1, a; n >= 0; n--)
@@ -6674,7 +6674,7 @@ N([
   d()
 ], P.prototype, "viewMenu", 2);
 P = N([
-  B("kustos-vision-panel")
+  M("kustos-vision-panel")
 ], P);
 export {
   P as CamwatchPanel
