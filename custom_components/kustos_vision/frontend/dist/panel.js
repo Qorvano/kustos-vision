@@ -1604,7 +1604,7 @@ async function se() {
       s.discard();
   return !0;
 }
-const Ae = "0.6.13", Xt = "kustos-vision-built:0.6.13", es = {
+const Ae = "0.6.14", Xt = "kustos-vision-built:0.6.14", es = {
   ptz_up: "Schwenken hoch",
   ptz_down: "Schwenken runter",
   ptz_left: "Schwenken links",
