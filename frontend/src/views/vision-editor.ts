@@ -240,8 +240,8 @@ export class CamwatchVisionEditor extends LitElement {
               : nothing}
           `
         : html`
-            <div class="row">
-              <div class="grow">
+            <div class="fields">
+              <div>
                 <label>Adresse</label>
                 <input
                   placeholder="http://192.168.1.10:8080/v1"
@@ -253,7 +253,7 @@ export class CamwatchVisionEditor extends LitElement {
                     })}
                 />
               </div>
-              <div class="grow">
+              <div>
                 <label>Modell</label>
                 <input
                   .value=${this.backend.model ?? ""}
@@ -286,8 +286,8 @@ export class CamwatchVisionEditor extends LitElement {
   private renderObservation(observation: Observation, index: number) {
     return html`
       <div class="divided">
-        <div class="row">
-          <div class="grow">
+        <div class="fields">
+          <div>
             <label>Frage an das Modell</label>
             <input
               placeholder="Liegt ein Paket vor der Haustür?"
@@ -345,8 +345,8 @@ export class CamwatchVisionEditor extends LitElement {
               />`
           : nothing}
         ${observation.type === "number"
-          ? html`<div class="row">
-              <div class="grow">
+          ? html`<div class="fields">
+              <div>
                 <label>Kleinster Wert</label>
                 <input
                   type="number"
@@ -357,7 +357,7 @@ export class CamwatchVisionEditor extends LitElement {
                     })}
                 />
               </div>
-              <div class="grow">
+              <div>
                 <label>Größter Wert</label>
                 <input
                   type="number"
@@ -409,29 +409,33 @@ export class CamwatchVisionEditor extends LitElement {
         Was das Modell tatsächlich geantwortet hat. Eine Frage zu verbessern
         gelingt damit, statt am Wortlaut zu raten.
       </p>
-      <table>
-        <tr>
-          <th>Zeitpunkt</th>
-          <th>Auslöser</th>
-          <th>Antwort</th>
-          <th>Dauer</th>
-        </tr>
-        ${this.history.slice(0, 8).map(
-          (run) => html`
-            <tr>
-              <td class="muted">${new Date(run.at).toLocaleString()}</td>
-              <td class="muted">${run.trigger}</td>
-              <td class=${run.error ? "error" : ""}>
-                ${run.error ??
-                Object.entries(run.values)
-                  .map(([k, v]) => `${k}: ${v}`)
-                  .join(", ")}
-              </td>
-              <td class="muted">${run.duration === null ? "-" : `${run.duration} s`}</td>
-            </tr>
-          `,
-        )}
-      </table>
+      <div class="table-stack">
+        <table>
+          <tr class="head">
+            <th>Zeitpunkt</th>
+            <th>Auslöser</th>
+            <th>Antwort</th>
+            <th>Dauer</th>
+          </tr>
+          ${this.history.slice(0, 8).map(
+            (run) => html`
+              <tr>
+                <td class="muted">${new Date(run.at).toLocaleString()}</td>
+                <td class="muted" data-label="Auslöser">${run.trigger}</td>
+                <td class=${run.error ? "error" : ""} data-label="Antwort">
+                  ${run.error ??
+                  Object.entries(run.values)
+                    .map(([k, v]) => `${k}: ${v}`)
+                    .join(", ")}
+                </td>
+                <td class="muted" data-label="Dauer">
+                  ${run.duration === null ? "-" : `${run.duration} s`}
+                </td>
+              </tr>
+            `,
+          )}
+        </table>
+      </div>
     `;
   }
 
@@ -520,8 +524,8 @@ export class CamwatchVisionEditor extends LitElement {
         />
 
         <h3>Grenzen</h3>
-        <div class="row">
-          <div class="grow">
+        <div class="fields">
+          <div>
             <label>Mindestabstand in Sekunden</label>
             <input
               type="number"
@@ -531,7 +535,7 @@ export class CamwatchVisionEditor extends LitElement {
                 (this.cooldown = Number((e.target as HTMLInputElement).value))}
             />
           </div>
-          <div class="grow">
+          <div>
             <label>Höchstens Analysen pro Tag</label>
             <input
               type="number"

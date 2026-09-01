@@ -28,6 +28,7 @@ import {
   unregisterUnsavedWork,
   type UnsavedWork,
 } from "../dirty";
+import { dropIndexAt, edgeAutoscroll, scrollParentOf } from "../drag";
 import { FlipList } from "../flip";
 import { shared } from "../styles";
 
@@ -73,8 +74,14 @@ export class CamwatchCameraEditor extends LitElement {
         display: flex;
         align-items: center;
         gap: 12px;
+        /* A long camera name must push the grip onto the next line, not
+           the whole page into a sideways scroll. */
+        flex-wrap: wrap;
         padding: 6px 12px;
         border-bottom: 1px solid var(--divider-color, ButtonBorder);
+      }
+      .member-row > span:first-child {
+        min-width: 0;
       }
     `,
   ];
@@ -306,16 +313,12 @@ export class CamwatchCameraEditor extends LitElement {
     slug: string;
     startIndex: number;
     currentIndex: number;
-    startY: number;
-    rowHeight: number;
     order: string[];
   };
 
   private onDragStart(view: View, index: number, event: PointerEvent): void {
     if (this.busy || !this.camera) return;
     const handle = event.currentTarget as HTMLElement;
-    const row = handle.closest(".member-row");
-    if (!row) return;
     event.preventDefault();
     handle.setPointerCapture(event.pointerId);
     const order = this.membersOf(view).map((m) => m.slug);
@@ -324,21 +327,31 @@ export class CamwatchCameraEditor extends LitElement {
       slug: order[index],
       startIndex: index,
       currentIndex: index,
-      startY: event.clientY,
-      rowHeight: row.getBoundingClientRect().height,
       order,
     };
     this.requestUpdate();
   }
 
+  /** This view's rows alone: every view block has a member list of its own. */
+  private memberRowsOf(viewId: string): HTMLElement[] {
+    return [...this.memberRows()].filter(
+      (row): row is HTMLElement =>
+        row instanceof HTMLElement &&
+        (row.dataset.key ?? "").startsWith(`${viewId}:`),
+    );
+  }
+
   private onDragMove(event: PointerEvent): void {
     const drag = this.dragging;
-    if (!drag || drag.rowHeight <= 0) return;
-    const travelled = Math.round((event.clientY - drag.startY) / drag.rowHeight);
-    const index = Math.min(
-      Math.max(drag.startIndex + travelled, 0),
-      drag.order.length - 1,
+    if (!drag) return;
+    // The drop position comes from where the rows actually are: on a phone
+    // they wrap and no uniform height survives that.
+    const rects = this.memberRowsOf(drag.viewId).map((row) =>
+      row.getBoundingClientRect(),
     );
+    const index = dropIndexAt(rects, event.clientY, drag.currentIndex);
+    const scroller = scrollParentOf(this);
+    if (scroller) edgeAutoscroll(scroller, event.clientY);
     if (index !== drag.currentIndex) {
       // Remember where every row sits, so the re-render can glide them.
       this.memberFlip.snapshot(this.memberRows());
@@ -420,8 +433,8 @@ export class CamwatchCameraEditor extends LitElement {
     const chosenEntity = control.binding.entity_id;
     return html`
       <div class="divided">
-        <div class="row">
-          <div class="grow">
+        <div class="fields">
+          <div>
             <label>Beschriftung</label>
             <input
               placeholder="Zoom rein"
@@ -432,7 +445,7 @@ export class CamwatchCameraEditor extends LitElement {
                 })}
             />
           </div>
-          <div class="grow">
+          <div>
             <label>Entity</label>
             <kustos-vision-select
               search
@@ -614,6 +627,8 @@ export class CamwatchCameraEditor extends LitElement {
                       ${this.camera
                         ? html`<span
                             class="drag-handle"
+                            role="button"
+                            aria-label="Ziehen zum Verschieben"
                             title="Ziehen zum Verschieben"
                             @pointerdown=${(e: PointerEvent) =>
                               this.onDragStart(view, index, e)}
@@ -705,15 +720,15 @@ export class CamwatchCameraEditor extends LitElement {
       <div class="card">
         ${this.renderPicker()}
 
-        <div class="row">
-          <div class="grow">
+        <div class="fields">
+          <div>
             <label>Name</label>
             <input
               .value=${this.name}
               @input=${(e: Event) => (this.name = (e.target as HTMLInputElement).value)}
             />
           </div>
-          <div class="grow">
+          <div>
             <label>Kennung (wird zum Ordnernamen)</label>
             <input
               .value=${this.slug}
@@ -726,17 +741,11 @@ export class CamwatchCameraEditor extends LitElement {
         <h3>Streams</h3>
         ${this.streams.length === 0
           ? html`<p class="hint">Noch keine Streams.</p>`
-          : html`<table>
-              <tr>
-                <th>Kennung</th>
-                <th>Entity</th>
-                <th>Aufzeichnen</th>
-                <th>Ton</th>
-              </tr>
-              ${this.streams.map(
+          : html`${this.streams.map(
                 (stream, index) => html`
-                  <tr>
-                    <td>
+                  <div class="divided fields">
+                    <div>
+                      <label>Kennung</label>
                       <input
                         .value=${stream.key}
                         @input=${(e: Event) =>
@@ -744,9 +753,13 @@ export class CamwatchCameraEditor extends LitElement {
                             key: (e.target as HTMLInputElement).value,
                           })}
                       />
-                    </td>
-                    <td class="muted">${stream.entity_id}</td>
-                    <td>
+                    </div>
+                    <div>
+                      <label>Entity</label>
+                      <span class="muted id">${stream.entity_id}</span>
+                    </div>
+                    <div>
+                      <label>Aufzeichnen</label>
                       <input
                         type="checkbox"
                         .checked=${stream.record}
@@ -755,8 +768,9 @@ export class CamwatchCameraEditor extends LitElement {
                             record: (e.target as HTMLInputElement).checked,
                           })}
                       />
-                    </td>
-                    <td>
+                    </div>
+                    <div>
+                      <label>Ton</label>
                       <kustos-vision-select
                         .options=${[
                           { value: "transcode", label: "umwandeln" },
@@ -769,19 +783,18 @@ export class CamwatchCameraEditor extends LitElement {
                             audio: e.detail.value as StreamConfig["audio"],
                           })}
                       ></kustos-vision-select>
-                    </td>
-                  </tr>
+                    </div>
+                  </div>
                 `,
               )}
-            </table>
             <p class="hint">
               "Umwandeln" funktioniert mit jeder Kamera. "Kopieren" spart etwas
               Rechenzeit, geht aber nur, wenn die Kamera bereits AAC sendet.
             </p>`}
 
         <h3>Aufbewahrung</h3>
-        <div class="row">
-          <div class="grow">
+        <div class="fields">
+          <div>
             <label>Tage (leer = nur das Gesamtbudget begrenzt)</label>
             <input
               type="number"
@@ -811,30 +824,28 @@ export class CamwatchCameraEditor extends LitElement {
           Was hier zugeordnet ist, kann auf der Kachel erscheinen. Pro Ansicht
           lässt sich unten auswählen, welche davon dort gezeigt werden.
         </p>
-        <table>
+        <div class="fields" style="--kv-field-min:260px">
           ${this.capabilityKeys.map(
             (key) => html`
-              <tr>
-                <th>${capabilityLabel(key)}</th>
-                <td>
-                  <kustos-vision-select
-                    search
-                    .options=${[
-                      { value: "", label: "nicht zugeordnet" },
-                      ...options.map((c) => ({
-                        value: c.entity_id,
-                        label: c.name,
-                      })),
-                    ]}
-                    .value=${this.capabilities[key]?.entity_id ?? ""}
-                    @value-changed=${(e: CustomEvent<{ value: string }>) =>
-                      this.setCapability(key, e.detail.value)}
-                  ></kustos-vision-select>
-                </td>
-              </tr>
+              <div>
+                <label>${capabilityLabel(key)}</label>
+                <kustos-vision-select
+                  search
+                  .options=${[
+                    { value: "", label: "nicht zugeordnet" },
+                    ...options.map((c) => ({
+                      value: c.entity_id,
+                      label: c.name,
+                    })),
+                  ]}
+                  .value=${this.capabilities[key]?.entity_id ?? ""}
+                  @value-changed=${(e: CustomEvent<{ value: string }>) =>
+                    this.setCapability(key, e.detail.value)}
+                ></kustos-vision-select>
+              </div>
             `,
           )}
-        </table>
+        </div>
           </div>
         </details>
 
@@ -887,6 +898,9 @@ export class CamwatchCameraEditor extends LitElement {
         </details>
 
         ${this.error ? html`<p class="error">${this.error}</p>` : nothing}
+        ${this.incompleteControl !== undefined
+          ? html`<p class="hint error">${this.incompleteControl}</p>`
+          : nothing}
 
         <div class="row" style="margin-top:16px">
           <button

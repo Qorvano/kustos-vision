@@ -14,6 +14,7 @@ import {
   unregisterUnsavedWork,
   type UnsavedWork,
 } from "../dirty";
+import { dropIndexAt, edgeAutoscroll, scrollParentOf } from "../drag";
 import { FlipList } from "../flip";
 import { shared } from "../styles";
 import type {
@@ -180,17 +181,21 @@ export class CamwatchSettings extends LitElement {
               Noch keine Kamera eingerichtet. kustos_vision schlägt beim Hinzufügen
               vor, welche Streams und Bedienelemente zum Gerät gehören.
             </p>`
-          : html`<table>
-              <tr>
-                <th>Name</th>
-                <th>Streams</th>
-                <th>Aufbewahrung</th>
-                <th>Belegt</th>
-                <th>Status</th>
-                <th></th>
-              </tr>
-              ${this.snapshot.cameras.map((camera) => this.renderCameraRow(camera))}
-            </table>`}
+          : html`<div class="table-stack">
+              <table>
+                <tr class="head">
+                  <th>Name</th>
+                  <th>Streams</th>
+                  <th>Aufbewahrung</th>
+                  <th>Belegt</th>
+                  <th>Status</th>
+                  <th></th>
+                </tr>
+                ${this.snapshot.cameras.map((camera) =>
+                  this.renderCameraRow(camera),
+                )}
+              </table>
+            </div>`}
         <div class="row" style="margin-top:16px">
           <button ?disabled=${this.busy} @click=${this.startAdding}>
             Kamera hinzufügen
@@ -206,12 +211,16 @@ export class CamwatchSettings extends LitElement {
     return html`
       <tr>
         <td>${camera.name}</td>
-        <td class="muted">${recorded} von ${camera.streams.length}</td>
-        <td class="muted">
+        <td class="muted" data-label="Streams">
+          ${recorded} von ${camera.streams.length}
+        </td>
+        <td class="muted" data-label="Aufbewahrung">
           ${camera.retention_days === null ? "unbegrenzt" : `${camera.retention_days} Tage`}
         </td>
-        <td class="muted">${formatBytes(camera.state.used_bytes)}</td>
-        <td>${this.renderRecordingState(camera, failing)}</td>
+        <td class="muted" data-label="Belegt">
+          ${formatBytes(camera.state.used_bytes)}
+        </td>
+        <td data-label="Status">${this.renderRecordingState(camera, failing)}</td>
         <td>
           <div class="row">
             <button
@@ -305,16 +314,20 @@ export class CamwatchSettings extends LitElement {
         </p>
         ${this.snapshot.cameras.length === 0
           ? html`<p class="hint">Erst eine Kamera einrichten.</p>`
-          : html`<table>
-              <tr>
-                <th>Kamera</th>
-                <th>Fragen</th>
-                <th>Heute</th>
-                <th>Zustand</th>
-                <th></th>
-              </tr>
-              ${this.snapshot.cameras.map((camera) => this.renderVisionRow(camera))}
-            </table>`}
+          : html`<div class="table-stack">
+              <table>
+                <tr class="head">
+                  <th>Kamera</th>
+                  <th>Fragen</th>
+                  <th>Heute</th>
+                  <th>Zustand</th>
+                  <th></th>
+                </tr>
+                ${this.snapshot.cameras.map((camera) =>
+                  this.renderVisionRow(camera),
+                )}
+              </table>
+            </div>`}
       </div>
     `;
   }
@@ -324,13 +337,15 @@ export class CamwatchSettings extends LitElement {
     return html`
       <tr>
         <td>${camera.name}</td>
-        <td class="muted">${profile ? profile.observations.length : "-"}</td>
-        <td class="muted">
+        <td class="muted" data-label="Fragen">
+          ${profile ? profile.observations.length : "-"}
+        </td>
+        <td class="muted" data-label="Heute">
           ${profile
             ? `${profile.state.analyses_today} / ${profile.daily_budget}`
             : "-"}
         </td>
-        <td>
+        <td data-label="Zustand">
           ${!profile
             ? html`<span class="muted">nicht eingerichtet</span>`
             : profile.state.last_error
@@ -395,8 +410,8 @@ export class CamwatchSettings extends LitElement {
           : nothing}
 
         <h3>Grenzen</h3>
-        <div class="row">
-          <div class="grow">
+        <div class="fields">
+          <div>
             <label>Segmentlänge in Sekunden</label>
             <input
               id="segment"
@@ -405,7 +420,7 @@ export class CamwatchSettings extends LitElement {
               .value=${String(storage.segment_seconds)}
             />
           </div>
-          <div class="grow">
+          <div>
             <label>Gesamtbudget in GB (leer = automatisch)</label>
             <input id="budget" type="number" min="0" step="0.1" .value=${budgetGb} />
           </div>
@@ -571,8 +586,8 @@ export class CamwatchSettings extends LitElement {
           : ""}"
         data-key=${view.id}
       >
-        <div class="row">
-          <div class="grow">
+        <div class="fields">
+          <div>
             <label>Name</label>
             <input
               .value=${view.name}
@@ -580,7 +595,7 @@ export class CamwatchSettings extends LitElement {
                 this.patchView(index, { name: (e.target as HTMLInputElement).value })}
             />
           </div>
-          <div class="grow">
+          <div>
             <label>Spalten (0 = automatisch)</label>
             <input
               type="number"
@@ -614,6 +629,8 @@ export class CamwatchSettings extends LitElement {
           <span class="spacer"></span>
           <span
             class="drag-handle"
+            role="button"
+            aria-label="Ziehen zum Verschieben"
             title="Ziehen zum Verschieben"
             @pointerdown=${(e: PointerEvent) => this.onViewDragStart(index, e)}
             @pointermove=${(e: PointerEvent) => this.onViewDragMove(e)}
@@ -671,18 +688,13 @@ export class CamwatchSettings extends LitElement {
     const drag = this.viewDrag;
     if (!drag) return;
     // View rows are not the same height - their hints wrap differently -
-    // so the drop position comes from the actual row rectangles rather
-    // than from a uniform step.
-    const rows = Array.from(this.renderRoot.querySelectorAll(".view-row"));
-    let index = drag.currentIndex;
-    rows.forEach((row, i) => {
-      const rect = row.getBoundingClientRect();
-      if (event.clientY >= rect.top && event.clientY <= rect.bottom) index = i;
-    });
-    const first = rows[0]?.getBoundingClientRect();
-    if (first && event.clientY < first.top) index = 0;
-    const last = rows[rows.length - 1]?.getBoundingClientRect();
-    if (last && event.clientY > last.bottom) index = rows.length - 1;
+    // so the drop position comes from the actual row rectangles.
+    const rects = Array.from(this.viewRows(), (row) =>
+      row.getBoundingClientRect(),
+    );
+    const index = dropIndexAt(rects, event.clientY, drag.currentIndex);
+    const scroller = scrollParentOf(this);
+    if (scroller) edgeAutoscroll(scroller, event.clientY);
     if (index !== drag.currentIndex) {
       // Remember where every row sits, so the re-render can glide them.
       this.viewFlip.snapshot(this.viewRows());
@@ -747,26 +759,32 @@ export class CamwatchSettings extends LitElement {
         <h3>Streams</h3>
         ${cameras.length === 0
           ? html`<p class="hint">Keine Kameras eingerichtet.</p>`
-          : html`<table>
-              <tr>
-                <th>Stream</th>
-                <th>Läuft</th>
-                <th>Neustarts</th>
-                <th>Zuletzt gemeldet</th>
-              </tr>
-              ${cameras.flatMap((camera) =>
-                camera.state.streams.map(
-                  (stream) => html`
-                    <tr>
-                      <td>${camera.name} / ${stream.stream_key}</td>
-                      <td>${stream.running ? "ja" : "nein"}</td>
-                      <td>${stream.restarts}</td>
-                      <td class="muted">${stream.last_error ?? "-"}</td>
-                    </tr>
-                  `,
-                ),
-              )}
-            </table>`}
+          : html`<div class="table-stack">
+              <table>
+                <tr class="head">
+                  <th>Stream</th>
+                  <th>Läuft</th>
+                  <th>Neustarts</th>
+                  <th>Zuletzt gemeldet</th>
+                </tr>
+                ${cameras.flatMap((camera) =>
+                  camera.state.streams.map(
+                    (stream) => html`
+                      <tr>
+                        <td>${camera.name} / ${stream.stream_key}</td>
+                        <td data-label="Läuft">
+                          ${stream.running ? "ja" : "nein"}
+                        </td>
+                        <td data-label="Neustarts">${stream.restarts}</td>
+                        <td class="muted" data-label="Zuletzt gemeldet">
+                          ${stream.last_error ?? "-"}
+                        </td>
+                      </tr>
+                    `,
+                  ),
+                )}
+              </table>
+            </div>`}
 
         <h3>Index</h3>
         <p class="hint">
