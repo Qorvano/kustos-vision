@@ -38,6 +38,7 @@ export class CamwatchRecordings extends LitElement {
   @property({ attribute: false }) cameras: Camera[] = [];
   /** Whether the server's ffmpeg can draw the clock at all. */
   @property({ type: Boolean }) stampAvailable = false;
+  @property({ type: Boolean }) narrow = false;
 
   @state() private camera = "";
   @state() private stream = "";
@@ -110,47 +111,64 @@ export class CamwatchRecordings extends LitElement {
            collapsed to zero pixels and even the error overlay inside it went
            with it, leaving no sign that a player was there. A video element
            spends roughly the first forty pixels on its own control bar, so
-           below this there is no picture left to look at and scrolling is the
-           better answer than a strip. */
-        min-height: 160px;
+           below this there is no picture left to look at and scrolling is
+           the better answer than a strip. On a phone lying on its side the
+           screen itself is barely 160px of budget, so the floor gives way
+           with the viewport rather than push the timeline off the screen;
+           on a monitor the clamp lands on the old 160px unchanged. */
+        min-height: clamp(96px, 30svh, 160px);
       }
       .page .card {
         margin-bottom: 0;
       }
       /* The two cards under the picture share the width and wrap when it
-         runs out. */
+         runs out - whether they arrive as cards or as folded expanders. */
       .cards {
         display: flex;
         gap: 16px;
         align-items: flex-start;
         flex-wrap: wrap;
       }
-      .cards .card {
+      .cards > * {
         flex: 1 1 320px;
+        min-width: 0;
       }
-      /* Secondary controls now: each picker keeps a modest width instead
-         of stretching across the card. */
+      .cards details.expander {
+        margin: 0;
+      }
+      /* Secondary controls: each picker takes a share of the row and stops
+         claiming width it may not have. */
       .picker {
-        width: 200px;
+        flex: 1 1 160px;
+        min-width: 0;
+        max-width: 260px;
       }
       /* One range bound: its date dropdown and its time side by side. */
+      .rangebound {
+        flex: 1 1 240px;
+        min-width: 0;
+      }
       .rangefields {
         display: flex;
         gap: 8px;
         align-items: center;
+        flex-wrap: wrap;
       }
       .rangefields .rangeday {
-        width: 140px;
+        flex: 1 1 130px;
+        min-width: 0;
       }
       .rangefields .rangetime {
-        width: 110px;
+        flex: 0 1 110px;
+        min-width: 96px;
       }
       label.stamp {
         display: flex;
         align-items: center;
         gap: 6px;
         margin: 0;
-        white-space: nowrap;
+        flex: 1 1 auto;
+        min-width: 0;
       }
     `,
   ];
@@ -443,8 +461,23 @@ export class CamwatchRecordings extends LitElement {
             ${this.error ? html`<p class="error">${this.error}</p>` : nothing}
           </div>
 
-          <div class="card">
-            <h2>Download</h2>
+          ${this.narrow
+            ? html`<details class="expander">
+                <summary>Download</summary>
+                <div class="expander-body">${this.renderDownloadBody()}</div>
+              </details>`
+            : html`<div class="card">
+                <h2>Download</h2>
+                ${this.renderDownloadBody()}
+              </div>`}
+        </div>
+      </div>
+    `;
+  }
+
+  /** The export controls; on a phone they arrive folded, see render(). */
+  private renderDownloadBody() {
+    return html`
             <div class="row">
               <button
                 class="secondary"
@@ -484,6 +517,12 @@ export class CamwatchRecordings extends LitElement {
                   </div>`
                 : nothing}
             </div>
+            ${!this.stampAvailable
+              ? html`<p class="hint">
+                  Das ffmpeg dieser Installation kann keinen Text zeichnen;
+                  nur der Roh-Export ist verfügbar.
+                </p>`
+              : nothing}
             <p class="hint">
               ${this.segments.length === 0
                 ? "Für den gewählten Tag ist nichts aufgezeichnet."
@@ -504,7 +543,7 @@ export class CamwatchRecordings extends LitElement {
             </p>
 
             <div class="row" style="margin-top:12px">
-              <div>
+              <div class="rangebound">
                 <label>Von</label>
                 <div class="rangefields">
                   <kustos-vision-select
@@ -525,7 +564,7 @@ export class CamwatchRecordings extends LitElement {
                   />
                 </div>
               </div>
-              <div>
+              <div class="rangebound">
                 <label>Bis</label>
                 <div class="rangefields">
                   <kustos-vision-select
@@ -566,9 +605,6 @@ export class CamwatchRecordings extends LitElement {
                   beginnt am Schlüsselbild direkt vor der gewählten Minute,
                   damit nichts fehlt. Der Zeitstempel-Schalter gilt auch hier.
                 </p>`}
-          </div>
-        </div>
-      </div>
     `;
   }
 }

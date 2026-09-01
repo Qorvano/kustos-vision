@@ -18,6 +18,32 @@ import type { TimelineBlock, TimelineSegment } from "../types";
 // feels immediate.
 const PREVIEW_SETTLE_MS = 120;
 
+/** How many hour marks share one label, from the room a label needs. */
+export function labelStep(markCount: number, width: number): number {
+  /* "00:00" plus enough air that two labels never touch. At a dashboard's
+     usual width this reproduces the every-second-hour scale the bar has
+     always drawn; on a phone it thins out instead of overprinting. */
+  const LABEL_PX = 72;
+  const fits = Math.max(1, Math.floor(width / LABEL_PX));
+  return Math.max(1, Math.ceil(markCount / fits));
+}
+
+/** Keep the preview's centre inside the bar: at the ends it stops sliding. */
+export function clampPreviewLeft(
+  x: number,
+  barWidth: number,
+  previewWidth: number,
+  margin = 4,
+): number {
+  const half = previewWidth / 2;
+  const min = Math.min(half + margin, barWidth / 2);
+  const max = Math.max(barWidth - half - margin, barWidth / 2);
+  return Math.min(Math.max(x, min), max);
+}
+
+/* The preview's own box: the picture plus its padding, see .preview img. */
+const PREVIEW_WIDTH = 168;
+
 @customElement("kustos-vision-timeline")
 export class CamwatchTimeline extends LitElement {
   @property({ type: Number }) from = 0;
@@ -40,11 +66,25 @@ export class CamwatchTimeline extends LitElement {
   @state() private dragging = false;
   /** The signed address of the preview, and the segment it belongs to. */
   @state() private preview?: { path: string; url: string };
+  /** The bar's real width, feeding the label density and the preview clamp. */
+  @state() private barWidth = 0;
 
   private settleTimer?: ReturnType<typeof setTimeout>;
+  private resizeObserver?: ResizeObserver;
+
+  override connectedCallback(): void {
+    super.connectedCallback();
+    this.resizeObserver = new ResizeObserver((entries) => {
+      const width = entries[0]?.contentRect.width;
+      if (width !== undefined) this.barWidth = width;
+    });
+    this.resizeObserver.observe(this);
+  }
 
   override disconnectedCallback(): void {
     super.disconnectedCallback();
+    this.resizeObserver?.disconnect();
+    this.resizeObserver = undefined;
     this.clearSettle();
   }
 
@@ -191,7 +231,8 @@ export class CamwatchTimeline extends LitElement {
     }
     .preview img {
       display: block;
-      width: 160px;
+      /* Not wider than a phone can afford beside its own edges. */
+      width: min(160px, 40vw);
       border-radius: 4px;
     }
     .preview .time {
@@ -301,7 +342,7 @@ export class CamwatchTimeline extends LitElement {
     // Every mark gets a stroke, but only some get numbers: a dozen labels is
     // what stays readable across the widths a dashboard is used at, so a
     // full day labels every second hour.
-    const labelEvery = Math.ceil(marks.length / 12);
+    const labelEvery = labelStep(marks.length, this.barWidth || 900);
     return html`<div class="scale">
       ${marks.map(
         (t, i) => html`<div
@@ -326,7 +367,16 @@ export class CamwatchTimeline extends LitElement {
     return html`
       <div class="wrap">
         ${this.hover
-          ? html`<div class="preview" style="left:${this.hover.x}%">
+          ? html`<div
+              class="preview"
+              style="left:${this.barWidth
+                ? clampPreviewLeft(
+                    (this.hover.x / 100) * this.barWidth,
+                    this.barWidth,
+                    Math.min(PREVIEW_WIDTH, this.barWidth),
+                  ) + "px"
+                : `${this.hover.x}%`}"
+            >
               ${this.preview && this.preview.path === this.hover.segment?.path
                 ? html`<img alt="" src=${this.preview.url} />`
                 : nothing}

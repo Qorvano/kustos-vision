@@ -575,6 +575,7 @@ export class CamwatchPanel extends LitElement {
               .api=${this.api}
               .cameras=${snapshot.cameras}
               .stampAvailable=${snapshot.build?.stamp_available ?? false}
+              ?narrow=${this.narrow}
             ></kustos-vision-recordings>`
           : this.active === SETTINGS_TAB
           ? html`<kustos-vision-settings
