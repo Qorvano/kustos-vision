@@ -18,16 +18,16 @@ if (customElements.get("kustos-vision-panel") !== void 0) {
  * Copyright 2019 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
  */
-const ve = globalThis, Ce = ve.ShadowRoot && (ve.ShadyCSS === void 0 || ve.ShadyCSS.nativeShadow) && "adoptedStyleSheets" in Document.prototype && "replace" in CSSStyleSheet.prototype, Te = Symbol(), Ie = /* @__PURE__ */ new WeakMap();
+const ve = globalThis, Te = ve.ShadowRoot && (ve.ShadyCSS === void 0 || ve.ShadyCSS.nativeShadow) && "adoptedStyleSheets" in Document.prototype && "replace" in CSSStyleSheet.prototype, Ce = Symbol(), Ie = /* @__PURE__ */ new WeakMap();
 let ot = class {
   constructor(e, s, i) {
-    if (this._$cssResult$ = !0, i !== Te) throw Error("CSSResult is not constructable. Use `unsafeCSS` or `css` instead.");
+    if (this._$cssResult$ = !0, i !== Ce) throw Error("CSSResult is not constructable. Use `unsafeCSS` or `css` instead.");
     this.cssText = e, this.t = s;
   }
   get styleSheet() {
     let e = this.o;
     const s = this.t;
-    if (Ce && e === void 0) {
+    if (Te && e === void 0) {
       const i = s !== void 0 && s.length === 1;
       i && (e = Ie.get(s)), e === void 0 && ((this.o = e = new CSSStyleSheet()).replaceSync(this.cssText), i && Ie.set(s, e));
     }
@@ -37,20 +37,20 @@ let ot = class {
     return this.cssText;
   }
 };
-const ft = (t) => new ot(typeof t == "string" ? t : t + "", void 0, Te), R = (t, ...e) => {
+const ft = (t) => new ot(typeof t == "string" ? t : t + "", void 0, Ce), R = (t, ...e) => {
   const s = t.length === 1 ? t[0] : e.reduce((i, r, n) => i + ((a) => {
     if (a._$cssResult$ === !0) return a.cssText;
     if (typeof a == "number") return a;
     throw Error("Value passed to 'css' function must be a 'css' function result: " + a + ". Use 'unsafeCSS' to pass non-literal values, but take care to ensure page security.");
   })(r) + t[n + 1], t[0]);
-  return new ot(s, t, Te);
+  return new ot(s, t, Ce);
 }, yt = (t, e) => {
-  if (Ce) t.adoptedStyleSheets = e.map((s) => s instanceof CSSStyleSheet ? s : s.styleSheet);
+  if (Te) t.adoptedStyleSheets = e.map((s) => s instanceof CSSStyleSheet ? s : s.styleSheet);
   else for (const s of e) {
     const i = document.createElement("style"), r = ve.litNonce;
     r !== void 0 && i.setAttribute("nonce", r), i.textContent = s.cssText, t.appendChild(i);
   }
-}, Ne = Ce ? (t) => t : (t) => t instanceof CSSStyleSheet ? ((e) => {
+}, Ne = Te ? (t) => t : (t) => t instanceof CSSStyleSheet ? ((e) => {
   let s = "";
   for (const i of e.cssRules) s += i.cssText;
   return ft(s);
@@ -277,7 +277,7 @@ ee.elementStyles = [], ee.shadowRootOptions = { mode: "open" }, ee[he("elementPr
  * Copyright 2017 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
  */
-const Oe = globalThis, Ve = (t) => t, ye = Oe.trustedTypes, je = ye ? ye.createPolicy("lit-html", { createHTML: (t) => t }) : void 0, lt = "$lit$", j = `lit$${Math.random().toFixed(9).slice(2)}$`, ht = "?" + j, Ct = `<${ht}>`, Z = document, de = () => Z.createComment(""), ce = (t) => t === null || typeof t != "object" && typeof t != "function", Pe = Array.isArray, Tt = (t) => Pe(t) || typeof t?.[Symbol.iterator] == "function", _e = `[ 	
+const Oe = globalThis, Ve = (t) => t, ye = Oe.trustedTypes, je = ye ? ye.createPolicy("lit-html", { createHTML: (t) => t }) : void 0, lt = "$lit$", j = `lit$${Math.random().toFixed(9).slice(2)}$`, ht = "?" + j, Tt = `<${ht}>`, Z = document, de = () => Z.createComment(""), ce = (t) => t === null || typeof t != "object" && typeof t != "function", Pe = Array.isArray, Ct = (t) => Pe(t) || typeof t?.[Symbol.iterator] == "function", _e = `[ 	
 \f\r]`, ne = /<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g, Ke = /-->/g, Fe = />/g, F = RegExp(`>|${_e}(?:([^\\s"'>=/]+)(${_e}*=${_e}*(?:[^ 	
 \f\r"'\`<>=]|("|')|))|$)`, "g"), We = /'/g, Ge = /"/g, dt = /^(?:script|style|textarea|title)$/i, Dt = (t) => (e, ...s) => ({ _$litType$: t, strings: e, values: s }), o = Dt(1), J = Symbol.for("lit-noChange"), c = Symbol.for("lit-nothing"), qe = /* @__PURE__ */ new WeakMap(), q = Z.createTreeWalker(Z, 129);
 function ct(t, e) {
@@ -292,7 +292,7 @@ const Ot = (t, e) => {
     let g, v, u = -1, b = 0;
     for (; b < h.length && (a.lastIndex = b, v = a.exec(h), v !== null); ) b = a.lastIndex, a === ne ? v[1] === "!--" ? a = Ke : v[1] !== void 0 ? a = Fe : v[2] !== void 0 ? (dt.test(v[2]) && (r = RegExp("</" + v[2], "g")), a = F) : v[3] !== void 0 && (a = F) : a === F ? v[0] === ">" ? (a = r ?? ne, u = -1) : v[1] === void 0 ? u = -2 : (u = a.lastIndex - v[2].length, g = v[1], a = v[3] === void 0 ? F : v[3] === '"' ? Ge : We) : a === Ge || a === We ? a = F : a === Ke || a === Fe ? a = ne : (a = F, r = void 0);
     const m = a === F && t[l + 1].startsWith("/>") ? " " : "";
-    n += a === ne ? h + Ct : u >= 0 ? (i.push(g), h.slice(0, u) + lt + h.slice(u) + j + m) : h + j + (u === -2 ? l : m);
+    n += a === ne ? h + Tt : u >= 0 ? (i.push(g), h.slice(0, u) + lt + h.slice(u) + j + m) : h + j + (u === -2 ? l : m);
   }
   return [ct(t, n + (t[s] || "<?>") + (e === 2 ? "</svg>" : e === 3 ? "</math>" : "")), i];
 };
@@ -386,7 +386,7 @@ class re {
     return this._$AB;
   }
   _$AI(e, s = this) {
-    e = ie(this, e, s), ce(e) ? e === c || e == null || e === "" ? (this._$AH !== c && this._$AR(), this._$AH = c) : e !== this._$AH && e !== J && this._(e) : e._$litType$ !== void 0 ? this.$(e) : e.nodeType !== void 0 ? this.T(e) : Tt(e) ? this.k(e) : this._(e);
+    e = ie(this, e, s), ce(e) ? e === c || e == null || e === "" ? (this._$AH !== c && this._$AR(), this._$AH = c) : e !== this._$AH && e !== J && this._(e) : e._$litType$ !== void 0 ? this.$(e) : e.nodeType !== void 0 ? this.T(e) : Ct(e) ? this.k(e) : this._(e);
   }
   O(e) {
     return this._$AA.parentNode.insertBefore(e, this._$AB);
@@ -584,20 +584,20 @@ function p(t) {
 function d(t) {
   return p({ ...t, state: !0, attribute: !1 });
 }
-const k = "kustos_vision", Ze = 3600, jt = 60;
+const x = "kustos_vision", Ze = 3600, jt = 60;
 class Je {
   constructor(e) {
     this.hass = e, this.signatures = /* @__PURE__ */ new Map(), this.fragmentMaps = /* @__PURE__ */ new Map();
   }
   getConfig() {
-    return this.hass.callWS({ type: `${k}/config/get` });
+    return this.hass.callWS({ type: `${x}/config/get` });
   }
   availableCameras() {
-    return this.hass.callWS({ type: `${k}/cameras/available` });
+    return this.hass.callWS({ type: `${x}/cameras/available` });
   }
   suggest(e) {
     return this.hass.callWS({
-      type: `${k}/camera/suggest`,
+      type: `${x}/camera/suggest`,
       entity_id: e
     });
   }
@@ -609,31 +609,31 @@ class Je {
    */
   setCamera(e, s = !1) {
     return this.hass.callWS({
-      type: `${k}/camera/set`,
+      type: `${x}/camera/set`,
       replace_existing: s,
       ...e
     });
   }
   deleteCamera(e) {
-    return this.hass.callWS({ type: `${k}/camera/delete`, slug: e });
+    return this.hass.callWS({ type: `${x}/camera/delete`, slug: e });
   }
   setViews(e) {
-    return this.hass.callWS({ type: `${k}/views/set`, views: e });
+    return this.hass.callWS({ type: `${x}/views/set`, views: e });
   }
   /** Set the order of every camera in one view at once. */
   setViewOrder(e, s) {
     return this.hass.callWS({
-      type: `${k}/view/order`,
+      type: `${x}/view/order`,
       view_id: e,
       cameras: s
     });
   }
   setStorage(e) {
-    return this.hass.callWS({ type: `${k}/storage/set`, ...e });
+    return this.hass.callWS({ type: `${x}/storage/set`, ...e });
   }
   trigger(e, s, i) {
     return this.hass.callWS({
-      type: `${k}/camera/trigger`,
+      type: `${x}/camera/trigger`,
       slug: e,
       capability: s,
       ...i === void 0 ? {} : { value: i }
@@ -698,11 +698,11 @@ class Je {
     }), r;
   }
   recordingDays(e) {
-    return this.hass.callWS({ type: `${k}/recordings/days`, camera: e });
+    return this.hass.callWS({ type: `${x}/recordings/days`, camera: e });
   }
   timeline(e, s, i, r) {
     return this.hass.callWS({
-      type: `${k}/recordings/timeline`,
+      type: `${x}/recordings/timeline`,
       camera: e,
       from: s,
       to: i,
@@ -710,32 +710,32 @@ class Je {
     });
   }
   setVision(e) {
-    return this.hass.callWS({ type: `${k}/vision/set`, ...e });
+    return this.hass.callWS({ type: `${x}/vision/set`, ...e });
   }
   deleteVision(e) {
     return this.hass.callWS({
-      type: `${k}/vision/delete`,
+      type: `${x}/vision/delete`,
       camera_slug: e
     });
   }
   analyseNow(e) {
     return this.hass.callWS({
-      type: `${k}/vision/analyse`,
+      type: `${x}/vision/analyse`,
       camera_slug: e
     });
   }
   visionHistory(e) {
     return this.hass.callWS({
-      type: `${k}/vision/history`,
+      type: `${x}/vision/history`,
       camera_slug: e
     });
   }
   aiTaskEntities() {
-    return this.hass.callWS({ type: `${k}/vision/backends` });
+    return this.hass.callWS({ type: `${x}/vision/backends` });
   }
   /** Ask the Supervisor to reconnect the mount behind the recordings. */
   reconnectStorage() {
-    return this.hass.callWS({ type: `${k}/storage/reconnect` });
+    return this.hass.callWS({ type: `${x}/storage/reconnect` });
   }
   /**
    * The byte map of one segment, so playback can start mid-file.
@@ -746,13 +746,13 @@ class Je {
   fragments(e) {
     const s = this.fragmentMaps.get(e);
     if (s) return s;
-    const i = this.hass.callWS({ type: `${k}/recordings/fragments`, path: e }).catch((r) => {
+    const i = this.hass.callWS({ type: `${x}/recordings/fragments`, path: e }).catch((r) => {
       throw this.fragmentMaps.delete(e), r;
     });
     return this.fragmentMaps.set(e, i), i;
   }
   rebuildIndex() {
-    return this.hass.callWS({ type: `${k}/index/rebuild` });
+    return this.hass.callWS({ type: `${x}/index/rebuild` });
   }
 }
 function S(t) {
@@ -1914,8 +1914,8 @@ let M = class extends E {
           try {
             const f = b.addSourceBuffer(u);
             f.mode = "segments", this.buffer = f, f.addEventListener("updateend", () => void this.pump());
-            const T = this.placed[this.placed.length - 1];
-            T && (b.duration = T.mediaStart + T.segment.duration), this.pump();
+            const C = this.placed[this.placed.length - 1];
+            C && (b.duration = C.mediaStart + C.segment.duration), this.pump();
           } catch (f) {
             this.message = S(f);
           }
@@ -3083,19 +3083,21 @@ H([
 D = H([
   z("kustos-vision-timeline")
 ], D);
-var ws = Object.defineProperty, $s = Object.getOwnPropertyDescriptor, x = (t, e, s, i) => {
+var ws = Object.defineProperty, $s = Object.getOwnPropertyDescriptor, k = (t, e, s, i) => {
   for (var r = i > 1 ? void 0 : i ? $s(e, s) : e, n = t.length - 1, a; n >= 0; n--)
     (a = t[n]) && (r = (i ? a(e, s, r) : a(r)) || r);
   return i && r && ws(e, s, r), r;
 };
 const st = 25;
 function it(t) {
-  const e = (s) => String(s).padStart(2, "0");
-  return `${t.getFullYear()}-${e(t.getMonth() + 1)}-${e(t.getDate())}T${e(t.getHours())}:${e(t.getMinutes())}`;
+  const e = /* @__PURE__ */ new Date(`${t}T00:00:00`);
+  e.setDate(e.getDate() + 1);
+  const s = (i) => String(i).padStart(2, "0");
+  return `${e.getFullYear()}-${s(e.getMonth() + 1)}-${s(e.getDate())}`;
 }
 let y = class extends E {
   constructor() {
-    super(...arguments), this.cameras = [], this.stampAvailable = !1, this.camera = "", this.stream = "", this.day = "", this.days = [], this.blocks = [], this.segments = [], this.position = 0, this.seekTo = 0, this.busy = !1, this.scrubbing = !1, this.downloading = !1, this.stampExport = !1, this.error = "", this.rangeFrom = "", this.rangeTo = "", this.rangeDay = "";
+    super(...arguments), this.cameras = [], this.stampAvailable = !1, this.camera = "", this.stream = "", this.day = "", this.days = [], this.blocks = [], this.segments = [], this.position = 0, this.seekTo = 0, this.busy = !1, this.scrubbing = !1, this.downloading = !1, this.stampExport = !1, this.error = "", this.rangeFromDay = "", this.rangeFromTime = "", this.rangeToDay = "", this.rangeToTime = "", this.rangeDay = "";
   }
   updated(t) {
     t.has("cameras") && !this.camera && this.cameras.length > 0 && this.selectCamera(this.cameras[0].slug);
@@ -3121,11 +3123,7 @@ let y = class extends E {
       this.blocks = [], this.segments = [];
       return;
     }
-    if (this.rangeDay !== this.day) {
-      this.rangeDay = this.day;
-      const s = /* @__PURE__ */ new Date(`${this.day}T00:00:00`), i = new Date(s);
-      i.setDate(i.getDate() + 1), this.rangeFrom = it(s), this.rangeTo = it(i);
-    }
+    this.rangeDay !== this.day && (this.rangeDay = this.day, this.rangeFromDay = this.day, this.rangeFromTime = "00:00", this.rangeToDay = it(this.day), this.rangeToTime = "00:00");
     const [t, e] = this.bounds;
     this.busy = !0, this.error = "";
     try {
@@ -3158,10 +3156,20 @@ let y = class extends E {
     });
     return this.stream && s.set("stream", this.stream), this.stampExport && this.stampAvailable && s.set("stamp", "1"), `/api/kustos_vision/export?${s.toString()}`;
   }
+  /** The days a range may end on: every recorded day plus the day after
+      each, so an end at midnight sharp past the last footage stays
+      pickable. Newest first, like the day picker. */
+  rangeToDays() {
+    const t = /* @__PURE__ */ new Set();
+    for (const e of this.days)
+      t.add(e), t.add(it(e));
+    return [...t].sort().reverse();
+  }
   /** The chosen range as epoch seconds, or nothing while a field is empty. */
   rangeBounds() {
-    if (!this.rangeFrom || !this.rangeTo) return;
-    const t = new Date(this.rangeFrom).getTime() / 1e3, e = new Date(this.rangeTo).getTime() / 1e3;
+    if (!this.rangeFromDay || !this.rangeFromTime || !this.rangeToDay || !this.rangeToTime)
+      return;
+    const t = (/* @__PURE__ */ new Date(`${this.rangeFromDay}T${this.rangeFromTime}:00`)).getTime() / 1e3, e = (/* @__PURE__ */ new Date(`${this.rangeToDay}T${this.rangeToTime}:00`)).getTime() / 1e3;
     if (!(Number.isNaN(t) || Number.isNaN(e)))
       return [t, e];
   }
@@ -3317,23 +3325,46 @@ let y = class extends E {
             </p>
 
             <div class="row" style="margin-top:12px">
-              <div class="picker">
+              <div>
                 <label>Von</label>
-                <input
-                  type="datetime-local"
-                  step="60"
-                  .value=${this.rangeFrom}
-                  @change=${(e) => this.rangeFrom = e.target.value}
-                />
+                <div class="rangefields">
+                  <kustos-vision-select
+                    compact
+                    class="rangeday"
+                    .options=${this.days.map((e) => ({ value: e, label: e }))}
+                    .value=${this.rangeFromDay}
+                    @value-changed=${(e) => this.rangeFromDay = e.detail.value}
+                  ></kustos-vision-select>
+                  <input
+                    class="rangetime"
+                    type="time"
+                    step="60"
+                    .value=${this.rangeFromTime}
+                    @change=${(e) => this.rangeFromTime = e.target.value}
+                  />
+                </div>
               </div>
-              <div class="picker">
+              <div>
                 <label>Bis</label>
-                <input
-                  type="datetime-local"
-                  step="60"
-                  .value=${this.rangeTo}
-                  @change=${(e) => this.rangeTo = e.target.value}
-                />
+                <div class="rangefields">
+                  <kustos-vision-select
+                    compact
+                    class="rangeday"
+                    .options=${this.rangeToDays().map((e) => ({
+      value: e,
+      label: e
+    }))}
+                    .value=${this.rangeToDay}
+                    @value-changed=${(e) => this.rangeToDay = e.detail.value}
+                  ></kustos-vision-select>
+                  <input
+                    class="rangetime"
+                    type="time"
+                    step="60"
+                    .value=${this.rangeToTime}
+                    @change=${(e) => this.rangeToTime = e.target.value}
+                  />
+                </div>
               </div>
               <button
                 class="secondary"
@@ -3343,7 +3374,7 @@ let y = class extends E {
                 Zeitraum herunterladen
               </button>
             </div>
-            ${this.rangeProblem() !== void 0 && this.rangeFrom && this.rangeTo ? o`<p class="error">${this.rangeProblem()}</p>` : o`<p class="hint">
+            ${this.rangeProblem() !== void 0 ? o`<p class="error">${this.rangeProblem()}</p>` : o`<p class="hint">
                   Minutengenau und auch über Mitternacht hinweg; der Schnitt
                   beginnt am Schlüsselbild direkt vor der gewählten Minute,
                   damit nichts fehlt. Der Zeitstempel-Schalter gilt auch hier.
@@ -3420,6 +3451,18 @@ y.styles = [
       .picker {
         width: 200px;
       }
+      /* One range bound: its date dropdown and its time side by side. */
+      .rangefields {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+      .rangefields .rangeday {
+        width: 140px;
+      }
+      .rangefields .rangetime {
+        width: 110px;
+      }
       label.stamp {
         display: flex;
         align-items: center;
@@ -3429,58 +3472,64 @@ y.styles = [
       }
     `
 ];
-x([
+k([
   p({ attribute: !1 })
 ], y.prototype, "api", 2);
-x([
+k([
   p({ attribute: !1 })
 ], y.prototype, "cameras", 2);
-x([
+k([
   p({ type: Boolean })
 ], y.prototype, "stampAvailable", 2);
-x([
+k([
   d()
 ], y.prototype, "camera", 2);
-x([
+k([
   d()
 ], y.prototype, "stream", 2);
-x([
+k([
   d()
 ], y.prototype, "day", 2);
-x([
+k([
   d()
 ], y.prototype, "days", 2);
-x([
+k([
   d()
 ], y.prototype, "blocks", 2);
-x([
+k([
   d()
 ], y.prototype, "segments", 2);
-x([
+k([
   d()
 ], y.prototype, "position", 2);
-x([
+k([
   d()
 ], y.prototype, "seekTo", 2);
-x([
+k([
   d()
 ], y.prototype, "busy", 2);
-x([
+k([
   d()
 ], y.prototype, "downloading", 2);
-x([
+k([
   d()
 ], y.prototype, "stampExport", 2);
-x([
+k([
   d()
 ], y.prototype, "error", 2);
-x([
+k([
   d()
-], y.prototype, "rangeFrom", 2);
-x([
+], y.prototype, "rangeFromDay", 2);
+k([
   d()
-], y.prototype, "rangeTo", 2);
-y = x([
+], y.prototype, "rangeFromTime", 2);
+k([
+  d()
+], y.prototype, "rangeToDay", 2);
+k([
+  d()
+], y.prototype, "rangeToTime", 2);
+y = k([
   z("kustos-vision-recordings")
 ], y);
 /**
@@ -3530,7 +3579,7 @@ const { I: As } = Ht, rt = (t) => t, nt = () => document.createComment(""), oe =
     }
   }
   return s;
-}, W = (t, e, s = t) => (t._$AI(e, s), t), Ss = {}, Es = (t, e = Ss) => t._$AH = e, Cs = (t) => t._$AH, Se = (t) => {
+}, W = (t, e, s = t) => (t._$AI(e, s), t), Ss = {}, Es = (t, e = Ss) => t._$AH = e, Ts = (t) => t._$AH, Se = (t) => {
   t._$AR(), t._$AA.remove();
 };
 /**
@@ -3558,7 +3607,7 @@ const at = (t, e, s) => {
     return this.dt(t, e, s).values;
   }
   update(t, [e, s, i]) {
-    const r = Cs(t), { values: n, keys: a } = this.dt(e, s, i);
+    const r = Ts(t), { values: n, keys: a } = this.dt(e, s, i);
     if (!Array.isArray(r)) return this.ut = a, n;
     const l = this.ut ??= [], h = [];
     let g, v, u = 0, b = r.length - 1, m = 0, f = n.length - 1;
@@ -3569,25 +3618,25 @@ const at = (t, e, s) => {
     else if (l[u] === a[f]) h[f] = W(r[u], n[f]), oe(t, h[f + 1], r[u]), u++, f--;
     else if (l[b] === a[m]) h[m] = W(r[b], n[m]), oe(t, r[u], r[b]), b--, m++;
     else if (g === void 0 && (g = at(a, m, f), v = at(l, u, b)), g.has(l[u])) if (g.has(l[b])) {
-      const T = v.get(a[m]), xe = T !== void 0 ? r[T] : null;
+      const C = v.get(a[m]), xe = C !== void 0 ? r[C] : null;
       if (xe === null) {
         const Re = oe(t, r[u]);
         W(Re, n[m]), h[m] = Re;
-      } else h[m] = W(xe, n[m]), oe(t, r[u], xe), r[T] = null;
+      } else h[m] = W(xe, n[m]), oe(t, r[u], xe), r[C] = null;
       m++;
     } else Se(r[b]), b--;
     else Se(r[u]), u++;
     for (; m <= f; ) {
-      const T = oe(t, h[f + 1]);
-      W(T, n[m]), h[m++] = T;
+      const C = oe(t, h[f + 1]);
+      W(C, n[m]), h[m++] = C;
     }
     for (; u <= b; ) {
-      const T = r[u++];
-      T !== null && Se(T);
+      const C = r[u++];
+      C !== null && Se(C);
     }
     return this.ut = a, Es(t, h), J;
   }
-}), Ts = 150;
+}), Cs = 150;
 class vt {
   constructor() {
     this.before = /* @__PURE__ */ new Map();
@@ -3611,7 +3660,7 @@ class vt {
         const n = r - s.getBoundingClientRect().top;
         n !== 0 && s.animate(
           [{ transform: `translateY(${n}px)` }, { transform: "none" }],
-          { duration: Ts, easing: "ease-out" }
+          { duration: Cs, easing: "ease-out" }
         );
       }
       this.before.clear();
@@ -4858,7 +4907,7 @@ const Is = [
   ["views", "Ansichten"],
   ["system", "System"]
 ], be = 1e3 * 1e3 * 1e3;
-let C = class extends E {
+let T = class extends E {
   constructor() {
     super(...arguments), this.section = "cameras", this.adding = !1, this.available = [], this.busy = !1, this.error = "", this.viewFlip = new vt(), this.unsavedSections = {
       isDirty: () => this.viewsDirty() || this.storageDirty(),
@@ -5447,46 +5496,46 @@ Was bereits unter ${this.snapshot.storage.base_path} liegt, bleibt unverändert 
     `;
   }
 };
-C.styles = K;
+T.styles = K;
 O([
   p({ attribute: !1 })
-], C.prototype, "api", 2);
+], T.prototype, "api", 2);
 O([
   p({ attribute: !1 })
-], C.prototype, "snapshot", 2);
+], T.prototype, "snapshot", 2);
 O([
   p({ attribute: !1 })
-], C.prototype, "hass", 2);
+], T.prototype, "hass", 2);
 O([
   d()
-], C.prototype, "section", 2);
+], T.prototype, "section", 2);
 O([
   d()
-], C.prototype, "editing", 2);
+], T.prototype, "editing", 2);
 O([
   d()
-], C.prototype, "adding", 2);
+], T.prototype, "adding", 2);
 O([
   d()
-], C.prototype, "available", 2);
+], T.prototype, "available", 2);
 O([
   d()
-], C.prototype, "visionFor", 2);
+], T.prototype, "visionFor", 2);
 O([
   d()
-], C.prototype, "busy", 2);
+], T.prototype, "busy", 2);
 O([
   d()
-], C.prototype, "error", 2);
+], T.prototype, "error", 2);
 O([
   d()
-], C.prototype, "viewsDraft", 2);
+], T.prototype, "viewsDraft", 2);
 O([
   d()
-], C.prototype, "viewDrag", 2);
-C = O([
+], T.prototype, "viewDrag", 2);
+T = O([
   z("kustos-vision-settings")
-], C);
+], T);
 var Ns = Object.defineProperty, Us = Object.getOwnPropertyDescriptor, I = (t, e, s, i) => {
   for (var r = i > 1 ? void 0 : i ? Us(e, s) : e, n = t.length - 1, a; n >= 0; n--)
     (a = t[n]) && (r = (i ? a(e, s, r) : a(r)) || r);

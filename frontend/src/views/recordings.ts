@@ -13,13 +13,12 @@ import "../components/timeline";
    it is disabled instead of letting the request bounce. */
 const MAX_EXPORT_HOURS = 25;
 
-/** A Date as the value a datetime-local input holds, in local time. */
-function toLocalInput(date: Date): string {
+/** The local calendar day after the given one, as YYYY-MM-DD. */
+function nextDay(day: string): string {
+  const date = new Date(`${day}T00:00:00`);
+  date.setDate(date.getDate() + 1);
   const pad = (n: number) => String(n).padStart(2, "0");
-  return (
-    `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}` +
-    `T${pad(date.getHours())}:${pad(date.getMinutes())}`
-  );
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 }
 
 @customElement("kustos-vision-recordings")
@@ -44,10 +43,14 @@ export class CamwatchRecordings extends LitElement {
   /** Burn the recording clock into the download, at transcoding cost. */
   @state() private stampExport = false;
   @state() private error = "";
-  /** The minute-precise range export, as datetime-local strings so the
-      picker itself carries the date and a range may cross midnight. */
-  @state() private rangeFrom = "";
-  @state() private rangeTo = "";
+  /** The minute-precise range export: date and time held separately. The
+      date goes through the panel's own dropdown because the native calendar
+      popup opens downward only and gets cut off at the bottom of the page;
+      each bound carries its own date so a range may cross midnight. */
+  @state() private rangeFromDay = "";
+  @state() private rangeFromTime = "";
+  @state() private rangeToDay = "";
+  @state() private rangeToTime = "";
   /** Which day the range fields were last preset for, see loadDay. */
   private rangeDay = "";
 
@@ -117,6 +120,18 @@ export class CamwatchRecordings extends LitElement {
       .picker {
         width: 200px;
       }
+      /* One range bound: its date dropdown and its time side by side. */
+      .rangefields {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+      .rangefields .rangeday {
+        width: 140px;
+      }
+      .rangefields .rangetime {
+        width: 110px;
+      }
       label.stamp {
         display: flex;
         align-items: center;
@@ -171,11 +186,10 @@ export class CamwatchRecordings extends LitElement {
       // A fresh day presets the range to that whole day; from there the
       // fields are the user's, including a Bis on the following day.
       this.rangeDay = this.day;
-      const start = new Date(`${this.day}T00:00:00`);
-      const end = new Date(start);
-      end.setDate(end.getDate() + 1);
-      this.rangeFrom = toLocalInput(start);
-      this.rangeTo = toLocalInput(end);
+      this.rangeFromDay = this.day;
+      this.rangeFromTime = "00:00";
+      this.rangeToDay = nextDay(this.day);
+      this.rangeToTime = "00:00";
     }
     const [from, to] = this.bounds;
     this.busy = true;
@@ -219,11 +233,32 @@ export class CamwatchRecordings extends LitElement {
     return `/api/kustos_vision/export?${params.toString()}`;
   }
 
+  /** The days a range may end on: every recorded day plus the day after
+      each, so an end at midnight sharp past the last footage stays
+      pickable. Newest first, like the day picker. */
+  private rangeToDays(): string[] {
+    const days = new Set<string>();
+    for (const day of this.days) {
+      days.add(day);
+      days.add(nextDay(day));
+    }
+    return [...days].sort().reverse();
+  }
+
   /** The chosen range as epoch seconds, or nothing while a field is empty. */
   private rangeBounds(): [number, number] | undefined {
-    if (!this.rangeFrom || !this.rangeTo) return undefined;
-    const from = new Date(this.rangeFrom).getTime() / 1000;
-    const to = new Date(this.rangeTo).getTime() / 1000;
+    if (
+      !this.rangeFromDay ||
+      !this.rangeFromTime ||
+      !this.rangeToDay ||
+      !this.rangeToTime
+    ) {
+      return undefined;
+    }
+    const from =
+      new Date(`${this.rangeFromDay}T${this.rangeFromTime}:00`).getTime() / 1000;
+    const to =
+      new Date(`${this.rangeToDay}T${this.rangeToTime}:00`).getTime() / 1000;
     if (Number.isNaN(from) || Number.isNaN(to)) return undefined;
     return [from, to];
   }
@@ -425,25 +460,50 @@ export class CamwatchRecordings extends LitElement {
             </p>
 
             <div class="row" style="margin-top:12px">
-              <div class="picker">
+              <div>
                 <label>Von</label>
-                <input
-                  type="datetime-local"
-                  step="60"
-                  .value=${this.rangeFrom}
-                  @change=${(e: Event) =>
-                    (this.rangeFrom = (e.target as HTMLInputElement).value)}
-                />
+                <div class="rangefields">
+                  <kustos-vision-select
+                    compact
+                    class="rangeday"
+                    .options=${this.days.map((d) => ({ value: d, label: d }))}
+                    .value=${this.rangeFromDay}
+                    @value-changed=${(e: CustomEvent<{ value: string }>) =>
+                      (this.rangeFromDay = e.detail.value)}
+                  ></kustos-vision-select>
+                  <input
+                    class="rangetime"
+                    type="time"
+                    step="60"
+                    .value=${this.rangeFromTime}
+                    @change=${(e: Event) =>
+                      (this.rangeFromTime = (e.target as HTMLInputElement).value)}
+                  />
+                </div>
               </div>
-              <div class="picker">
+              <div>
                 <label>Bis</label>
-                <input
-                  type="datetime-local"
-                  step="60"
-                  .value=${this.rangeTo}
-                  @change=${(e: Event) =>
-                    (this.rangeTo = (e.target as HTMLInputElement).value)}
-                />
+                <div class="rangefields">
+                  <kustos-vision-select
+                    compact
+                    class="rangeday"
+                    .options=${this.rangeToDays().map((d) => ({
+                      value: d,
+                      label: d,
+                    }))}
+                    .value=${this.rangeToDay}
+                    @value-changed=${(e: CustomEvent<{ value: string }>) =>
+                      (this.rangeToDay = e.detail.value)}
+                  ></kustos-vision-select>
+                  <input
+                    class="rangetime"
+                    type="time"
+                    step="60"
+                    .value=${this.rangeToTime}
+                    @change=${(e: Event) =>
+                      (this.rangeToTime = (e.target as HTMLInputElement).value)}
+                  />
+                </div>
               </div>
               <button
                 class="secondary"
@@ -455,7 +515,7 @@ export class CamwatchRecordings extends LitElement {
                 Zeitraum herunterladen
               </button>
             </div>
-            ${this.rangeProblem() !== undefined && this.rangeFrom && this.rangeTo
+            ${this.rangeProblem() !== undefined
               ? html`<p class="error">${this.rangeProblem()}</p>`
               : html`<p class="hint">
                   Minutengenau und auch über Mitternacht hinweg; der Schnitt
