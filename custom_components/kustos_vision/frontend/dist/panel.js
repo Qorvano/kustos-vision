@@ -1739,7 +1739,7 @@ async function ie() {
       s.discard();
   return !0;
 }
-const Se = "0.7.0", os = "kustos-vision-built:0.7.0", ls = {
+const Se = "0.7.1", os = "kustos-vision-built:0.7.1", ls = {
   ptz_up: "Schwenken hoch",
   ptz_down: "Schwenken runter",
   ptz_left: "Schwenken links",
