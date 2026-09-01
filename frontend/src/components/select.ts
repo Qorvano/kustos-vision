@@ -25,19 +25,57 @@ export function filterOptions(
   return options.filter((o) => o.label.toLowerCase().includes(needle));
 }
 
-/** Where and how tall the popover may be, from the field's place on screen. */
+/* Breathing room to the viewport edge, so the panel never touches it. */
+export const EDGE_MARGIN = 8;
+/* Below this an option label is unreadable. A dropdown anchored to a 120px
+   table cell still has to open wide enough to be used. */
+const MIN_DROP_WIDTH = 200;
+
+export interface DropViewport {
+  width: number;
+  height: number;
+}
+
+/** What the popover has to fit inside, as the eye sees it. */
+export function viewportSize(): DropViewport {
+  // The visual viewport, not the layout one: on a phone the soft keyboard
+  // and the address bar take height away from what is actually visible,
+  // and a list sized to window.innerHeight would run underneath both.
+  const vv = window.visualViewport;
+  return {
+    width: vv?.width ?? window.innerWidth,
+    height: vv?.height ?? window.innerHeight,
+  };
+}
+
+/**
+ * Where and how tall the popover may be, from the field's place on screen.
+ *
+ * The width follows the field, but never below what an option needs to be
+ * read; both edges stay inside the viewport, which is what a phone needs
+ * and a wide window never notices. The side with more room wins, and the
+ * list scrolls inside that room instead of growing past the window - the
+ * native menu's failing this component exists to fix.
+ */
 export function placeDrop(
   rect: { top: number; bottom: number; left: number; width: number },
-  viewportHeight: number,
+  viewport: DropViewport,
   edgeMargin: number,
+  minWidth = MIN_DROP_WIDTH,
 ): { up: boolean; maxHeight: number; left: number; width: number } {
-  const below = viewportHeight - rect.bottom - edgeMargin;
+  const below = viewport.height - rect.bottom - edgeMargin;
   const above = rect.top - edgeMargin;
-  // The side with more room wins; the list then scrolls inside that room
-  // instead of growing past the window, which is exactly the native menu's
-  // failing this component exists to fix.
   const up = above > below;
-  return { up, maxHeight: Math.max(up ? above : below, 0), left: rect.left, width: rect.width };
+  const room = Math.max(viewport.width - 2 * edgeMargin, 0);
+  const width = Math.min(
+    Math.max(rect.width, Math.min(minWidth, room)),
+    room,
+  );
+  const left = Math.min(
+    Math.max(rect.left, edgeMargin),
+    Math.max(viewport.width - width - edgeMargin, edgeMargin),
+  );
+  return { up, maxHeight: Math.max(up ? above : below, 0), left, width };
 }
 
 @customElement("kustos-vision-select")
@@ -58,7 +96,12 @@ export class CamwatchSelect extends LitElement {
     width: number;
     anchorTop: number;
     anchorBottom: number;
+    viewportHeight: number;
   };
+
+  /** The viewport width when the popover opened, see onViewportChange. */
+  private openWidth = 0;
+  private repositionQueued = false;
 
   static override styles = [
     shared,
@@ -145,24 +188,36 @@ export class CamwatchSelect extends LitElement {
     else this.openDrop();
   }
 
-  private openDrop(): void {
+  private measureDrop(): void {
     const field = this.renderRoot.querySelector(".select-field");
     if (!(field instanceof HTMLElement)) return;
     const rect = field.getBoundingClientRect();
-    /* Breathing room to the viewport edge, so the panel never touches it. */
-    const EDGE_MARGIN = 8;
-    const placed = placeDrop(rect, window.innerHeight, EDGE_MARGIN);
+    const view = viewportSize();
+    // Gone from the screen: nothing left to hang the list under.
+    if (rect.bottom < 0 || rect.top > view.height) {
+      this.close();
+      return;
+    }
     this.drop = {
-      ...placed,
+      ...placeDrop(rect, view, EDGE_MARGIN),
       anchorTop: rect.top,
       anchorBottom: rect.bottom,
+      viewportHeight: view.height,
     };
+  }
+
+  private openDrop(): void {
+    this.openWidth = viewportSize().width;
+    this.measureDrop();
+    if (!this.drop) return;
     this.query = "";
     this.highlighted = this.filtered().findIndex((o) => o.value === this.value);
     this.open = true;
     window.addEventListener("pointerdown", this.onOutsidePointer, true);
     window.addEventListener("scroll", this.onAnyScroll, true);
     window.addEventListener("resize", this.onViewportChange);
+    window.visualViewport?.addEventListener("resize", this.onViewportChange);
+    window.visualViewport?.addEventListener("scroll", this.onViewportChange);
     void this.updateComplete.then(() => {
       const search = this.renderRoot.querySelector(".drop input");
       if (search instanceof HTMLElement) search.focus();
@@ -180,6 +235,17 @@ export class CamwatchSelect extends LitElement {
     window.removeEventListener("pointerdown", this.onOutsidePointer, true);
     window.removeEventListener("scroll", this.onAnyScroll, true);
     window.removeEventListener("resize", this.onViewportChange);
+    window.visualViewport?.removeEventListener("resize", this.onViewportChange);
+    window.visualViewport?.removeEventListener("scroll", this.onViewportChange);
+  }
+
+  private scheduleReposition(): void {
+    if (this.repositionQueued) return;
+    this.repositionQueued = true;
+    requestAnimationFrame(() => {
+      this.repositionQueued = false;
+      if (this.open) this.measureDrop();
+    });
   }
 
   private onOutsidePointer = (event: Event): void => {
@@ -187,13 +253,24 @@ export class CamwatchSelect extends LitElement {
   };
 
   private onAnyScroll = (event: Event): void => {
-    // The popover's own list may scroll; anything else moves the anchor away.
+    // The popover's own list may scroll; any other scroll moves the anchor,
+    // so the list follows it instead of vanishing - closing here was what
+    // made iOS's rubber-band swallow an open list.
     const target = event.target;
     if (target instanceof Node && this.renderRoot.contains(target)) return;
-    this.close();
+    this.scheduleReposition();
   };
 
-  private onViewportChange = (): void => this.close();
+  private onViewportChange = (): void => {
+    // A soft keyboard takes height and leaves the width alone; closing on
+    // that shuts the list the moment its own search field takes focus. A
+    // rotation or a real window resize does move the width.
+    if (viewportSize().width !== this.openWidth) {
+      this.close();
+      return;
+    }
+    this.scheduleReposition();
+  };
 
   private filtered(): SelectOption[] {
     return filterOptions(this.options, this.query);
@@ -272,7 +349,7 @@ export class CamwatchSelect extends LitElement {
       `width:${this.drop.width}px`,
       `max-height:${this.drop.maxHeight}px`,
       this.drop.up
-        ? `bottom:${window.innerHeight - this.drop.anchorTop}px`
+        ? `bottom:${this.drop.viewportHeight - this.drop.anchorTop}px`
         : `top:${this.drop.anchorBottom}px`,
     ].join(";");
     return html`<div class="drop" style=${style} @keydown=${this.onKeydown}>

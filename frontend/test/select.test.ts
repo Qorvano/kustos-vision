@@ -32,26 +32,26 @@ describe("placeDrop", () => {
   const rect = { top: 100, bottom: 130, left: 20, width: 300 };
 
   it("opens toward the side with more room and caps the height to it", () => {
-    const down = placeDrop(rect, 800, 8);
+    const down = placeDrop(rect, { width: 1200, height: 800 }, 8);
     expect(down.up).toBe(false);
     // 800 viewport - 130 field bottom - 8 margin.
     expect(down.maxHeight).toBe(662);
 
-    const up = placeDrop({ ...rect, top: 700, bottom: 730 }, 800, 8);
+    const up = placeDrop({ ...rect, top: 700, bottom: 730 }, { width: 1200, height: 800 }, 8);
     expect(up.up).toBe(true);
     // 700 field top - 8 margin.
     expect(up.maxHeight).toBe(692);
   });
 
   it("keeps the panel on the field's width and left edge", () => {
-    const placed = placeDrop(rect, 800, 8);
+    const placed = placeDrop(rect, { width: 1200, height: 800 }, 8);
     expect(placed.left).toBe(20);
     expect(placed.width).toBe(300);
   });
 
   it("never returns a negative height", () => {
     expect(
-      placeDrop({ top: 4, bottom: 796, left: 0, width: 100 }, 800, 8).maxHeight,
+      placeDrop({ top: 4, bottom: 796, left: 0, width: 100 }, { width: 1200, height: 800 }, 8).maxHeight,
     ).toBe(0);
   });
 });

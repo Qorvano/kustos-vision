@@ -11,7 +11,7 @@ import "./version-guard";
 import { LitElement, css, html, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import { CamwatchApi, errorText } from "./api";
-import { placeDrop } from "./components/select";
+import { EDGE_MARGIN, placeDrop, viewportSize } from "./components/select";
 import "./components/unsaved-dialog";
 import type { CamwatchUnsavedDialog } from "./components/unsaved-dialog";
 import { guardNavigation, hasUnsavedWork, setUnsavedPrompter } from "./dirty";
@@ -299,29 +299,40 @@ export class CamwatchPanel extends LitElement {
     }
     const tab = event.currentTarget as HTMLElement;
     const rect = tab.getBoundingClientRect();
-    /* Breathing room to the viewport edge, so the list never touches it. */
-    const EDGE_MARGIN = 8;
-    const placed = placeDrop(rect, window.innerHeight, EDGE_MARGIN);
+    const view = viewportSize();
+    this.menuOpenWidth = view.width;
+    const placed = placeDrop(rect, view, EDGE_MARGIN);
     this.viewMenu = {
       left: placed.left,
       minWidth: placed.width,
       maxHeight: placed.maxHeight,
-      ...(placed.up
-        ? { bottom: window.innerHeight - rect.top }
-        : { top: rect.bottom }),
+      ...(placed.up ? { bottom: view.height - rect.top } : { top: rect.bottom }),
     };
     window.addEventListener("pointerdown", this.onMenuOutsidePointer, true);
     window.addEventListener("keydown", this.onMenuKeydown, true);
-    window.addEventListener("resize", this.closeViewMenu);
-    window.addEventListener("scroll", this.closeViewMenu, true);
+    // The anchor is the sticky header, so a page scroll cannot move it;
+    // only a real resize - a width change, not the soft keyboard or the
+    // sliding address bar - invalidates the menu's place.
+    window.addEventListener("resize", this.onMenuViewportChange);
+    window.visualViewport?.addEventListener("resize", this.onMenuViewportChange);
   }
+
+  /** The viewport width when the view menu opened. */
+  private menuOpenWidth = 0;
+
+  private onMenuViewportChange = (): void => {
+    if (viewportSize().width !== this.menuOpenWidth) this.closeViewMenu();
+  };
 
   private closeViewMenu = (): void => {
     this.viewMenu = undefined;
     window.removeEventListener("pointerdown", this.onMenuOutsidePointer, true);
     window.removeEventListener("keydown", this.onMenuKeydown, true);
-    window.removeEventListener("resize", this.closeViewMenu);
-    window.removeEventListener("scroll", this.closeViewMenu, true);
+    window.removeEventListener("resize", this.onMenuViewportChange);
+    window.visualViewport?.removeEventListener(
+      "resize",
+      this.onMenuViewportChange,
+    );
   };
 
   private onMenuOutsidePointer = (event: Event): void => {
