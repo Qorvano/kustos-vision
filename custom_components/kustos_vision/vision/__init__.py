@@ -118,7 +118,18 @@ def build_prompt(camera: CameraConfig, profile: VisionProfile) -> str:
         f'This is a still frame from a camera called "{camera.name}".',
     ]
     if profile.context.strip():
-        parts.append(profile.context.strip())
+        parts.append(
+            "The owner describes what is permanently in this view: "
+            + profile.context.strip()
+        )
+        # Without this the model treats the context as a crib sheet and
+        # recites it: a "describe what you see" question came back as an
+        # almost verbatim copy of the context, which reports nothing.
+        parts.append(
+            "Everything that description declares permanent is the baseline, "
+            "not an observation. Never answer by repeating it; answer from "
+            "what THIS frame shows beyond or different from that baseline."
+        )
     parts.append(
         "Answer each field from what is visible in this frame alone. "
         "Do not infer what is likely, and do not guess; do not carry over "

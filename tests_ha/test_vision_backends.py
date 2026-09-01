@@ -56,6 +56,26 @@ def test_the_prompt_carries_the_users_context() -> None:
     assert "Gehweg" in build_prompt(CAMERA, profile)
 
 
+def test_the_context_is_framed_as_a_baseline_not_a_crib_sheet() -> None:
+    """Regression: a "describe what you see" question came back as an almost
+    verbatim copy of the context. The framing has to say that the permanent
+    scene is the baseline, never the answer."""
+    profile = VisionProfile(
+        camera_slug="beispiel",
+        backend=PROFILE.backend,
+        observations=PROFILE.observations,
+        context="Gartenmoebel und Fahrrad gehoeren dauerhaft dorthin.",
+    )
+    prompt = build_prompt(CAMERA, profile).lower()
+    assert "baseline" in prompt
+    assert "never answer by repeating" in prompt
+
+
+def test_without_context_there_is_no_baseline_talk() -> None:
+    """The baseline framing only makes sense when there is a baseline."""
+    assert "baseline" not in build_prompt(CAMERA, PROFILE).lower()
+
+
 def test_the_prompt_forbids_guessing() -> None:
     """A model that infers what is likely turns a sensor into fiction."""
     prompt = build_prompt(CAMERA, PROFILE).lower()

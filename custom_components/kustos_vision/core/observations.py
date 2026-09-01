@@ -179,9 +179,12 @@ ANSWER_GUIDANCE: dict[ObservationType, str] = {
     ),
     ObservationType.TEXT: (
         "Answer with a short sentence, in the language of the question, "
-        "describing what is actually visible. This field is never a single "
-        "word standing for absence and never empty: when the thing asked "
-        "about is not there, say so in a sentence."
+        "about what this frame actually shows. Report what is present or "
+        "happening beyond the permanent scenery; do not re-list what the "
+        "camera's description says is always there. This field is never a "
+        "single word standing for absence and never empty: when nothing "
+        "noteworthy is visible, say exactly that, as a sentence in the "
+        "question's language."
     ),
     ObservationType.NUMBER: (
         "Count only what is visible in this frame. Answer 0 when there is "
