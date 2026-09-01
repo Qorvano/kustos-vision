@@ -344,6 +344,20 @@ export const shared = css`
     /* The browser must not scroll while a finger drags a row. */
     touch-action: none;
   }
+  .drag-handle:active {
+    cursor: grabbing;
+  }
+  /* The row in hand while dragging: framed, on its own surface and lifted
+     by a shadow, so there is never a doubt which element is moving. The
+     outline draws outside the box and shifts no layout. */
+  .dragging-lift {
+    position: relative;
+    z-index: 1;
+    background: var(--ha-card-background, var(--card-background-color, Canvas));
+    outline: 1px solid var(--primary-color);
+    border-radius: var(--kv-radius-field);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  }
   /* A list row with the divider the settings lists repeat. */
   .divided {
     padding: 12px 0;

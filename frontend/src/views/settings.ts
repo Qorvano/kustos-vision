@@ -4,8 +4,9 @@
 // lives here, so there is one place to look for a setting rather than two that
 // can disagree.
 
-import { LitElement, css, html, nothing } from "lit";
+import { LitElement, html, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
+import { repeat } from "lit/directives/repeat.js";
 import { errorText, formatBytes, type CamwatchApi } from "../api";
 import {
   guardNavigation,
@@ -13,6 +14,7 @@ import {
   unregisterUnsavedWork,
   type UnsavedWork,
 } from "../dirty";
+import { FlipList } from "../flip";
 import { shared } from "../styles";
 import type {
   AvailableCamera,
@@ -55,15 +57,18 @@ export class CamwatchSettings extends LitElement {
   /** A view row travelling with the pointer, see onViewDragStart. */
   @state() private viewDrag?: { fromIndex: number; currentIndex: number };
 
-  static override styles = [
-    shared,
-    css`
-      /* The row travelling with the pointer, dimmed like HA's sortables. */
-      .view-row.dragging {
-        opacity: 0.6;
-      }
-    `,
-  ];
+  static override styles = shared;
+
+  /** Plays the glide when the view list reorders under a drag. */
+  private readonly viewFlip = new FlipList();
+
+  private viewRows(): NodeListOf<Element> {
+    return this.renderRoot.querySelectorAll(".view-row");
+  }
+
+  override updated(): void {
+    this.viewFlip.play(this.viewRows());
+  }
 
   /** The unsaved work this page itself holds: the view-list draft and the
       storage fields. The editors it opens register on their own. */
@@ -530,7 +535,11 @@ export class CamwatchSettings extends LitElement {
         </p>
         ${views.length === 0
           ? html`<p class="hint">Noch keine Ansicht angelegt.</p>`
-          : views.map((view, index) => this.renderViewRow(view, index))}
+          : repeat(
+              views,
+              (view) => view.id,
+              (view, index) => this.renderViewRow(view, index),
+            )}
         <div class="row" style="margin-top:16px">
           <button
             ?disabled=${this.busy || !this.viewsDirty()}
@@ -558,8 +567,9 @@ export class CamwatchSettings extends LitElement {
     return html`
       <div
         class="divided view-row ${this.viewDrag?.currentIndex === index
-          ? "dragging"
+          ? "dragging-lift"
           : ""}"
+        data-key=${view.id}
       >
         <div class="row">
           <div class="grow">
@@ -674,6 +684,8 @@ export class CamwatchSettings extends LitElement {
     const last = rows[rows.length - 1]?.getBoundingClientRect();
     if (last && event.clientY > last.bottom) index = rows.length - 1;
     if (index !== drag.currentIndex) {
+      // Remember where every row sits, so the re-render can glide them.
+      this.viewFlip.snapshot(this.viewRows());
       this.viewDrag = { ...drag, currentIndex: index };
     }
   }

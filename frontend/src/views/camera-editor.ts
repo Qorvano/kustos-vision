@@ -7,6 +7,7 @@
 
 import { LitElement, css, html, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
+import { repeat } from "lit/directives/repeat.js";
 import { errorText, type CamwatchApi } from "../api";
 import type {
   AvailableCamera,
@@ -27,6 +28,7 @@ import {
   unregisterUnsavedWork,
   type UnsavedWork,
 } from "../dirty";
+import { FlipList } from "../flip";
 import { shared } from "../styles";
 
 function slugify(value: string): string {
@@ -67,12 +69,26 @@ export class CamwatchCameraEditor extends LitElement {
   static override styles = [
     shared,
     css`
-      /* The row travelling with the pointer, dimmed like HA's sortables. */
-      tr.dragging td {
-        opacity: 0.6;
+      .member-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 6px 12px;
+        border-bottom: 1px solid var(--divider-color, ButtonBorder);
       }
     `,
   ];
+
+  /** Plays the glide when the member list reorders under a drag. */
+  private readonly memberFlip = new FlipList();
+
+  private memberRows(): NodeListOf<Element> {
+    return this.renderRoot.querySelectorAll(".member-row");
+  }
+
+  override updated(): void {
+    this.memberFlip.play(this.memberRows());
+  }
 
   /** The saved state this editor started from, for spotting unsaved work. */
   private baseline = "";
@@ -298,7 +314,7 @@ export class CamwatchCameraEditor extends LitElement {
   private onDragStart(view: View, index: number, event: PointerEvent): void {
     if (this.busy || !this.camera) return;
     const handle = event.currentTarget as HTMLElement;
-    const row = handle.closest("tr");
+    const row = handle.closest(".member-row");
     if (!row) return;
     event.preventDefault();
     handle.setPointerCapture(event.pointerId);
@@ -324,6 +340,8 @@ export class CamwatchCameraEditor extends LitElement {
       drag.order.length - 1,
     );
     if (index !== drag.currentIndex) {
+      // Remember where every row sits, so the re-render can glide them.
+      this.memberFlip.snapshot(this.memberRows());
       this.dragging = { ...drag, currentIndex: index };
       this.requestUpdate();
     }
@@ -577,49 +595,51 @@ export class CamwatchCameraEditor extends LitElement {
                 Gilt für alle Kameras der Ansicht und wird sofort gespeichert,
                 weil sie die anderen Kameras mit betrifft.
               </p>
-              <table>
-                ${members.map(
+              <div class="members">
+                ${repeat(
+                  members,
+                  (member) => `${view.id}:${member.slug}`,
                   (member, index) => html`
-                    <tr
-                      class=${this.dragging?.viewId === view.id &&
+                    <div
+                      class="member-row ${this.dragging?.viewId === view.id &&
                       this.dragging.slug === member.slug
-                        ? "dragging"
-                        : ""}
+                        ? "dragging-lift"
+                        : ""}"
+                      data-key="${view.id}:${member.slug}"
                     >
-                      <td class=${member.slug === this.slug ? "" : "muted"}>
+                      <span class=${member.slug === this.slug ? "" : "muted"}>
                         ${index + 1}. ${member.name}
-                      </td>
-                      <td style="width:1%;white-space:nowrap">
-                        ${this.camera
-                          ? html`<span
-                              class="drag-handle"
-                              title="Ziehen zum Verschieben"
-                              @pointerdown=${(e: PointerEvent) =>
-                                this.onDragStart(view, index, e)}
-                              @pointermove=${(e: PointerEvent) =>
-                                this.onDragMove(e)}
-                              @pointerup=${() => this.onDragEnd(view)}
-                              @pointercancel=${() => {
-                                this.dragging = undefined;
-                                this.requestUpdate();
-                              }}
+                      </span>
+                      <span class="grow"></span>
+                      ${this.camera
+                        ? html`<span
+                            class="drag-handle"
+                            title="Ziehen zum Verschieben"
+                            @pointerdown=${(e: PointerEvent) =>
+                              this.onDragStart(view, index, e)}
+                            @pointermove=${(e: PointerEvent) =>
+                              this.onDragMove(e)}
+                            @pointerup=${() => this.onDragEnd(view)}
+                            @pointercancel=${() => {
+                              this.dragging = undefined;
+                              this.requestUpdate();
+                            }}
+                          >
+                            <svg
+                              viewBox="0 0 24 24"
+                              width="20"
+                              height="20"
+                              fill="currentColor"
+                              aria-hidden="true"
                             >
-                              <svg
-                                viewBox="0 0 24 24"
-                                width="20"
-                                height="20"
-                                fill="currentColor"
-                                aria-hidden="true"
-                              >
-                                <path d="M4 9h16v2H4zM4 13h16v2H4z" />
-                              </svg>
-                            </span>`
-                          : nothing}
-                      </td>
-                    </tr>
+                              <path d="M4 9h16v2H4zM4 13h16v2H4z" />
+                            </svg>
+                          </span>`
+                        : nothing}
+                    </div>
                   `,
                 )}
-              </table>
+              </div>
               ${!this.camera
                 ? html`<p class="hint">
                     Die Reihenfolge lässt sich einstellen, sobald die Kamera
