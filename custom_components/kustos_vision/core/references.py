@@ -148,6 +148,17 @@ def asset_path(local_state: Path, asset_id: str, content_type: str) -> Path:
     return references_dir(local_state) / f"{asset_id}{extension_for(content_type)}"
 
 
+def write_asset(target: Path, content: bytes) -> None:
+    """Store one content-addressed picture.
+
+    An existing file already holds exactly these bytes - that is what the
+    addressing means - so it is never rewritten.
+    """
+    target.parent.mkdir(parents=True, exist_ok=True)
+    if not target.is_file():
+        target.write_bytes(content)
+
+
 def find_asset(local_state: Path, asset_id: str) -> Path | None:
     """The stored file for an id, whichever type it was uploaded as."""
     if not is_asset_id(asset_id):

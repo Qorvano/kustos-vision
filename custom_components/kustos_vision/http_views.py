@@ -32,6 +32,7 @@ from .core.references import (
     asset_path,
     find_asset,
     sniff_image,
+    write_asset,
 )
 from .export import STAMP_DEFAULT_QUALITY, STAMP_QUALITY_CRF, stream_export
 
@@ -330,7 +331,7 @@ class ReferenceUploadView(HomeAssistantView):
         target = asset_path(
             Path(self.hass.config.path(LOCAL_STATE_DIR)), asset_id, content_type
         )
-        await self.hass.async_add_executor_job(_write_asset, target, content)
+        await self.hass.async_add_executor_job(write_asset, target, content)
         return self.json(
             {
                 "asset_id": asset_id,
@@ -338,13 +339,6 @@ class ReferenceUploadView(HomeAssistantView):
                 "bytes": len(content),
             }
         )
-
-
-def _write_asset(target: Path, content: bytes) -> None:
-    target.parent.mkdir(parents=True, exist_ok=True)
-    # Content-addressed: an existing file already holds exactly these bytes.
-    if not target.is_file():
-        target.write_bytes(content)
 
 
 class ReferenceServeView(HomeAssistantView):

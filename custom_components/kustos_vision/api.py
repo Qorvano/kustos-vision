@@ -26,8 +26,16 @@ from homeassistant.util import dt as dt_util
 
 from .actions import CapabilityError, async_trigger
 from .config_flow import async_validate_base_path
+from .capture import async_capture_frame
 from .const import DATA_STAMP_AVAILABLE, DOMAIN, LOCAL_STATE_DIR
-from .core.references import find_asset, referenced_asset_ids
+from .core.references import (
+    asset_id_for,
+    asset_path,
+    find_asset,
+    referenced_asset_ids,
+    sniff_image,
+    write_asset,
+)
 from .coordinator import CamwatchCoordinator
 from .core.capabilities import (
     CAPABILITY_KEYS,
@@ -80,6 +88,7 @@ def async_register(hass: HomeAssistant) -> None:
         ws_vision_history,
         ws_vision_backends,
         ws_delete_reference,
+        ws_capture_reference,
     ):
         websocket_api.async_register_command(hass, command)
 
@@ -973,6 +982,59 @@ async def ws_delete_reference(
     if path is not None:
         await hass.async_add_executor_job(path.unlink)
     connection.send_result(msg["id"], {"deleted": path is not None})
+
+
+@websocket_api.require_admin
+@websocket_api.websocket_command(
+    {
+        vol.Required("type"): f"{DOMAIN}/reference/capture",
+        vol.Required("camera_slug"): str,
+    }
+)
+@websocket_api.async_response
+async def ws_capture_reference(
+    hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict
+) -> None:
+    """Take a frame now and keep it as a reference picture.
+
+    The same capture the analysis uses, so what the user pins as "this is
+    what a full bin looks like" is a picture from the same source, at the
+    same size, through the same pipeline as the frames it will be compared
+    against.
+    """
+    if (coordinator := _require(hass, connection, msg)) is None:
+        return
+    camera = coordinator.config.camera(msg["camera_slug"])
+    if camera is None or not camera.streams:
+        connection.send_error(msg["id"], "not_found", "no such camera")
+        return
+    # The highest-quality stream, like the analysis itself: the reference
+    # should look like the frames it will sit next to.
+    recorded = [s for s in camera.streams if s.record]
+    entity_id = (recorded[0] if recorded else camera.streams[0]).entity_id
+
+    from .vision import VisionError
+
+    try:
+        frame = await async_capture_frame(hass, entity_id, None)
+    except VisionError as err:
+        connection.send_error(msg["id"], "capture_failed", str(err))
+        return
+
+    content_type = sniff_image(frame.content)
+    if content_type is None:
+        connection.send_error(
+            msg["id"], "capture_failed", "the camera produced no usable image"
+        )
+        return
+    asset_id = asset_id_for(frame.content)
+    target = asset_path(
+        Path(hass.config.path(LOCAL_STATE_DIR)), asset_id, content_type
+    )
+    await hass.async_add_executor_job(write_asset, target, frame.content)
+    connection.send_result(
+        msg["id"], {"asset_id": asset_id, "content_type": content_type}
+    )
 
 
 @websocket_api.require_admin

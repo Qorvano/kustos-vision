@@ -282,6 +282,47 @@ export class CamwatchApi {
     return this.hass.callWS({ type: `${DOMAIN}/vision/backends` });
   }
 
+  /** Upload a reference picture. The body is FormData and the Content-Type
+   *  is deliberately not set: the browser has to add the multipart boundary,
+   *  and a hand-set header would overwrite it with one that has none, which
+   *  the server then cannot parse. */
+  async uploadReference(
+    file: Blob,
+  ): Promise<{ asset_id: string; content_type: string; bytes: number }> {
+    const body = new FormData();
+    body.append("file", file, "referenz");
+    const response = await this.authorizedFetch(`/api/${DOMAIN}/reference`, {
+      method: "POST",
+      body,
+    });
+    if (!response.ok) {
+      throw new Error((await response.text()) || `HTTP ${response.status}`);
+    }
+    return response.json();
+  }
+
+  /** Take a frame from the camera right now and store it as a reference. */
+  captureReference(
+    cameraSlug: string,
+  ): Promise<{ asset_id: string; content_type: string }> {
+    return this.hass.callWS({
+      type: `${DOMAIN}/reference/capture`,
+      camera_slug: cameraSlug,
+    });
+  }
+
+  deleteReference(assetId: string): Promise<{ deleted: boolean }> {
+    return this.hass.callWS({
+      type: `${DOMAIN}/reference/delete`,
+      asset_id: assetId,
+    });
+  }
+
+  /** A displayable URL for a stored reference picture. */
+  referenceUrl(assetId: string): Promise<string> {
+    return this.signedUrl(`/api/${DOMAIN}/reference/${assetId}`);
+  }
+
   /** Ask the Supervisor to reconnect the mount behind the recordings. */
   reconnectStorage(): Promise<Snapshot> {
     return this.hass.callWS({ type: `${DOMAIN}/storage/reconnect` });

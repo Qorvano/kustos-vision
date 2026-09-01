@@ -23,6 +23,7 @@ import type {
   HomeAssistant,
   Observation,
   ObservationType,
+  ReferenceImage,
   VisionBackend,
   VisionProfile,
 } from "../types";
@@ -36,6 +37,10 @@ const TYPES: [ObservationType, string][] = [
 
 /** Where the analysed frames are served; the path carries slug + slot name. */
 const FRAME_URL_BASE = "/api/kustos_vision/vision-frame";
+
+/** Mirrors the backend cap (core/references.py): every extra image costs the
+ *  model a tile budget, and an overflowing request fails wholesale. */
+const MAX_REFERENCES_PER_OBSERVATION = 2;
 
 @customElement("kustos-vision-vision-editor")
 export class CamwatchVisionEditor extends LitElement {
@@ -56,6 +61,7 @@ export class CamwatchVisionEditor extends LitElement {
   @state() private aiTasks: AiTaskEntity[] = [];
   @state() private history: AnalysisRun[] = [];
   @state() private frameUrls = new Map<string, string>();
+  @state() private referenceUrls = new Map<string, string>();
   @state() private lastRun?: { values: Record<string, unknown>; raw: unknown };
   @state() private busy = false;
   @state() private error = "";
@@ -74,6 +80,14 @@ export class CamwatchVisionEditor extends LitElement {
         display: block;
         font-size: 0.75em;
         color: var(--secondary-text-color);
+      }
+      .refrow {
+        align-items: center;
+      }
+      .refthumb {
+        display: block;
+        height: 64px;
+        border-radius: 4px;
       }
     `,
   ];
@@ -193,6 +207,98 @@ export class CamwatchVisionEditor extends LitElement {
       ...this.observations,
       { key: `frage_${n}`, type: "boolean", question: "" },
     ];
+  }
+
+  // ------------------------------------------------------------------
+  // Reference pictures
+  // ------------------------------------------------------------------
+
+  /** A displayable URL for a stored picture, signed lazily on first use. */
+  private referenceUrl(assetId: string): string | undefined {
+    const known = this.referenceUrls.get(assetId);
+    if (known !== undefined) return known || undefined;
+    this.referenceUrls.set(assetId, ""); // marks the signing as in flight
+    void this.api
+      .referenceUrl(assetId)
+      .then((url) => {
+        this.referenceUrls = new Map(this.referenceUrls).set(assetId, url);
+      })
+      .catch(() => {
+        // The thumbnail simply stays empty.
+      });
+    return undefined;
+  }
+
+  /** Append an uploaded or captured picture to one question, unsaved. */
+  private async appendReference(index: number, assetId: string): Promise<void> {
+    const existing = this.observations[index].references ?? [];
+    if (existing.length >= MAX_REFERENCES_PER_OBSERVATION) return;
+    this.patchObservation(index, {
+      references: [...existing, { asset_id: assetId, caption: "" }],
+    });
+    // A reference without a label is the half of the feature that does not
+    // work - put the cursor where the label goes. (Disconnected, updates are
+    // deferred and updateComplete would never settle - and there is nothing
+    // to focus anyway.)
+    if (!this.isConnected) return;
+    await this.updateComplete;
+    const captions = this.renderRoot.querySelectorAll<HTMLInputElement>(
+      `input[data-caption-for="${index}"]`,
+    );
+    captions[captions.length - 1]?.focus();
+  }
+
+  private patchReference(
+    index: number,
+    refIndex: number,
+    patch: Partial<ReferenceImage>,
+  ): void {
+    const references = (this.observations[index].references ?? []).map(
+      (reference, i) => (i === refIndex ? { ...reference, ...patch } : reference),
+    );
+    this.patchObservation(index, { references });
+  }
+
+  private removeReference(index: number, refIndex: number): void {
+    // Only the configuration changes here; the stored file is the orphan
+    // sweep's business once the profile is saved, so cancelling the edit
+    // cannot strand a picture the config still names.
+    const references = (this.observations[index].references ?? []).filter(
+      (_, i) => i !== refIndex,
+    );
+    this.patchObservation(index, { references });
+  }
+
+  private async uploadReferenceFile(
+    index: number,
+    input: HTMLInputElement,
+  ): Promise<void> {
+    const file = input.files?.[0];
+    input.value = "";
+    if (!file) return;
+    this.busy = true;
+    this.error = "";
+    try {
+      const { asset_id } = await this.api.uploadReference(file);
+      await this.appendReference(index, asset_id);
+    } catch (err) {
+      this.error = errorText(err);
+    } finally {
+      this.busy = false;
+    }
+  }
+
+  private async captureReferenceNow(index: number): Promise<void> {
+    this.busy = true;
+    this.error = "";
+    try {
+      const { asset_id } = await this.api.captureReference(this.camera.slug);
+      await this.appendReference(index, asset_id);
+    } catch (err) {
+      this.error = errorText(err);
+    } finally {
+      this.busy = false;
+    }
   }
 
   private async save(): Promise<boolean> {
@@ -411,6 +517,8 @@ export class CamwatchVisionEditor extends LitElement {
             </div>`
           : nothing}
 
+        ${this.renderReferences(observation, index)}
+
         <div class="row" style="margin-top:8px">
           <label style="margin:0">
             <input
@@ -438,6 +546,94 @@ export class CamwatchVisionEditor extends LitElement {
           </button>
         </div>
       </div>
+    `;
+  }
+
+  private renderReferences(observation: Observation, index: number) {
+    const references = observation.references ?? [];
+    const full = references.length >= MAX_REFERENCES_PER_OBSERVATION;
+    return html`
+      <details class="expander" ?open=${references.length > 0}>
+        <summary>Referenzbilder (${references.length})</summary>
+        <div class="expander-body">
+          <p class="hint">
+            Bilder, die dem Modell zeigen, was gemeint ist, zum Beispiel ein
+            Foto des Hinterhofs mit allen Mülltonnen. Sie werden bei jeder
+            Analyse mitgeschickt, sind aber ausdrücklich kein Beleg dafür,
+            dass etwas gerade zu sehen ist.
+          </p>
+          ${references.map(
+            (reference, refIndex) => html`
+              <div class="row refrow">
+                ${this.referenceUrl(reference.burned_asset_id || reference.asset_id)
+                  ? html`<img
+                      class="refthumb"
+                      src=${this.referenceUrl(
+                        reference.burned_asset_id || reference.asset_id,
+                      )!}
+                      alt="Referenzbild"
+                    />`
+                  : html`<span class="muted">Bild wird geladen …</span>`}
+                <div class="grow">
+                  <label>Beschreibung (was ist was?)</label>
+                  <input
+                    data-caption-for=${index}
+                    .value=${reference.caption ?? ""}
+                    placeholder="Links die gelbe Tonne, rechts die schwarze."
+                    @change=${(e: Event) =>
+                      this.patchReference(index, refIndex, {
+                        caption: (e.target as HTMLInputElement).value,
+                      })}
+                  />
+                </div>
+                <button
+                  class="danger compact"
+                  ?disabled=${this.busy}
+                  @click=${() => this.removeReference(index, refIndex)}
+                >
+                  Entfernen
+                </button>
+              </div>
+            `,
+          )}
+          <div class="row" style="margin-top:8px">
+            <button
+              class="secondary"
+              ?disabled=${this.busy || full}
+              @click=${() =>
+                this.renderRoot
+                  .querySelector<HTMLInputElement>(
+                    `input[data-upload-for="${index}"]`,
+                  )
+                  ?.click()}
+            >
+              Bild hochladen
+            </button>
+            <input
+              type="file"
+              accept="image/jpeg,image/png"
+              hidden
+              data-upload-for=${index}
+              @change=${(e: Event) =>
+                this.uploadReferenceFile(index, e.target as HTMLInputElement)}
+            />
+            <button
+              class="secondary"
+              ?disabled=${this.busy || full}
+              @click=${() => this.captureReferenceNow(index)}
+            >
+              Aktuelles Kamerabild übernehmen
+            </button>
+            ${full
+              ? html`<span class="muted">
+                  Höchstens ${MAX_REFERENCES_PER_OBSERVATION} Bilder je Frage:
+                  jedes weitere Bild verkleinert den Platz, den das Modell für
+                  die eigentliche Analyse hat.
+                </span>`
+              : nothing}
+          </div>
+        </div>
+      </details>
     `;
   }
 

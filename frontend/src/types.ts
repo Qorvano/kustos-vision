@@ -75,6 +75,25 @@ export interface View {
 
 export type ObservationType = "boolean" | "text" | "number" | "select";
 
+/** A drawn label on a reference picture: a rectangle plus its text, in
+ *  coordinates normalised 0..1 so it survives any resolution. */
+export interface ReferenceRegion {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  label: string;
+}
+
+export interface ReferenceImage {
+  asset_id: string;
+  caption?: string;
+  regions?: ReferenceRegion[];
+  /** The copy with the labels burned in - what actually travels to the
+   *  model. Empty means nothing was drawn and the original travels. */
+  burned_asset_id?: string;
+}
+
 export interface Observation {
   key: string;
   type: ObservationType;
@@ -86,6 +105,7 @@ export interface Observation {
   maximum?: number;
   /** A paused question keeps its entity but is no longer asked. */
   enabled?: boolean;
+  references?: ReferenceImage[];
 }
 
 export interface VisionBackend {
