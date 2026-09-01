@@ -1786,7 +1786,7 @@ async function re() {
       s.discard();
   return !0;
 }
-const Ce = "0.8.0", fs = "kustos-vision-built:0.8.0", bs = {
+const Ce = "0.8.1", fs = "kustos-vision-built:0.8.1", bs = {
   ptz_up: "Schwenken hoch",
   ptz_down: "Schwenken runter",
   ptz_left: "Schwenken links",
@@ -6411,17 +6411,43 @@ let E = class extends T {
     if (e.value = "", !!s) {
       this.busy = !0, this.error = "";
       try {
-        const { asset_id: i } = await this.api.uploadReference(s), r = this.draftPersons()[t];
-        if (r.references.length >= $t) return;
-        this.patchPerson(t, {
-          references: [...r.references, { asset_id: i }]
-        });
+        const { asset_id: i } = await this.api.uploadReference(s);
+        await this.addPersonPhoto(t, i);
       } catch (i) {
         this.error = _(i);
       } finally {
         this.busy = !1;
       }
     }
+  }
+  /** Attach an uploaded photo. For a person that exists, this persists on
+   *  the spot - adding a photo is an explicit action like a drag&drop
+   *  reorder, and photos that only lived in the draft were exactly what a
+   *  discarded draft silently lost. A person not saved yet keeps the photo
+   *  in the draft and it is stored with the creation. */
+  async addPersonPhoto(t, e) {
+    const s = this.draftPersons()[t];
+    if (s.references.length >= $t) return;
+    const i = [...s.references, { asset_id: e }];
+    s.id && await this.persistPersonPhotos(s.id, i), this.patchPerson(t, { references: i });
+  }
+  async removePersonPhoto(t, e) {
+    const s = this.draftPersons()[t], i = s.references.filter((r, n) => n !== e);
+    s.id && await this.persistPersonPhotos(s.id, i), this.patchPerson(t, { references: i });
+  }
+  /** Store ONLY the photo change: name and switch travel from the saved
+   *  state, so a photo must not quietly persist unsaved edits sitting in
+   *  the draft beside it. */
+  async persistPersonPhotos(t, e) {
+    const s = this.snapshot.persons?.people.find((i) => i.id === t);
+    return s ? this.run(
+      () => this.api.setPerson({
+        person_id: t,
+        name: s.name,
+        enabled: s.enabled ?? !0,
+        references: e
+      })
+    ) : !1;
   }
   /** A displayable URL for a stored photo, signed lazily on first use. */
   personPhotoUrl(t) {
@@ -6483,11 +6509,7 @@ let E = class extends T {
               <button
                 class="danger compact"
                 ?disabled=${this.busy}
-                @click=${() => this.patchPerson(e, {
-        references: t.references.filter(
-          (r, n) => n !== i
-        )
-      })}
+                @click=${() => this.removePersonPhoto(e, i)}
               >
                 Foto entfernen
               </button>
