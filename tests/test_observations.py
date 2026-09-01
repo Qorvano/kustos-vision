@@ -11,6 +11,7 @@ from kustos_vision.core.observations import (
     coerce_answer,
     coerce_answers,
     field_description,
+    fields_prompt,
     to_ai_task_structure,
     to_json_schema,
 )
@@ -192,6 +193,31 @@ def test_the_question_reaches_the_model_in_the_users_language() -> None:
     assert field_description(observation).startswith(
         "Liegt ein Paket vor der Haustür?\n\n"
     )
+
+
+def test_the_fields_prompt_carries_question_and_guidance() -> None:
+    """Regression: llama.cpp converts the response schema into a grammar and
+    never shows its text to the model, so everything that travelled only as a
+    field description - the question included - was never read, and the model
+    answered from the field NAMES alone ("ereignis_hinterhof" -> "none").
+    The prompt itself has to carry the fields."""
+    text = fields_prompt([obs()])
+    assert '"paket_vor_der_tuer"' in text
+    assert "Liegt ein Paket vor der Haustür?" in text
+    assert ANSWER_GUIDANCE[ObservationType.BOOLEAN] in text
+
+
+def test_the_fields_prompt_names_the_allowed_answers_and_ranges() -> None:
+    """Grammar-only runners enforce the enum and the range without the model
+    ever seeing them; the prompt says them out loud."""
+    text = fields_prompt(
+        [
+            obs(key="art", type=ObservationType.SELECT, options=("leer", "Person")),
+            obs(key="anzahl", type=ObservationType.NUMBER, minimum=0, maximum=9),
+        ]
+    )
+    assert "leer, Person" in text
+    assert "between 0 and 9" in text
 
 
 def test_the_json_schema_constrains_a_choice() -> None:

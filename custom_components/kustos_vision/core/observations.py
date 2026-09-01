@@ -206,6 +206,34 @@ def field_description(observation: Observation) -> str:
     return f"{observation.question}\n\n{ANSWER_GUIDANCE[observation.type]}"
 
 
+def fields_prompt(fields) -> str:
+    """The questions as prompt text, for runners that never show the model
+    the schema.
+
+    llama.cpp turns ``response_format``'s JSON Schema into a grammar: the
+    output SHAPE is enforced, but the schema text - including every field
+    description - is never shown to the model. A model behind such a runner
+    answered from the field NAMES alone: "ereignis_hinterhof" got "none"
+    while the question and its guidance sat unread in the description.
+    Hosted runners that do read descriptions see the same text twice, built
+    from the same source, which cannot drift and is harmless.
+
+    Duck-typed over Observation and PersonField, like the serialisers.
+    """
+    blocks: list[str] = []
+    for field in fields:
+        lines = [f'Field "{field.key}": {field.question}']
+        if field.type is ObservationType.SELECT:
+            lines.append("Allowed answers: " + ", ".join(field.options))
+        if field.type is ObservationType.NUMBER:
+            lines.append(
+                f"Answer an integer between {field.minimum} and {field.maximum}."
+            )
+        lines.append(ANSWER_GUIDANCE[field.type])
+        blocks.append("\n".join(lines))
+    return "These are the fields to answer:\n\n" + "\n\n".join(blocks)
+
+
 def _selector_for(observation: Observation) -> dict[str, Any]:
     """The Home Assistant selector describing this answer."""
     match observation.type:

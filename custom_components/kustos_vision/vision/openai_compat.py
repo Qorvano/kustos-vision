@@ -20,7 +20,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from ..core.config import CameraConfig, VisionProfile
-from ..core.observations import to_json_schema
+from ..core.observations import fields_prompt, to_json_schema
 from . import VisionError, VisionRequest, analysis_fields, build_prompt
 
 _LOGGER = logging.getLogger(__name__)
@@ -78,11 +78,18 @@ async def async_run(
     else:
         content, mime = await _snapshot(hass, camera_entity_id)
 
+    asked = analysis_fields(profile, request)
     # The current frame first, deliberately: a runner or model that honours
     # only the first image still answers about NOW, so the degradation is
     # graceful in the direction that matters.
+    #
+    # The questions travel HERE, in the prompt, and not only as schema
+    # descriptions: llama.cpp turns the schema into a grammar and never
+    # shows its text to the model, which then answers from the field names
+    # alone. See fields_prompt.
     parts: list[dict[str, Any]] = [
         {"type": "text", "text": build_prompt(camera, profile)},
+        {"type": "text", "text": fields_prompt(asked)},
     ]
     references = request.references if request is not None else ()
     if references:
@@ -127,7 +134,7 @@ async def async_run(
             "json_schema": {
                 "name": SCHEMA_NAME,
                 "strict": True,
-                "schema": to_json_schema(analysis_fields(profile, request)),
+                "schema": to_json_schema(asked),
             },
         },
         # Nothing here benefits from invention: the same picture should give

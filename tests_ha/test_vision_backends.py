@@ -280,22 +280,22 @@ async def test_the_frame_travels_first_and_references_after(
     kinds = [part["type"] for part in content]
     assert kinds == [
         "text",       # framing prompt
+        "text",       # the fields to answer
         "text",       # "this is the current camera frame"
         "image_url",  # the frame
         "text",       # the reference's preamble
         "image_url",  # the reference
         "text",       # the re-anchor
     ]
-    assert content[2]["image_url"]["url"].startswith("data:image/jpeg")
-    assert content[4]["image_url"]["url"].startswith("data:image/png")
+    assert content[3]["image_url"]["url"].startswith("data:image/jpeg")
+    assert content[5]["image_url"]["url"].startswith("data:image/png")
     assert "current camera frame" in content[-1]["text"]
 
 
-async def test_without_references_the_message_shape_is_unchanged(
+async def test_without_references_the_message_is_prompt_fields_and_image(
     hass: HomeAssistant,
 ) -> None:
-    """The feature must cost nothing when unused: one text, one image,
-    exactly as before it existed."""
+    """The minimal request: the framing, the fields to answer, the frame."""
     import json as jsonlib
     from unittest.mock import AsyncMock, patch
 
@@ -329,8 +329,18 @@ async def test_without_references_the_message_shape_is_unchanged(
     ):
         await openai_compat.async_run(hass, CAMERA, PROFILE, "camera.vg")
 
-    kinds = [p["type"] for p in captured["payload"]["messages"][0]["content"]]
-    assert kinds == ["text", "image_url"]
+    content = captured["payload"]["messages"][0]["content"]
+    kinds = [p["type"] for p in content]
+    assert kinds == ["text", "text", "image_url"]
+
+    # Regression: llama.cpp turns the schema into a grammar and never shows
+    # its text to the model, so a model behind it answered from the field
+    # NAMES alone ("ereignis_hinterhof" -> "none") - the question and its
+    # guidance sat unread in the schema description. The question has to
+    # reach the model in the prompt itself.
+    fields_text = content[1]["text"]
+    assert "Liegt ein Paket da?" in fields_text
+    assert "paket" in fields_text
 
 
 # ----------------------------------------------------------------------
