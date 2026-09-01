@@ -304,16 +304,17 @@ async def test_export_refuses_an_empty_range(
     assert response.status == 400
 
 
-async def test_export_refuses_more_than_a_day(
+async def test_export_refuses_more_than_the_longest_day(
     hass: HomeAssistant, hass_client, recorded
 ) -> None:
     _, _, _, start = recorded
-    """The timeline works a day at a time, so a longer range is not a unit the
-    user picked on purpose."""
+    """A range far beyond a day is not a unit the user picked on purpose. The
+    cap sits at 25 hours, because the night the clocks fall back makes one
+    local day exactly that long and its download must not fail over it."""
     client = await hass_client()
     response = await client.get(
         f"/api/{DOMAIN}/export",
-        params={"camera": "beispiel", "from": start, "to": start + 25 * 3600},
+        params={"camera": "beispiel", "from": start, "to": start + 26 * 3600},
     )
     assert response.status == 400
 
@@ -684,3 +685,82 @@ async def test_fragments_refuse_paths_the_index_does_not_know(
     result = await client.receive_json()
     assert not result["success"]
     assert result["error"]["code"] == "unknown_segment"
+
+
+def _segment(start: int, duration: float, key: str = "hd") -> "Segment":
+    from custom_components.kustos_vision.core.index import Segment
+
+    return Segment(
+        rel_path=f"kamera/{start}.mp4",
+        camera_slug="beispiel",
+        stream_key=key,
+        start_utc=start,
+        duration_s=duration,
+        size_bytes=1,
+        has_thumbnail=False,
+    )
+
+
+def test_the_clip_measures_from_the_joined_timeline() -> None:
+    """A download cut to the minute: the lead is how far into the first file
+    the range begins, the length what remains after both cut-offs."""
+    from custom_components.kustos_vision.export import clip_bounds
+
+    segments = [_segment(100, 60), _segment(160, 60)]
+    lead, duration = clip_bounds(segments, 130, 190)
+    assert lead == 30
+    assert duration == 60
+
+
+def test_a_recording_gap_never_inflates_the_clip() -> None:
+    """Regression for the range export: wall time jumps across gaps while the
+    joined material is contiguous, so the length has to come from the
+    material, not from the requested span."""
+    from custom_components.kustos_vision.export import clip_bounds
+
+    segments = [_segment(0, 60), _segment(120, 60)]
+    lead, duration = clip_bounds(segments, 30, 150)
+    assert lead == 30
+    # 120 s of material, minus 30 s lead and the 30 s cut off the tail.
+    assert duration == 60
+
+
+def test_exact_segment_edges_need_no_cut() -> None:
+    from custom_components.kustos_vision.export import clip_bounds
+
+    segments = [_segment(0, 60), _segment(60, 60)]
+    assert clip_bounds(segments, 0, 120) == (0, 120)
+
+
+def test_the_cut_lands_on_input_seek_and_output_length() -> None:
+    """-ss must be an input option (it seeks the demuxer to the keyframe at
+    or before the moment) and -t an output option, for both export shapes."""
+    from pathlib import Path
+
+    from custom_components.kustos_vision.export import (
+        clipped_args,
+        pipe_concat_args,
+        stamp_concat_args,
+    )
+
+    raw = clipped_args(pipe_concat_args(Path("/tmp/list.txt")), 12.5, 60)
+    assert raw.index("-ss") < raw.index("-i")
+    assert raw[raw.index("-ss") + 1] == "12.500"
+    assert raw[raw.index("-t") + 1] == "60.000"
+    assert raw.index("-t") > raw.index("-c")
+
+    stamped = clipped_args(
+        stamp_concat_args([(Path("/a.mp4"), 100.0)], 720, False), 5, 30
+    )
+    assert stamped.index("-ss") < stamped.index("-i")
+    assert stamped[stamped.index("-t") + 1] == "30.000"
+
+
+def test_without_a_lead_nothing_seeks() -> None:
+    from pathlib import Path
+
+    from custom_components.kustos_vision.export import clipped_args, pipe_concat_args
+
+    args = clipped_args(pipe_concat_args(Path("/tmp/list.txt")), 0, 60)
+    assert "-ss" not in args
+    assert args[args.index("-t") + 1] == "60.000"

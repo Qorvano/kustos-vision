@@ -33,11 +33,13 @@ SEGMENT_URL = f"/api/{DOMAIN}/segment"
 THUMBNAIL_URL = f"/api/{DOMAIN}/thumbnail"
 EXPORT_URL = f"/api/{DOMAIN}/export"
 
-# The longest range one export may cover. The timeline works a day at a time,
-# so a range beyond that is no longer a unit the user picked deliberately, and
-# joining a week of a main stream would occupy the machine for a long while
-# with something nobody asked for twice.
-MAX_EXPORT_SECONDS = 24 * 60 * 60
+# The longest range one export may cover: a range far beyond a day is no
+# longer a unit anyone picked deliberately, and joining a week of a main
+# stream would occupy the machine for a long while with something nobody
+# asked for twice. 25 hours rather than 24, because the night the clocks
+# fall back makes one local day exactly that long and its download must
+# not fail over it.
+MAX_EXPORT_SECONDS = 25 * 60 * 60
 
 # Segments never change once written, so a viewer that seeks back and forth
 # should not fetch the same bytes twice. A day is far below the shortest
@@ -199,7 +201,9 @@ class ExportView(CamwatchFileView):
             }
         )
         await response.prepare(request)
-        async for chunk in stream_export(self.hass, segments, base, stamp=stamp):
+        async for chunk in stream_export(
+            self.hass, segments, base, stamp=stamp, clip=(start, end)
+        ):
             await response.write(chunk)
         await response.write_eof()
         return response

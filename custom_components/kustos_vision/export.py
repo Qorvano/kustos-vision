@@ -223,6 +223,41 @@ def prepare_inputs(
     return prepared
 
 
+def clip_bounds(
+    segments: list[Segment], start: float, end: float
+) -> tuple[float, float]:
+    """Where the requested range lies on the joined timeline.
+
+    The join is contiguous material while wall time is not. The leading cut
+    is how far into the first file the range begins, and the length is the
+    material sum minus both cut-offs, so a recording gap inside the range
+    never inflates the file with an overshoot past the requested end.
+    """
+    lead = max(0.0, start - segments[0].start_utc)
+    tail = max(0.0, segments[-1].start_utc + segments[-1].duration_s - end)
+    total = sum(s.duration_s for s in segments)
+    return lead, max(0.0, total - lead - tail)
+
+
+def clipped_args(args: list[str], lead_s: float, duration_s: float) -> list[str]:
+    """Cut finished ffmpeg arguments down to the requested range.
+
+    ``-ss`` goes in front of the first input, where it seeks the demuxer:
+    with stream copy that lands on the keyframe at or before the requested
+    second, so the cut starts a moment early rather than dropping footage
+    someone asked for. ``-t`` sits with the trailing output options and
+    bounds the length.
+    """
+    out = list(args)
+    if duration_s > 0:
+        last_f = len(out) - 1 - out[::-1].index("-f")
+        out[last_f:last_f] = ["-t", f"{duration_s:.3f}"]
+    if lead_s > 0:
+        first_input = out.index("-i")
+        out[first_input:first_input] = ["-ss", f"{lead_s:.3f}"]
+    return out
+
+
 def write_concat_list(paths: list[Path], target: Path) -> None:
     """Write the file list the concat demuxer reads.
 
@@ -241,12 +276,18 @@ async def stream_export(
     segments: list[Segment],
     base: Path,
     stamp: bool = False,
+    clip: tuple[float, float] | None = None,
 ) -> AsyncIterator[bytes]:
     """Join segments and yield the resulting MP4 as it is produced.
 
     With ``stamp`` the picture gets the recording clock burnt in, which turns
     the cheap remux into a full transcode; see the constants above for what
     that trade looks like.
+
+    ``clip`` names the requested wall-clock range. Without it the join keeps
+    every overlapping segment whole; with it the head of the first file and
+    the tail of the last are cut off, so the download starts and ends at the
+    minute that was asked for instead of at segment boundaries.
     """
     if not segments:
         raise ValueError("nothing to export")
@@ -267,6 +308,11 @@ async def stream_export(
         if not paths:
             _LOGGER.warning("kustos_vision: nothing in the range was exportable")
             return
+        # Computed against what actually survived preparation: a dropped
+        # unreadable file at either end moves the edge the cut measures from.
+        lead = duration = 0.0
+        if clip is not None:
+            lead, duration = clip_bounds([s for _, s in paths], *clip)
         if stamp:
             first = paths[0][0]
             size = await hass.async_add_executor_job(video_size, first)
@@ -285,11 +331,14 @@ async def stream_export(
                 )
             )
             if size is not None:
-                args = stamp_concat_args(
-                    [(path, segment.start_utc) for path, segment in paths],
-                    size[1],
-                    with_audio,
-                )
+                inputs = [(path, segment.start_utc) for path, segment in paths]
+                if lead > 0:
+                    # The input seek rebases the first file's timestamps to
+                    # zero, so its burnt-in clock has to start at the moment
+                    # the cut begins, not at the moment the file did.
+                    first_path, first_epoch = inputs[0]
+                    inputs[0] = (first_path, first_epoch + lead)
+                args = stamp_concat_args(inputs, size[1], with_audio)
             else:
                 stamp = False
         if not stamp:
@@ -298,6 +347,8 @@ async def stream_export(
                 write_concat_list, [path for path, _ in paths], list_file
             )
             args = pipe_concat_args(list_file)
+        if clip is not None and duration > 0:
+            args = clipped_args(args, lead, duration)
 
         process = await create_subprocess_exec(
             binary,

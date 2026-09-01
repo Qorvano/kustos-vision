@@ -9,6 +9,19 @@ import "../components/player";
 import "../components/select";
 import "../components/timeline";
 
+/* Mirrors MAX_EXPORT_SECONDS on the Python side, so the button can say why
+   it is disabled instead of letting the request bounce. */
+const MAX_EXPORT_HOURS = 25;
+
+/** A Date as the value a datetime-local input holds, in local time. */
+function toLocalInput(date: Date): string {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return (
+    `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}` +
+    `T${pad(date.getHours())}:${pad(date.getMinutes())}`
+  );
+}
+
 @customElement("kustos-vision-recordings")
 export class CamwatchRecordings extends LitElement {
   @property({ attribute: false }) api!: CamwatchApi;
@@ -31,6 +44,12 @@ export class CamwatchRecordings extends LitElement {
   /** Burn the recording clock into the download, at transcoding cost. */
   @state() private stampExport = false;
   @state() private error = "";
+  /** The minute-precise range export, as datetime-local strings so the
+      picker itself carries the date and a range may cross midnight. */
+  @state() private rangeFrom = "";
+  @state() private rangeTo = "";
+  /** Which day the range fields were last preset for, see loadDay. */
+  private rangeDay = "";
 
   static override styles = [
     shared,
@@ -148,6 +167,16 @@ export class CamwatchRecordings extends LitElement {
       this.segments = [];
       return;
     }
+    if (this.rangeDay !== this.day) {
+      // A fresh day presets the range to that whole day; from there the
+      // fields are the user's, including a Bis on the following day.
+      this.rangeDay = this.day;
+      const start = new Date(`${this.day}T00:00:00`);
+      const end = new Date(start);
+      end.setDate(end.getDate() + 1);
+      this.rangeFrom = toLocalInput(start);
+      this.rangeTo = toLocalInput(end);
+    }
     const [from, to] = this.bounds;
     this.busy = true;
     this.error = "";
@@ -176,6 +205,10 @@ export class CamwatchRecordings extends LitElement {
 
   private exportUrl(): string {
     const [from, to] = this.bounds;
+    return this.exportUrlFor(from, to);
+  }
+
+  private exportUrlFor(from: number, to: number): string {
     const params = new URLSearchParams({
       camera: this.camera,
       from: String(from),
@@ -184,6 +217,48 @@ export class CamwatchRecordings extends LitElement {
     if (this.stream) params.set("stream", this.stream);
     if (this.stampExport && this.stampAvailable) params.set("stamp", "1");
     return `/api/kustos_vision/export?${params.toString()}`;
+  }
+
+  /** The chosen range as epoch seconds, or nothing while a field is empty. */
+  private rangeBounds(): [number, number] | undefined {
+    if (!this.rangeFrom || !this.rangeTo) return undefined;
+    const from = new Date(this.rangeFrom).getTime() / 1000;
+    const to = new Date(this.rangeTo).getTime() / 1000;
+    if (Number.isNaN(from) || Number.isNaN(to)) return undefined;
+    return [from, to];
+  }
+
+  /** Why the range cannot be downloaded, or nothing when it can. */
+  private rangeProblem(): string | undefined {
+    const bounds = this.rangeBounds();
+    if (!bounds) return "Von und Bis brauchen jeweils Datum und Uhrzeit.";
+    const [from, to] = bounds;
+    if (to <= from) return "Bis muss nach Von liegen.";
+    if (to - from > MAX_EXPORT_HOURS * 3600) {
+      return `Ein Export deckt höchstens ${MAX_EXPORT_HOURS} Stunden ab.`;
+    }
+    return undefined;
+  }
+
+  private async downloadRange(): Promise<void> {
+    const bounds = this.rangeBounds();
+    if (!bounds) return;
+    this.downloading = true;
+    this.error = "";
+    try {
+      const url = await this.api.signedUrl(this.exportUrlFor(...bounds));
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = "";
+      anchor.style.display = "none";
+      this.renderRoot.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+    } catch (err) {
+      this.error = errorText(err);
+    } finally {
+      this.downloading = false;
+    }
   }
 
   /**
@@ -348,6 +423,45 @@ export class CamwatchRecordings extends LitElement {
                       : "")
                   : "Die Segmente werden ohne Neukodierung zusammengefügt."}
             </p>
+
+            <div class="row" style="margin-top:12px">
+              <div class="picker">
+                <label>Von</label>
+                <input
+                  type="datetime-local"
+                  step="60"
+                  .value=${this.rangeFrom}
+                  @change=${(e: Event) =>
+                    (this.rangeFrom = (e.target as HTMLInputElement).value)}
+                />
+              </div>
+              <div class="picker">
+                <label>Bis</label>
+                <input
+                  type="datetime-local"
+                  step="60"
+                  .value=${this.rangeTo}
+                  @change=${(e: Event) =>
+                    (this.rangeTo = (e.target as HTMLInputElement).value)}
+                />
+              </div>
+              <button
+                class="secondary"
+                ?disabled=${this.busy ||
+                this.downloading ||
+                this.rangeProblem() !== undefined}
+                @click=${this.downloadRange}
+              >
+                Zeitraum herunterladen
+              </button>
+            </div>
+            ${this.rangeProblem() !== undefined && this.rangeFrom && this.rangeTo
+              ? html`<p class="error">${this.rangeProblem()}</p>`
+              : html`<p class="hint">
+                  Minutengenau und auch über Mitternacht hinweg; der Schnitt
+                  beginnt am Schlüsselbild direkt vor der gewählten Minute,
+                  damit nichts fehlt. Der Zeitstempel-Schalter gilt auch hier.
+                </p>`}
           </div>
         </div>
       </div>
