@@ -23,6 +23,12 @@ import type { HomeAssistant } from "../types";
 
 type Mode = "idle" | "webrtc" | "hls" | "mjpeg" | "still" | "error";
 
+/* Beyond this an HD stream shows only compression blocks, so more zoom
+   would magnify artefacts, not information. */
+const MAX_ZOOM = 8;
+/* One comfortable notch per wheel click. */
+const ZOOM_STEP = 1.2;
+
 interface Capabilities {
   frontend_stream_types: string[];
 }
@@ -41,6 +47,18 @@ export class CamwatchLiveStream extends LitElement {
   @state() private message = "";
   /** Ticks once a second while a live picture is showing. */
   @state() private nowSeconds = 0;
+  /** Whether this element currently fills the screen. */
+  @state() private fullscreen = false;
+  /** The loupe: how far in, and where the picture's origin sits. */
+  @state() private zoom = { scale: 1, x: 0, y: 0 };
+
+  private drag?: {
+    pointerId: number;
+    startX: number;
+    startY: number;
+    originX: number;
+    originY: number;
+  };
 
   private clockTimer?: ReturnType<typeof setInterval>;
 
@@ -60,12 +78,44 @@ export class CamwatchLiveStream extends LitElement {
       aspect-ratio: 16 / 9;
       overflow: hidden;
     }
+    :host(:fullscreen) {
+      /* The screen decides the shape now, not the tile. */
+      aspect-ratio: auto;
+      width: 100%;
+      height: 100%;
+    }
+    .stage {
+      position: absolute;
+      inset: 0;
+      /* The loupe's maths anchor at the top-left corner. */
+      transform-origin: 0 0;
+    }
     video,
     img {
       width: 100%;
       height: 100%;
       object-fit: contain;
       display: block;
+    }
+    .zoombadge,
+    .zoomhint {
+      position: absolute;
+      background: rgba(0, 0, 0, 0.55);
+      color: #fff;
+      font-size: 0.8em;
+      padding: 2px 8px;
+      border-radius: 6px;
+      pointer-events: none;
+      z-index: 1;
+    }
+    .zoombadge {
+      top: 8px;
+      left: 8px;
+      font-family: ui-monospace, monospace;
+    }
+    .zoomhint {
+      bottom: 8px;
+      left: 8px;
     }
     .overlay {
       position: absolute;
@@ -113,6 +163,14 @@ export class CamwatchLiveStream extends LitElement {
       else this.stop();
     });
     this.observer.observe(this);
+    this.addEventListener("fullscreenchange", this.onFullscreenChange);
+    // passive:false, because zooming has to keep the wheel from scrolling.
+    this.addEventListener("wheel", this.onWheel, { passive: false });
+    this.addEventListener("dblclick", this.onDoubleClick);
+    this.addEventListener("pointerdown", this.onPointerDown);
+    this.addEventListener("pointermove", this.onPointerMove);
+    this.addEventListener("pointerup", this.onPointerUp);
+    this.addEventListener("pointercancel", this.onPointerUp);
   }
 
   override disconnectedCallback(): void {
@@ -121,8 +179,95 @@ export class CamwatchLiveStream extends LitElement {
     this.clockTimer = undefined;
     this.observer?.disconnect();
     this.observer = undefined;
+    this.removeEventListener("fullscreenchange", this.onFullscreenChange);
+    this.removeEventListener("wheel", this.onWheel);
+    this.removeEventListener("dblclick", this.onDoubleClick);
+    this.removeEventListener("pointerdown", this.onPointerDown);
+    this.removeEventListener("pointermove", this.onPointerMove);
+    this.removeEventListener("pointerup", this.onPointerUp);
+    this.removeEventListener("pointercancel", this.onPointerUp);
     this.stop();
   }
+
+  // --------------------------------------------------------------------
+  // Fullscreen and the loupe
+  // --------------------------------------------------------------------
+
+  /** Fill the screen with this picture, or step back out of it. */
+  async toggleFullscreen(): Promise<void> {
+    if (document.fullscreenElement === this) {
+      await document.exitFullscreen();
+    } else {
+      await this.requestFullscreen();
+    }
+  }
+
+  private onFullscreenChange = (): void => {
+    this.fullscreen = document.fullscreenElement === this;
+    // The loupe belongs to the fullscreen viewing; back in the wall of
+    // tiles a magnified crop would masquerade as the whole picture.
+    if (!this.fullscreen) this.zoom = { scale: 1, x: 0, y: 0 };
+  };
+
+  /** Keep the picture covering the box: no gaps past any edge. */
+  private clampedZoom(scale: number, x: number, y: number) {
+    const rect = this.getBoundingClientRect();
+    return {
+      scale,
+      x: Math.min(0, Math.max(rect.width * (1 - scale), x)),
+      y: Math.min(0, Math.max(rect.height * (1 - scale), y)),
+    };
+  }
+
+  private onWheel = (event: WheelEvent): void => {
+    if (!this.fullscreen) return;
+    event.preventDefault();
+    const { scale, x, y } = this.zoom;
+    const factor = event.deltaY < 0 ? ZOOM_STEP : 1 / ZOOM_STEP;
+    const next = Math.min(MAX_ZOOM, Math.max(1, scale * factor));
+    if (next === scale) return;
+    // The spot under the pointer stays under the pointer.
+    const rect = this.getBoundingClientRect();
+    const px = event.clientX - rect.left;
+    const py = event.clientY - rect.top;
+    const ratio = next / scale;
+    this.zoom = this.clampedZoom(
+      next,
+      px - (px - x) * ratio,
+      py - (py - y) * ratio,
+    );
+  };
+
+  private onDoubleClick = (): void => {
+    if (!this.fullscreen) return;
+    this.zoom = { scale: 1, x: 0, y: 0 };
+  };
+
+  private onPointerDown = (event: PointerEvent): void => {
+    if (!this.fullscreen || this.zoom.scale === 1) return;
+    this.setPointerCapture(event.pointerId);
+    this.drag = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      originX: this.zoom.x,
+      originY: this.zoom.y,
+    };
+  };
+
+  private onPointerMove = (event: PointerEvent): void => {
+    const drag = this.drag;
+    if (!drag || event.pointerId !== drag.pointerId) return;
+    this.zoom = this.clampedZoom(
+      this.zoom.scale,
+      drag.originX + (event.clientX - drag.startX),
+      drag.originY + (event.clientY - drag.startY),
+    );
+  };
+
+  private onPointerUp = (event: PointerEvent): void => {
+    if (this.drag?.pointerId === event.pointerId) this.drag = undefined;
+  };
 
   override updated(changed: Map<string, unknown>): void {
     if (changed.has("entityId") && this.visible) {
@@ -298,8 +443,25 @@ export class CamwatchLiveStream extends LitElement {
 
   override render() {
     const live = ["webrtc", "hls", "mjpeg"].includes(this.mode);
-    return html`${this.renderPicture()}
-    ${live ? html`<div class="clock">${clockText(this.nowSeconds)}</div>` : nothing}`;
+    const { scale, x, y } = this.zoom;
+    return html`<div
+      class="stage"
+      style="transform: translate(${x}px, ${y}px) scale(${scale}); cursor: ${
+        this.fullscreen && scale > 1 ? "grab" : "default"
+      }"
+    >
+      ${this.renderPicture()}
+    </div>
+    ${live ? html`<div class="clock">${clockText(this.nowSeconds)}</div>` : nothing}
+    ${scale > 1
+      ? html`<div class="zoombadge">${scale.toFixed(1)}×</div>`
+      : nothing}
+    ${this.fullscreen && scale === 1
+      ? html`<div class="zoomhint">
+          Mausrad: Lupe · Ziehen: verschieben · Doppelklick: zurücksetzen ·
+          Esc: verlassen
+        </div>`
+      : nothing}`;
   }
 
   private renderPicture() {

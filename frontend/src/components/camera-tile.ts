@@ -9,6 +9,7 @@ import { capabilityLabel, PTZ_SYMBOLS } from "../capabilities";
 import { shared } from "../styles";
 import type { Camera, CustomControl, HomeAssistant } from "../types";
 import "./live-stream";
+import type { CamwatchLiveStream } from "./live-stream";
 import "./select";
 
 /** Capabilities that are a single press, in the order a tile shows them. */
@@ -224,6 +225,11 @@ export class CamwatchCameraTile extends LitElement {
     }
   }
 
+  private openFullscreen(): void {
+    const stream = this.renderRoot.querySelector("kustos-vision-live-stream");
+    void (stream as CamwatchLiveStream | null)?.toggleFullscreen();
+  }
+
   private renderControls() {
     const shown = this.shownCapabilities;
     const custom = this.shownControls;
@@ -270,6 +276,25 @@ export class CamwatchCameraTile extends LitElement {
         <span>${this.camera.name}</span>
         <span class="spacer"></span>
         ${state.paused ? html`<span class="meta">pausiert</span>` : nothing}
+        ${entity
+          ? html`<button
+              class="secondary compact"
+              title="Vollbild (mit Lupe per Mausrad)"
+              @click=${this.openFullscreen}
+            >
+              <svg
+                viewBox="0 0 24 24"
+                width="16"
+                height="16"
+                fill="currentColor"
+                aria-hidden="true"
+              >
+                <path
+                  d="M5,5H10V7H7V10H5V5M14,5H19V10H17V7H14V5M17,14H19V19H14V17H17V14M10,17V19H5V14H7V17H10Z"
+                />
+              </svg>
+            </button>`
+          : nothing}
       </header>
 
       ${entity
