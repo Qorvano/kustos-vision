@@ -38,7 +38,7 @@ export class CamwatchRecordings extends LitElement {
   @property({ attribute: false }) cameras: Camera[] = [];
   /** Whether the server's ffmpeg can draw the clock at all. */
   @property({ type: Boolean }) stampAvailable = false;
-  @property({ type: Boolean }) narrow = false;
+  @property({ type: Boolean, reflect: true }) narrow = false;
 
   @state() private camera = "";
   @state() private stream = "";
@@ -117,6 +117,15 @@ export class CamwatchRecordings extends LitElement {
            with the viewport rather than push the timeline off the screen;
            on a monitor the clamp lands on the old 160px unchanged. */
         min-height: clamp(96px, 30svh, 160px);
+      }
+      /* On a phone the picture keeps its own 16:9 height instead of
+         growing into the leftover: fit-on-one-screen is a desktop
+         contract, and a stretched black stage read as a far too large
+         player. */
+      :host([narrow]) kustos-vision-player {
+        flex: 0 0 auto;
+        min-height: 0;
+        aspect-ratio: 16 / 9;
       }
       .page .card {
         margin-bottom: 0;

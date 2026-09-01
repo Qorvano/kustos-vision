@@ -285,9 +285,11 @@ export class CamwatchCameraTile extends LitElement {
     const streams = state.streams.filter((s) => s.running).length;
 
     // The dot's colour is a glance; the words are for everyone else - a
-    // tooltip never appears on a touch screen.
+    // tooltip never appears on a touch screen. The good state is written
+    // out too: only the problem states having words made the healthy tile
+    // look like the information was missing.
     const statusWord = state.recording
-      ? ""
+      ? "zeichnet auf"
       : !state.wants_recording
         ? "keine Aufzeichnung"
         : state.paused

@@ -312,6 +312,22 @@ export class CamwatchTimeline extends LitElement {
     this.emit("seek", this.timeAt(event));
   }
 
+  /**
+   * The cursor's place, kept just inside the bar.
+   *
+   * A run now starts paused at the beginning of the day, which puts the
+   * cursor at exactly 0%: there its 2px line disappeared into the bar's
+   * rounded corner and the edge, and the tab looked like it had no cursor
+   * at all. The inset is the line's own width, enough to keep it whole.
+   */
+  private cursorLeft(): string {
+    const pct = this.percent(this.position);
+    if (!this.barWidth) return `${pct}%`;
+    const LINE_PX = 2;
+    const x = (pct / 100) * this.barWidth;
+    return `${Math.min(Math.max(x, LINE_PX), this.barWidth - LINE_PX)}px`;
+  }
+
   private formatTime(utc: number): string {
     return new Date(utc * 1000).toLocaleTimeString(undefined, {
       hour: "2-digit",
@@ -415,8 +431,8 @@ export class CamwatchTimeline extends LitElement {
             ></div>`,
           )}
           ${this.position >= this.from && this.position <= this.to
-            ? html`<div class="playhead" style="left:${this.percent(this.position)}%"></div>
-                <div class="head" style="left:${this.percent(this.position)}%">
+            ? html`<div class="playhead" style="left:${this.cursorLeft()}"></div>
+                <div class="head" style="left:${this.cursorLeft()}">
                   <div class="flag">${this.formatTime(this.position)}</div>
                   <div class="arrow"></div>
                 </div>`
