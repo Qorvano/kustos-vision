@@ -63,6 +63,21 @@ def test_the_prompt_forbids_guessing() -> None:
     assert "this frame alone" in prompt
 
 
+def test_the_prompt_warns_about_infrared_frames() -> None:
+    """Regression: colour questions were answered true on monochrome infrared
+    footage. The framing has to say that a night frame carries no colour."""
+    prompt = build_prompt(CAMERA, PROFILE).lower()
+    assert "infrared" in prompt
+    assert "monochrome" in prompt
+
+
+def test_the_prompt_no_longer_demands_an_absence_marker() -> None:
+    """Regression: "answer with the value that means absent" made a small
+    model answer a German text question with the invented word "keines".
+    The per-type instructions in the field descriptions replace it."""
+    assert "value that means absent" not in build_prompt(CAMERA, PROFILE)
+
+
 def test_the_prompt_does_not_repeat_the_questions() -> None:
     """They travel as field descriptions, next to the answer the model has to
     produce; repeating them here would only be a second place to disagree."""

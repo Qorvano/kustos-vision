@@ -4,11 +4,13 @@ from __future__ import annotations
 
 import pytest
 from kustos_vision.core.observations import (
+    ANSWER_GUIDANCE,
     Observation,
     ObservationError,
     ObservationType,
     coerce_answer,
     coerce_answers,
+    field_description,
     to_ai_task_structure,
     to_json_schema,
 )
@@ -90,10 +92,12 @@ def test_an_unknown_type_is_refused() -> None:
 
 
 def test_the_ai_task_structure_carries_the_question_as_the_description() -> None:
-    """The description is what the model reads next to the field it fills in."""
+    """The description is what the model reads next to the field it fills in.
+    It opens with the user's question, verbatim and in their language; the
+    typed answer guidance follows it."""
     structure = to_ai_task_structure([obs()])
     field = structure["paket_vor_der_tuer"]
-    assert field["description"] == "Liegt ein Paket vor der Haustür?"
+    assert field["description"].startswith("Liegt ein Paket vor der Haustür?")
     assert field["required"] is True
     assert field["selector"] == {"boolean": {}}
 
@@ -125,12 +129,69 @@ def test_the_json_schema_bounds_a_count() -> None:
     schema = to_json_schema(
         [obs(key="n", type=ObservationType.NUMBER, minimum=0, maximum=12)]
     )
-    assert schema["properties"]["n"] == {
-        "description": "Liegt ein Paket vor der Haustür?",
-        "type": "integer",
-        "minimum": 0,
-        "maximum": 12,
-    }
+    field = schema["properties"]["n"]
+    assert field["type"] == "integer"
+    assert field["minimum"] == 0
+    assert field["maximum"] == 12
+
+
+# ----------------------------------------------------------------------
+# Answer guidance per type
+# ----------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("kind", list(ObservationType))
+def test_every_observation_type_has_guidance(kind: ObservationType) -> None:
+    """A new type cannot be half-supported: the guidance table is exhaustive
+    over the enum, by the same rule the two serialisers follow."""
+    assert ANSWER_GUIDANCE[kind].strip()
+
+
+def test_a_text_field_is_told_to_answer_in_a_sentence() -> None:
+    """Regression: a description question was answered with "keines".
+
+    The old framing told every field to "answer with the value that means
+    absent"; a text field has no such value, so the model invented one, in the
+    language of the question. The word appears nowhere in this code. The text
+    guidance must demand a sentence and forbid the absence marker.
+    """
+    guidance = ANSWER_GUIDANCE[ObservationType.TEXT].lower()
+    assert "sentence" in guidance
+    assert "never empty" in guidance
+
+
+def test_a_boolean_field_carries_the_monochrome_caveat() -> None:
+    """Regression: "Ist eine gelbe Mülltonne zu sehen?" answered true on a
+    monochrome infrared frame, and stayed true when the colour in the question
+    was changed to one that exists nowhere on the property."""
+    guidance = ANSWER_GUIDANCE[ObservationType.BOOLEAN].lower()
+    assert "monochrome" in guidance or "infrared" in guidance
+    assert "false" in guidance
+
+
+def test_both_serialisers_describe_a_field_identically() -> None:
+    """The parity rule of this module, applied to the description."""
+    for kind in ObservationType:
+        observation = obs(
+            key="feld",
+            type=kind,
+            question="Was ist zu sehen?",
+            options=("a", "b") if kind is ObservationType.SELECT else (),
+        )
+        from_schema = to_json_schema([observation])["properties"]["feld"][
+            "description"
+        ]
+        from_structure = to_ai_task_structure([observation])["feld"]["description"]
+        assert from_schema == from_structure == field_description(observation)
+
+
+def test_the_question_reaches_the_model_in_the_users_language() -> None:
+    """The description opens with the user's question, verbatim: the guidance
+    is appended after it, never woven into it."""
+    observation = obs(question="Liegt ein Paket vor der Haustür?")
+    assert field_description(observation).startswith(
+        "Liegt ein Paket vor der Haustür?\n\n"
+    )
 
 
 def test_the_json_schema_constrains_a_choice() -> None:

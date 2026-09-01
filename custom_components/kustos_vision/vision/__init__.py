@@ -71,9 +71,15 @@ def build_prompt(camera: CameraConfig, profile: VisionProfile) -> str:
         parts.append(profile.context.strip())
     parts.append(
         "Answer each field from what is visible in this frame alone. "
-        "Do not infer what is likely, and do not carry over anything from "
-        "earlier frames. If something cannot be seen, answer with the value "
-        "that means absent rather than guessing."
+        "Do not infer what is likely, and do not guess; do not carry over "
+        "anything from earlier frames. Each field carries its own instruction "
+        "for what to answer when something cannot be seen - follow that "
+        "instruction rather than inventing a word that stands for nothing."
+    )
+    parts.append(
+        "The camera may have switched to infrared, in which case the picture "
+        "is monochrome and carries no colour information at all. A grey "
+        "object is not evidence of any colour."
     )
     return "\n\n".join(parts)
 

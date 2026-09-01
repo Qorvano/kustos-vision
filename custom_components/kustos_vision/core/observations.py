@@ -140,6 +140,54 @@ class Observation:
         )
 
 
+# What the model is told about HOW to answer, per answer type. Kept apart from
+# the question, which is the user's, and written in English for the same reason
+# the framing is: models follow instructions in English most reliably, while
+# the question itself stays in whatever language it was written in.
+#
+# This exists because one uniform instruction is wrong for three of the four
+# types at once. "Answer with the value that means absent" is sensible for a
+# boolean, harmless for a number, and destructive for text: a small model reads
+# it, decides the described thing is not there, and answers a German
+# description question with "keines" - a word that appears nowhere in this
+# code, because the model invented it as its idea of absent.
+ANSWER_GUIDANCE: dict[ObservationType, str] = {
+    ObservationType.BOOLEAN: (
+        "Answer true only when this is clearly visible in the frame; answer "
+        "false when it is not there, and also when the frame does not let you "
+        "tell. If the question names a colour and the frame is monochrome or "
+        "infrared, the colour is not in the picture at all: judge by shape, "
+        "size and position alone, and answer false when those are not enough."
+    ),
+    ObservationType.TEXT: (
+        "Answer with a short sentence, in the language of the question, "
+        "describing what is actually visible. This field is never a single "
+        "word standing for absence and never empty: when the thing asked "
+        "about is not there, say so in a sentence."
+    ),
+    ObservationType.NUMBER: (
+        "Count only what is visible in this frame. Answer 0 when there is "
+        "none. Do not estimate beyond what can be counted."
+    ),
+    ObservationType.SELECT: (
+        "Choose the option that the frame supports. When several could fit, "
+        "choose the most specific one that is clearly visible; do not choose "
+        "an option because it is the likely one."
+    ),
+}
+
+
+def field_description(observation: Observation) -> str:
+    """The question and how to answer it, as the model reads it.
+
+    One function so the JSON Schema and the AI Task structure cannot describe
+    the same field differently, which is the rule this module is built on. The
+    question always comes first and unmodified, so it stays in the user's
+    language and words.
+    """
+    return f"{observation.question}\n\n{ANSWER_GUIDANCE[observation.type]}"
+
+
 def _selector_for(observation: Observation) -> dict[str, Any]:
     """The Home Assistant selector describing this answer."""
     match observation.type:
@@ -170,7 +218,7 @@ def to_ai_task_structure(observations: list[Observation]) -> dict[str, Any]:
     return {
         observation.key: {
             "selector": _selector_for(observation),
-            "description": observation.question,
+            "description": field_description(observation),
             "required": True,
         }
         for observation in observations
@@ -186,7 +234,7 @@ def to_json_schema(observations: list[Observation]) -> dict[str, Any]:
     """
     properties: dict[str, Any] = {}
     for observation in observations:
-        field: dict[str, Any] = {"description": observation.question}
+        field: dict[str, Any] = {"description": field_description(observation)}
         match observation.type:
             case ObservationType.BOOLEAN:
                 field["type"] = "boolean"
