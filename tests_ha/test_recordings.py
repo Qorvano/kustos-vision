@@ -732,35 +732,88 @@ def test_exact_segment_edges_need_no_cut() -> None:
     assert clip_bounds(segments, 0, 120) == (0, 120)
 
 
-def test_the_cut_lands_on_input_seek_and_output_length() -> None:
-    """-ss must be an input option (it seeks the demuxer to the keyframe at
-    or before the moment) and -t an output option, for both export shapes."""
+def test_the_stamped_cut_lands_on_input_seek_and_output_length() -> None:
+    """For the transcoding path -ss must be an input option (it seeks the
+    first file to the keyframe at or before the moment) and -t an output
+    option that bounds the length."""
     from pathlib import Path
 
     from custom_components.kustos_vision.export import (
         clipped_args,
-        pipe_concat_args,
         stamp_concat_args,
     )
-
-    raw = clipped_args(pipe_concat_args(Path("/tmp/list.txt")), 12.5, 60)
-    assert raw.index("-ss") < raw.index("-i")
-    assert raw[raw.index("-ss") + 1] == "12.500"
-    assert raw[raw.index("-t") + 1] == "60.000"
-    assert raw.index("-t") > raw.index("-c")
 
     stamped = clipped_args(
         stamp_concat_args([(Path("/a.mp4"), 100.0)], 720, False), 5, 30
     )
     assert stamped.index("-ss") < stamped.index("-i")
+    assert stamped[stamped.index("-ss") + 1] == "5.000"
     assert stamped[stamped.index("-t") + 1] == "30.000"
 
 
-def test_without_a_lead_nothing_seeks() -> None:
+def test_without_a_lead_the_stamped_cut_does_not_seek() -> None:
     from pathlib import Path
 
-    from custom_components.kustos_vision.export import clipped_args, pipe_concat_args
+    from custom_components.kustos_vision.export import clipped_args, stamp_concat_args
 
-    args = clipped_args(pipe_concat_args(Path("/tmp/list.txt")), 0, 60)
+    args = clipped_args(stamp_concat_args([(Path("/a.mp4"), 100.0)], 720, False), 0, 60)
     assert "-ss" not in args
     assert args[args.index("-t") + 1] == "60.000"
+
+
+def test_the_raw_cut_travels_inside_the_concat_list() -> None:
+    """Regression: the concat demuxer silently ignores -ss while the seek
+    still shifts the timestamps, so a requested ten-minute cut came out
+    longer and started at the segment boundary (measured live). The raw
+    join therefore cuts through the demuxer's own inpoint and outpoint."""
+    from pathlib import Path
+
+    from custom_components.kustos_vision.export import clipped_concat_list_text
+
+    entries = [
+        (Path("/a.mp4"), _segment(0, 300)),
+        (Path("/b.mp4"), _segment(300, 300)),
+    ]
+    text = clipped_concat_list_text(entries, 150, 390)
+    lines = text.strip().splitlines()
+    assert lines == [
+        "file '/a.mp4'",
+        "inpoint 150.000",
+        "file '/b.mp4'",
+        "outpoint 90.000",
+    ]
+
+
+def test_exact_edges_write_a_plain_concat_list() -> None:
+    from pathlib import Path
+
+    from custom_components.kustos_vision.export import clipped_concat_list_text
+
+    entries = [(Path("/a.mp4"), _segment(0, 300))]
+    assert clipped_concat_list_text(entries, 0, 300) == "file '/a.mp4'\n"
+
+
+def test_a_single_file_may_carry_both_cut_points() -> None:
+    from pathlib import Path
+
+    from custom_components.kustos_vision.export import clipped_concat_list_text
+
+    entries = [(Path("/a.mp4"), _segment(100, 300))]
+    lines = clipped_concat_list_text(entries, 160, 220).strip().splitlines()
+    assert lines == ["file '/a.mp4'", "inpoint 60.000", "outpoint 120.000"]
+
+
+def test_the_stamped_bitrate_is_capped_near_the_source() -> None:
+    """Regression: ultrafast at CRF 23 blew a stamped download up to eight
+    times its raw sibling. The cap ties the copy to the source's own rate,
+    because the copy carries no picture information the source did not."""
+    from pathlib import Path
+
+    from custom_components.kustos_vision.export import stamp_concat_args
+
+    args = stamp_concat_args(
+        [(Path("/a.mp4"), 100.0)], 720, False, maxrate_bps=4_000_000
+    )
+    assert args[args.index("-maxrate") + 1] == "4000000"
+    assert args[args.index("-bufsize") + 1] == "8000000"
+    assert args[args.index("-preset") + 1] == "veryfast"

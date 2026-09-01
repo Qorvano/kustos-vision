@@ -54,11 +54,22 @@ STAMP_FONT = Path(__file__).parent / "fonts" / "DejaVuSansMono.ttf"
 # The fastest x264 preset. The Pi 5 has no hardware encoder at all, so every
 # slower preset multiplies hours onto a day's export; ultrafast pays for that
 # speed with bitrate, which an evidence file can afford.
-STAMP_PRESET = "ultrafast"
+# Measured on daylight 2880x1620 footage: "ultrafast" at the same CRF came
+# out 3.2 times larger for only 28% less encoding time - a stamped download
+# was eight times its raw sibling. "veryfast" keeps the file in the source's
+# size class and still runs about as fast as the material plays on a Pi 5.
+STAMP_PRESET = "veryfast"
 
 # x264's default quality point: visually transparent for surveillance footage
 # while keeping the bitrate bounded.
 STAMP_CRF = "23"
+
+# The stamped copy carries no picture information the source did not, so its
+# bitrate is capped near the source's own average. Half again as much leaves
+# room for motion peaks above that average without letting noise blow the
+# file up; the VBV buffer holds two seconds at the cap, the usual window.
+STAMP_RATE_HEADROOM = 1.5
+STAMP_VBV_SECONDS = 2
 
 # The clock's height as a share of the picture height, roughly the size the
 # cameras' own OSD uses; 1620 lines make a 67-pixel clock, 360 lines a 15er.
@@ -111,6 +122,7 @@ def stamp_concat_args(
     height: int,
     with_audio: bool,
     font: Path = STAMP_FONT,
+    maxrate_bps: int | None = None,
 ) -> list[str]:
     """The ffmpeg arguments that join segments and burn the clock in.
 
@@ -148,6 +160,14 @@ def stamp_concat_args(
         chains.append(f"{pairs}concat=n={n}:v=1:a=0[v]")
         mapping = ["-map", "[v]", "-an"]
 
+    rate_cap: list[str] = []
+    if maxrate_bps is not None:
+        rate_cap = [
+            "-maxrate",
+            str(maxrate_bps),
+            "-bufsize",
+            str(STAMP_VBV_SECONDS * maxrate_bps),
+        ]
     return [
         *args,
         "-filter_complex",
@@ -159,6 +179,7 @@ def stamp_concat_args(
         STAMP_PRESET,
         "-crf",
         STAMP_CRF,
+        *rate_cap,
         "-movflags",
         "+frag_keyframe+empty_moov+default_base_moof",
         "-f",
@@ -240,13 +261,17 @@ def clip_bounds(
 
 
 def clipped_args(args: list[str], lead_s: float, duration_s: float) -> list[str]:
-    """Cut finished ffmpeg arguments down to the requested range.
+    """Cut finished stamped-export arguments down to the requested range.
 
-    ``-ss`` goes in front of the first input, where it seeks the demuxer:
-    with stream copy that lands on the keyframe at or before the requested
+    Only for the transcoding path, whose inputs are plain files: there
+    ``-ss`` seeks the first input to the keyframe at or before the requested
     second, so the cut starts a moment early rather than dropping footage
-    someone asked for. ``-t`` sits with the trailing output options and
-    bounds the length.
+    someone asked for, and ``-t`` bounds the output. The raw join must NOT
+    come through here - the concat demuxer silently ignores ``-ss`` while
+    the seek still shifts the timestamps, which turned the requested cut
+    into a longer one starting at the segment boundary (measured live);
+    that path cuts through the demuxer's own list directives instead, see
+    write_clipped_concat_list.
     """
     out = list(args)
     if duration_s > 0:
@@ -264,11 +289,40 @@ def write_concat_list(paths: list[Path], target: Path) -> None:
     Paths are quoted the way the demuxer expects, with single quotes escaped,
     so a directory containing one does not truncate the list.
     """
+    target.write_text(concat_list_text(paths), encoding="utf-8")
+
+
+def concat_list_text(paths: list[Path]) -> str:
     lines = []
     for path in paths:
         absolute = str(path).replace("'", r"'\''")
         lines.append(f"file '{absolute}'")
-    target.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    return "\n".join(lines) + "\n"
+
+
+def clipped_concat_list_text(
+    entries: list[tuple[Path, Segment]], start: float, end: float
+) -> str:
+    """The concat list with the range cut expressed in the list itself.
+
+    ``inpoint`` on the first file and ``outpoint`` on the last are the
+    demuxer's own way of cutting, and the only one it honours under stream
+    copy: ``-ss`` on the concat demuxer is silently ignored while it still
+    shifts the timestamps, which turned a requested cut into a longer one
+    starting at the segment boundary. With copy, ``inpoint`` lands on the
+    keyframe at or before the moment, so nothing that was asked for is
+    missing.
+    """
+    lines = []
+    last = len(entries) - 1
+    for i, (path, segment) in enumerate(entries):
+        absolute = str(path).replace("'", r"'\''")
+        lines.append(f"file '{absolute}'")
+        if i == 0 and start > segment.start_utc:
+            lines.append(f"inpoint {start - segment.start_utc:.3f}")
+        if i == last and end < segment.end_utc:
+            lines.append(f"outpoint {end - segment.start_utc:.3f}")
+    return "\n".join(lines) + "\n"
 
 
 async def stream_export(
@@ -338,17 +392,35 @@ async def stream_export(
                     # the cut begins, not at the moment the file did.
                     first_path, first_epoch = inputs[0]
                     inputs[0] = (first_path, first_epoch + lead)
-                args = stamp_concat_args(inputs, size[1], with_audio)
+                material = sum(s.duration_s for _, s in paths)
+                source_rate = (
+                    int(
+                        sum(s.size_bytes for _, s in paths)
+                        * 8
+                        / material
+                        * STAMP_RATE_HEADROOM
+                    )
+                    if material > 0
+                    else None
+                )
+                args = stamp_concat_args(
+                    inputs, size[1], with_audio, maxrate_bps=source_rate
+                )
+                if clip is not None and duration > 0:
+                    args = clipped_args(args, lead, duration)
             else:
                 stamp = False
         if not stamp:
             list_file = Path(tmp) / "segments.txt"
-            await hass.async_add_executor_job(
-                write_concat_list, [path for path, _ in paths], list_file
+            # The cut travels inside the list itself: the concat demuxer
+            # ignores -ss, see clipped_concat_list_text.
+            text = (
+                clipped_concat_list_text(paths, *clip)
+                if clip is not None and duration > 0
+                else concat_list_text([path for path, _ in paths])
             )
+            await hass.async_add_executor_job(list_file.write_text, text, "utf-8")
             args = pipe_concat_args(list_file)
-        if clip is not None and duration > 0:
-            args = clipped_args(args, lead, duration)
 
         process = await create_subprocess_exec(
             binary,
