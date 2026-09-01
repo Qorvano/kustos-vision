@@ -1,13 +1,13 @@
-const Ve = "kustos-vision-reloaded";
+const Ie = "kustos-vision-reloaded";
 if (customElements.get("kustos-vision-panel") !== void 0) {
   let t = 0;
   try {
-    t = Number(sessionStorage.getItem(Ve) ?? 0);
+    t = Number(sessionStorage.getItem(Ie) ?? 0);
   } catch {
   }
   if (Date.now() - t > 3e4) {
     try {
-      sessionStorage.setItem(Ve, String(Date.now()));
+      sessionStorage.setItem(Ie, String(Date.now()));
     } catch {
     }
     location.reload();
@@ -18,7 +18,7 @@ if (customElements.get("kustos-vision-panel") !== void 0) {
  * Copyright 2019 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
  */
-const ve = globalThis, Ce = ve.ShadowRoot && (ve.ShadyCSS === void 0 || ve.ShadyCSS.nativeShadow) && "adoptedStyleSheets" in Document.prototype && "replace" in CSSStyleSheet.prototype, De = Symbol(), Ie = /* @__PURE__ */ new WeakMap();
+const be = globalThis, Ce = be.ShadowRoot && (be.ShadyCSS === void 0 || be.ShadyCSS.nativeShadow) && "adoptedStyleSheets" in Document.prototype && "replace" in CSSStyleSheet.prototype, De = Symbol(), Le = /* @__PURE__ */ new WeakMap();
 let dt = class {
   constructor(e, s, i) {
     if (this._$cssResult$ = !0, i !== De) throw Error("CSSResult is not constructable. Use `unsafeCSS` or `css` instead.");
@@ -29,7 +29,7 @@ let dt = class {
     const s = this.t;
     if (Ce && e === void 0) {
       const i = s !== void 0 && s.length === 1;
-      i && (e = Ie.get(s)), e === void 0 && ((this.o = e = new CSSStyleSheet()).replaceSync(this.cssText), i && Ie.set(s, e));
+      i && (e = Le.get(s)), e === void 0 && ((this.o = e = new CSSStyleSheet()).replaceSync(this.cssText), i && Le.set(s, e));
     }
     return e;
   }
@@ -37,7 +37,7 @@ let dt = class {
     return this.cssText;
   }
 };
-const $t = (t) => new dt(typeof t == "string" ? t : t + "", void 0, De), R = (t, ...e) => {
+const $t = (t) => new dt(typeof t == "string" ? t : t + "", void 0, De), H = (t, ...e) => {
   const s = t.length === 1 ? t[0] : e.reduce((i, r, n) => i + ((a) => {
     if (a._$cssResult$ === !0) return a.cssText;
     if (typeof a == "number") return a;
@@ -47,10 +47,10 @@ const $t = (t) => new dt(typeof t == "string" ? t : t + "", void 0, De), R = (t,
 }, xt = (t, e) => {
   if (Ce) t.adoptedStyleSheets = e.map((s) => s instanceof CSSStyleSheet ? s : s.styleSheet);
   else for (const s of e) {
-    const i = document.createElement("style"), r = ve.litNonce;
+    const i = document.createElement("style"), r = be.litNonce;
     r !== void 0 && i.setAttribute("nonce", r), i.textContent = s.cssText, t.appendChild(i);
   }
-}, Le = Ce ? (t) => t : (t) => t instanceof CSSStyleSheet ? ((e) => {
+}, Ve = Ce ? (t) => t : (t) => t instanceof CSSStyleSheet ? ((e) => {
   let s = "";
   for (const i of e.cssRules) s += i.cssText;
   return $t(s);
@@ -88,7 +88,7 @@ const { is: kt, defineProperty: _t, getOwnPropertyDescriptor: At, getOwnProperty
       }
   }
   return s;
-} }, Oe = (t, e) => !kt(t, e), Ne = { attribute: !0, type: String, converter: fe, reflect: !1, useDefault: !1, hasChanged: Oe };
+} }, ze = (t, e) => !kt(t, e), Ne = { attribute: !0, type: String, converter: fe, reflect: !1, useDefault: !1, hasChanged: ze };
 Symbol.metadata ??= Symbol("metadata"), $e.litPropertyMetadata ??= /* @__PURE__ */ new WeakMap();
 let te = class extends HTMLElement {
   static addInitializer(e) {
@@ -144,8 +144,8 @@ let te = class extends HTMLElement {
     const s = [];
     if (Array.isArray(e)) {
       const i = new Set(e.flat(1 / 0).reverse());
-      for (const r of i) s.unshift(Le(r));
-    } else e !== void 0 && s.push(Le(e));
+      for (const r of i) s.unshift(Ve(r));
+    } else e !== void 0 && s.push(Ve(e));
     return s;
   }
   static _$Eu(e, s) {
@@ -203,7 +203,7 @@ let te = class extends HTMLElement {
   requestUpdate(e, s, i, r = !1, n) {
     if (e !== void 0) {
       const a = this.constructor;
-      if (r === !1 && (n = this[e]), i ??= a.getPropertyOptions(e), !((i.hasChanged ?? Oe)(n, s) || i.useDefault && i.reflect && n === this._$Ej?.get(e) && !this.hasAttribute(a._$Eu(e, i)))) return;
+      if (r === !1 && (n = this[e]), i ??= a.getPropertyOptions(e), !((i.hasChanged ?? ze)(n, s) || i.useDefault && i.reflect && n === this._$Ej?.get(e) && !this.hasAttribute(a._$Eu(e, i)))) return;
       this.C(e, s, i);
     }
     this.isUpdatePending === !1 && (this._$ES = this._$EP());
@@ -277,22 +277,22 @@ te.elementStyles = [], te.shadowRootOptions = { mode: "open" }, te[de("elementPr
  * Copyright 2017 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
  */
-const ze = globalThis, je = (t) => t, ye = ze.trustedTypes, Fe = ye ? ye.createPolicy("lit-html", { createHTML: (t) => t }) : void 0, ct = "$lit$", F = `lit$${Math.random().toFixed(9).slice(2)}$`, ut = "?" + F, Ot = `<${ut}>`, X = document, ce = () => X.createComment(""), ue = (t) => t === null || typeof t != "object" && typeof t != "function", Pe = Array.isArray, zt = (t) => Pe(t) || typeof t?.[Symbol.iterator] == "function", _e = `[ 	
-\f\r]`, ae = /<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g, Ke = /-->/g, We = />/g, q = RegExp(`>|${_e}(?:([^\\s"'>=/]+)(${_e}*=${_e}*(?:[^ 	
-\f\r"'\`<>=]|("|')|))|$)`, "g"), Ge = /'/g, qe = /"/g, pt = /^(?:script|style|textarea|title)$/i, Pt = (t) => (e, ...s) => ({ _$litType$: t, strings: e, values: s }), o = Pt(1), ee = Symbol.for("lit-noChange"), c = Symbol.for("lit-nothing"), Ze = /* @__PURE__ */ new WeakMap(), Q = X.createTreeWalker(X, 129);
+const Oe = globalThis, Fe = (t) => t, ye = Oe.trustedTypes, je = ye ? ye.createPolicy("lit-html", { createHTML: (t) => t }) : void 0, ct = "$lit$", j = `lit$${Math.random().toFixed(9).slice(2)}$`, ut = "?" + j, zt = `<${ut}>`, X = document, ce = () => X.createComment(""), ue = (t) => t === null || typeof t != "object" && typeof t != "function", Pe = Array.isArray, Ot = (t) => Pe(t) || typeof t?.[Symbol.iterator] == "function", _e = `[ 	
+\f\r]`, ae = /<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g, Ke = /-->/g, We = />/g, G = RegExp(`>|${_e}(?:([^\\s"'>=/]+)(${_e}*=${_e}*(?:[^ 	
+\f\r"'\`<>=]|("|')|))|$)`, "g"), qe = /'/g, Ge = /"/g, pt = /^(?:script|style|textarea|title)$/i, Pt = (t) => (e, ...s) => ({ _$litType$: t, strings: e, values: s }), o = Pt(1), ee = Symbol.for("lit-noChange"), c = Symbol.for("lit-nothing"), Ze = /* @__PURE__ */ new WeakMap(), Q = X.createTreeWalker(X, 129);
 function gt(t, e) {
   if (!Pe(t) || !t.hasOwnProperty("raw")) throw Error("invalid template strings array");
-  return Fe !== void 0 ? Fe.createHTML(e) : e;
+  return je !== void 0 ? je.createHTML(e) : e;
 }
 const Bt = (t, e) => {
   const s = t.length - 1, i = [];
   let r, n = e === 2 ? "<svg>" : e === 3 ? "<math>" : "", a = ae;
   for (let l = 0; l < s; l++) {
     const h = t[l];
-    let g, v, u = -1, b = 0;
-    for (; b < h.length && (a.lastIndex = b, v = a.exec(h), v !== null); ) b = a.lastIndex, a === ae ? v[1] === "!--" ? a = Ke : v[1] !== void 0 ? a = We : v[2] !== void 0 ? (pt.test(v[2]) && (r = RegExp("</" + v[2], "g")), a = q) : v[3] !== void 0 && (a = q) : a === q ? v[0] === ">" ? (a = r ?? ae, u = -1) : v[1] === void 0 ? u = -2 : (u = a.lastIndex - v[2].length, g = v[1], a = v[3] === void 0 ? q : v[3] === '"' ? qe : Ge) : a === qe || a === Ge ? a = q : a === Ke || a === We ? a = ae : (a = q, r = void 0);
-    const m = a === q && t[l + 1].startsWith("/>") ? " " : "";
-    n += a === ae ? h + Ot : u >= 0 ? (i.push(g), h.slice(0, u) + ct + h.slice(u) + F + m) : h + F + (u === -2 ? l : m);
+    let g, b, p = -1, v = 0;
+    for (; v < h.length && (a.lastIndex = v, b = a.exec(h), b !== null); ) v = a.lastIndex, a === ae ? b[1] === "!--" ? a = Ke : b[1] !== void 0 ? a = We : b[2] !== void 0 ? (pt.test(b[2]) && (r = RegExp("</" + b[2], "g")), a = G) : b[3] !== void 0 && (a = G) : a === G ? b[0] === ">" ? (a = r ?? ae, p = -1) : b[1] === void 0 ? p = -2 : (p = a.lastIndex - b[2].length, g = b[1], a = b[3] === void 0 ? G : b[3] === '"' ? Ge : qe) : a === Ge || a === qe ? a = G : a === Ke || a === We ? a = ae : (a = G, r = void 0);
+    const m = a === G && t[l + 1].startsWith("/>") ? " " : "";
+    n += a === ae ? h + zt : p >= 0 ? (i.push(g), h.slice(0, p) + ct + h.slice(p) + j + m) : h + j + (p === -2 ? l : m);
   }
   return [gt(t, n + (t[s] || "<?>") + (e === 2 ? "</svg>" : e === 3 ? "</math>" : "")), i];
 };
@@ -301,29 +301,29 @@ class pe {
     let r;
     this.parts = [];
     let n = 0, a = 0;
-    const l = e.length - 1, h = this.parts, [g, v] = Bt(e, s);
+    const l = e.length - 1, h = this.parts, [g, b] = Bt(e, s);
     if (this.el = pe.createElement(g, i), Q.currentNode = this.el.content, s === 2 || s === 3) {
-      const u = this.el.content.firstChild;
-      u.replaceWith(...u.childNodes);
+      const p = this.el.content.firstChild;
+      p.replaceWith(...p.childNodes);
     }
     for (; (r = Q.nextNode()) !== null && h.length < l; ) {
       if (r.nodeType === 1) {
-        if (r.hasAttributes()) for (const u of r.getAttributeNames()) if (u.endsWith(ct)) {
-          const b = v[a++], m = r.getAttribute(u).split(F), f = /([.?@])?(.*)/.exec(b);
-          h.push({ type: 1, index: n, name: f[2], strings: m, ctor: f[1] === "." ? Ht : f[1] === "?" ? Rt : f[1] === "@" ? Vt : xe }), r.removeAttribute(u);
-        } else u.startsWith(F) && (h.push({ type: 6, index: n }), r.removeAttribute(u));
+        if (r.hasAttributes()) for (const p of r.getAttributeNames()) if (p.endsWith(ct)) {
+          const v = b[a++], m = r.getAttribute(p).split(j), f = /([.?@])?(.*)/.exec(v);
+          h.push({ type: 1, index: n, name: f[2], strings: m, ctor: f[1] === "." ? Rt : f[1] === "?" ? Ht : f[1] === "@" ? It : xe }), r.removeAttribute(p);
+        } else p.startsWith(j) && (h.push({ type: 6, index: n }), r.removeAttribute(p));
         if (pt.test(r.tagName)) {
-          const u = r.textContent.split(F), b = u.length - 1;
-          if (b > 0) {
+          const p = r.textContent.split(j), v = p.length - 1;
+          if (v > 0) {
             r.textContent = ye ? ye.emptyScript : "";
-            for (let m = 0; m < b; m++) r.append(u[m], ce()), Q.nextNode(), h.push({ type: 2, index: ++n });
-            r.append(u[b], ce());
+            for (let m = 0; m < v; m++) r.append(p[m], ce()), Q.nextNode(), h.push({ type: 2, index: ++n });
+            r.append(p[v], ce());
           }
         }
       } else if (r.nodeType === 8) if (r.data === ut) h.push({ type: 2, index: n });
       else {
-        let u = -1;
-        for (; (u = r.data.indexOf(F, u + 1)) !== -1; ) h.push({ type: 7, index: n }), u += F.length - 1;
+        let p = -1;
+        for (; (p = r.data.indexOf(j, p + 1)) !== -1; ) h.push({ type: 7, index: n }), p += j.length - 1;
       }
       n++;
     }
@@ -356,7 +356,7 @@ class Mt {
     for (; h !== void 0; ) {
       if (a === h.index) {
         let g;
-        h.type === 2 ? g = new re(n, n.nextSibling, this, e) : h.type === 1 ? g = new h.ctor(n, h.name, h.strings, this, e) : h.type === 6 && (g = new It(n, this, e)), this._$AV.push(g), h = i[++l];
+        h.type === 2 ? g = new re(n, n.nextSibling, this, e) : h.type === 1 ? g = new h.ctor(n, h.name, h.strings, this, e) : h.type === 6 && (g = new Lt(n, this, e)), this._$AV.push(g), h = i[++l];
       }
       a !== h?.index && (n = Q.nextNode(), a++);
     }
@@ -386,7 +386,7 @@ class re {
     return this._$AB;
   }
   _$AI(e, s = this) {
-    e = ie(this, e, s), ue(e) ? e === c || e == null || e === "" ? (this._$AH !== c && this._$AR(), this._$AH = c) : e !== this._$AH && e !== ee && this._(e) : e._$litType$ !== void 0 ? this.$(e) : e.nodeType !== void 0 ? this.T(e) : zt(e) ? this.k(e) : this._(e);
+    e = ie(this, e, s), ue(e) ? e === c || e == null || e === "" ? (this._$AH !== c && this._$AR(), this._$AH = c) : e !== this._$AH && e !== ee && this._(e) : e._$litType$ !== void 0 ? this.$(e) : e.nodeType !== void 0 ? this.T(e) : Ot(e) ? this.k(e) : this._(e);
   }
   O(e) {
     return this._$AA.parentNode.insertBefore(e, this._$AB);
@@ -418,8 +418,8 @@ class re {
   }
   _$AR(e = this._$AA.nextSibling, s) {
     for (this._$AP?.(!1, !0, s); e !== this._$AB; ) {
-      const i = je(e).nextSibling;
-      je(e).remove(), e = i;
+      const i = Fe(e).nextSibling;
+      Fe(e).remove(), e = i;
     }
   }
   setConnected(e) {
@@ -451,7 +451,7 @@ class xe {
     e === c ? this.element.removeAttribute(this.name) : this.element.setAttribute(this.name, e ?? "");
   }
 }
-class Ht extends xe {
+class Rt extends xe {
   constructor() {
     super(...arguments), this.type = 3;
   }
@@ -459,7 +459,7 @@ class Ht extends xe {
     this.element[this.name] = e === c ? void 0 : e;
   }
 }
-class Rt extends xe {
+class Ht extends xe {
   constructor() {
     super(...arguments), this.type = 4;
   }
@@ -467,7 +467,7 @@ class Rt extends xe {
     this.element.toggleAttribute(this.name, !!e && e !== c);
   }
 }
-class Vt extends xe {
+class It extends xe {
   constructor(e, s, i, r, n) {
     super(e, s, i, r, n), this.type = 5;
   }
@@ -480,7 +480,7 @@ class Vt extends xe {
     typeof this._$AH == "function" ? this._$AH.call(this.options?.host ?? this.element, e) : this._$AH.handleEvent(e);
   }
 }
-class It {
+class Lt {
   constructor(e, s, i) {
     this.element = e, this.type = 6, this._$AN = void 0, this._$AM = s, this.options = i;
   }
@@ -491,8 +491,8 @@ class It {
     ie(this, e);
   }
 }
-const Lt = { I: re }, Ut = ze.litHtmlPolyfillSupport;
-Ut?.(pe, re), (ze.litHtmlVersions ??= []).push("3.3.3");
+const Vt = { I: re }, Ut = Oe.litHtmlPolyfillSupport;
+Ut?.(pe, re), (Oe.litHtmlVersions ??= []).push("3.3.3");
 const Nt = (t, e, s) => {
   const i = s?.renderBefore ?? e;
   let r = i._$litPart$;
@@ -531,15 +531,15 @@ let E = class extends te {
   }
 };
 E._$litElement$ = !0, E.finalized = !0, Be.litElementHydrateSupport?.({ LitElement: E });
-const jt = Be.litElementPolyfillSupport;
-jt?.({ LitElement: E });
+const Ft = Be.litElementPolyfillSupport;
+Ft?.({ LitElement: E });
 (Be.litElementVersions ??= []).push("4.2.2");
 /**
  * @license
  * Copyright 2017 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
  */
-const P = (t) => (e, s) => {
+const B = (t) => (e, s) => {
   s !== void 0 ? s.addInitializer(() => {
     customElements.define(t, e);
   }) : customElements.define(t, e);
@@ -549,7 +549,7 @@ const P = (t) => (e, s) => {
  * Copyright 2017 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
  */
-const Ft = { attribute: !0, type: String, converter: fe, reflect: !1, hasChanged: Oe }, Kt = (t = Ft, e, s) => {
+const jt = { attribute: !0, type: String, converter: fe, reflect: !1, hasChanged: ze }, Kt = (t = jt, e, s) => {
   const { kind: i, metadata: r } = s;
   let n = globalThis.litPropertyMetadata.get(r);
   if (n === void 0 && globalThis.litPropertyMetadata.set(r, n = /* @__PURE__ */ new Map()), i === "setter" && ((t = Object.create(t)).wrapped = !0), n.set(s.name, t), i === "accessor") {
@@ -570,7 +570,7 @@ const Ft = { attribute: !0, type: String, converter: fe, reflect: !1, hasChanged
   }
   throw Error("Unsupported decorator location: " + i);
 };
-function p(t) {
+function u(t) {
   return (e, s) => typeof s == "object" ? Kt(t, e, s) : ((i, r, n) => {
     const a = r.hasOwnProperty(n);
     return r.constructor.createProperty(n, i), a ? Object.getOwnPropertyDescriptor(r, n) : void 0;
@@ -582,7 +582,7 @@ function p(t) {
  * SPDX-License-Identifier: BSD-3-Clause
  */
 function d(t) {
-  return p({ ...t, state: !0, attribute: !1 });
+  return u({ ...t, state: !0, attribute: !1 });
 }
 const k = "kustos_vision", Ye = 3600, Wt = 60;
 class Je {
@@ -779,7 +779,7 @@ function me(t) {
     s /= 1e3, i += 1;
   return `${s.toFixed(s < 10 && i > 0 ? 1 : 0)} ${e[i]}`;
 }
-const W = R`
+const W = H`
   :host {
     /* The geometry the panel repeats, named once. Each maps onto Home
        Assistant's own variable where the theme system has one, so a theme
@@ -1328,10 +1328,10 @@ const W = R`
     }
   }
 `;
-var Gt = Object.defineProperty, qt = Object.getOwnPropertyDescriptor, U = (t, e, s, i) => {
-  for (var r = i > 1 ? void 0 : i ? qt(e, s) : e, n = t.length - 1, a; n >= 0; n--)
+var qt = Object.defineProperty, Gt = Object.getOwnPropertyDescriptor, N = (t, e, s, i) => {
+  for (var r = i > 1 ? void 0 : i ? Gt(e, s) : e, n = t.length - 1, a; n >= 0; n--)
     (a = t[n]) && (r = (i ? a(e, s, r) : a(r)) || r);
-  return i && r && Gt(e, s, r), r;
+  return i && r && qt(e, s, r), r;
 };
 function Zt(t, e) {
   const s = e.trim().toLowerCase();
@@ -1341,7 +1341,7 @@ function mt(t, e, s) {
   const i = e - t.bottom - s, r = t.top - s, n = r > i;
   return { up: n, maxHeight: Math.max(n ? r : i, 0), left: t.left, width: t.width };
 }
-let B = class extends E {
+let M = class extends E {
   constructor() {
     super(...arguments), this.options = [], this.value = "", this.search = !1, this.disabled = !1, this.open = !1, this.query = "", this.highlighted = -1, this.onOutsidePointer = (t) => {
       t.composedPath().includes(this) || this.close();
@@ -1478,9 +1478,9 @@ let B = class extends E {
     `;
   }
 };
-B.styles = [
+M.styles = [
   W,
-  R`
+  H`
       :host {
         display: block;
         width: 100%;
@@ -1546,34 +1546,34 @@ B.styles = [
       }
     `
 ];
-U([
-  p({ attribute: !1 })
-], B.prototype, "options", 2);
-U([
-  p()
-], B.prototype, "value", 2);
-U([
-  p({ type: Boolean })
-], B.prototype, "search", 2);
-U([
-  p({ type: Boolean })
-], B.prototype, "disabled", 2);
-U([
+N([
+  u({ attribute: !1 })
+], M.prototype, "options", 2);
+N([
+  u()
+], M.prototype, "value", 2);
+N([
+  u({ type: Boolean })
+], M.prototype, "search", 2);
+N([
+  u({ type: Boolean })
+], M.prototype, "disabled", 2);
+N([
   d()
-], B.prototype, "open", 2);
-U([
+], M.prototype, "open", 2);
+N([
   d()
-], B.prototype, "query", 2);
-U([
+], M.prototype, "query", 2);
+N([
   d()
-], B.prototype, "highlighted", 2);
-U([
+], M.prototype, "highlighted", 2);
+N([
   d()
-], B.prototype, "drop", 2);
-B = U([
-  P("kustos-vision-select")
-], B);
-var Yt = Object.defineProperty, Jt = Object.getOwnPropertyDescriptor, bt = (t, e, s, i) => {
+], M.prototype, "drop", 2);
+M = N([
+  B("kustos-vision-select")
+], M);
+var Yt = Object.defineProperty, Jt = Object.getOwnPropertyDescriptor, vt = (t, e, s, i) => {
   for (var r = i > 1 ? void 0 : i ? Jt(e, s) : e, n = t.length - 1, a; n >= 0; n--)
     (a = t[n]) && (r = (i ? a(e, s, r) : a(r)) || r);
   return i && r && Yt(e, s, r), r;
@@ -1626,7 +1626,7 @@ let we = class extends E {
 };
 we.styles = [
   W,
-  R`
+  H`
       :host {
         min-height: 0;
         background: none;
@@ -1673,17 +1673,17 @@ we.styles = [
       }
     `
 ];
-bt([
+vt([
   d()
 ], we.prototype, "open", 2);
-we = bt([
-  P("kustos-vision-unsaved-dialog")
+we = vt([
+  B("kustos-vision-unsaved-dialog")
 ], we);
 const ge = [];
 function Me(t) {
   ge.push(t);
 }
-function He(t) {
+function Re(t) {
   const e = ge.indexOf(t);
   e >= 0 && ge.splice(e, 1);
 }
@@ -1756,7 +1756,7 @@ const ss = {
   select: "Auswahl",
   number: "Wert"
 };
-var is = Object.defineProperty, rs = Object.getOwnPropertyDescriptor, N = (t, e, s, i) => {
+var is = Object.defineProperty, rs = Object.getOwnPropertyDescriptor, F = (t, e, s, i) => {
   for (var r = i > 1 ? void 0 : i ? rs(e, s) : e, n = t.length - 1, a; n >= 0; n--)
     (a = t[n]) && (r = (i ? a(e, s, r) : a(r)) || r);
   return i && r && is(e, s, r), r;
@@ -1798,7 +1798,7 @@ function oe(t, e) {
   const s = t[t.length - 1];
   return s ? s.segment.start + s.segment.duration : 0;
 }
-function vt(t, e) {
+function bt(t, e) {
   const [s, i, r, n] = [0, 1, 2, 3].map((a) => e.charCodeAt(a));
   for (let a = 0; a + 8 < t.length; a += 1)
     if (t[a] === s && t[a + 1] === i && t[a + 2] === r && t[a + 3] === n)
@@ -1806,10 +1806,10 @@ function vt(t, e) {
   return -1;
 }
 function hs(t) {
-  return vt(t, "mp4a") !== -1;
+  return bt(t, "mp4a") !== -1;
 }
 function ds(t) {
-  const e = vt(t, "avcC");
+  const e = bt(t, "avcC");
   if (e === -1) return null;
   const s = t[e + 5], i = t[e + 6], r = t[e + 7];
   if (s === void 0 || r === void 0) return null;
@@ -1829,7 +1829,7 @@ function ft(t) {
   })}`;
 }
 const cs = (t) => t instanceof DOMException && t.name === "QuotaExceededError";
-let M = class extends E {
+let R = class extends E {
   constructor() {
     super(...arguments), this.segments = [], this.seekTo = 0, this.segmentUrlBase = "/api/kustos_vision/segment", this.message = "", this.loadingRun = !1, this.withAudio = !0, this.placed = [], this.appended = /* @__PURE__ */ new Set(), this.accepted = 0, this.loading = !1, this.generation = 0, this.wired = !1, this.recoveries = 0;
   }
@@ -2001,23 +2001,23 @@ let M = class extends E {
       this.message = "Diese Aufnahme ist nicht H.264. Die Wiedergabe im Panel unterstützt derzeit nur H.264; die Datei selbst ist unbeschädigt und lässt sich herunterladen.";
       return;
     }
-    const h = `video/mp4; codecs="${l}"`, g = `video/mp4; codecs="${l}, ${as}"`, v = this.withAudio ? g : h, u = MediaSource.isTypeSupported(v) ? v : MediaSource.isTypeSupported(h) ? h : null;
-    if (!u) {
+    const h = `video/mp4; codecs="${l}"`, g = `video/mp4; codecs="${l}, ${as}"`, b = this.withAudio ? g : h, p = MediaSource.isTypeSupported(b) ? b : MediaSource.isTypeSupported(h) ? h : null;
+    if (!p) {
       this.message = `Dieser Browser kann ${l} nicht abspielen.`;
       return;
     }
-    const b = new MediaSource();
-    this.media = b, this.objectUrl = URL.createObjectURL(b), await this.updateComplete;
+    const v = new MediaSource();
+    this.media = v, this.objectUrl = URL.createObjectURL(v), await this.updateComplete;
     const m = this.video();
-    m && (this.wire(m), m.src = this.objectUrl, b.addEventListener(
+    m && (this.wire(m), m.src = this.objectUrl, v.addEventListener(
       "sourceopen",
       () => {
         if (n === this.generation)
           try {
-            const f = b.addSourceBuffer(u);
+            const f = v.addSourceBuffer(p);
             f.mode = "segments", this.buffer = f, f.addEventListener("updateend", () => void this.pump());
             const C = this.placed[this.placed.length - 1];
-            C && (b.duration = C.mediaStart + C.segment.duration), this.pump();
+            C && (v.duration = C.mediaStart + C.segment.duration), this.pump();
           } catch (f) {
             this.message = S(f);
           }
@@ -2160,8 +2160,8 @@ let M = class extends E {
           pending: h ?? (l.body ? new Uint8Array(0) : new Uint8Array(await l.arrayBuffer())),
           firstOfSegment: !0
         }, h && !l.body) {
-          const g = new Uint8Array(await l.arrayBuffer()), v = new Uint8Array(h.length + g.length);
-          v.set(h), v.set(g, h.length), this.carry.pending = v;
+          const g = new Uint8Array(await l.arrayBuffer()), b = new Uint8Array(h.length + g.length);
+          b.set(h), b.set(g, h.length), this.carry.pending = b;
         }
         if (r !== this.generation) return;
       } catch (n) {
@@ -2275,7 +2275,7 @@ let M = class extends E {
     `;
   }
 };
-M.styles = R`
+R.styles = H`
     :host {
       display: block;
       background: #000;
@@ -2326,45 +2326,47 @@ M.styles = R`
       padding: 12px;
     }
   `;
-N([
-  p({ attribute: !1 })
-], M.prototype, "api", 2);
-N([
-  p({ attribute: !1 })
-], M.prototype, "segments", 2);
-N([
-  p({ type: Number })
-], M.prototype, "seekTo", 2);
-N([
-  p()
-], M.prototype, "segmentUrlBase", 2);
-N([
+F([
+  u({ attribute: !1 })
+], R.prototype, "api", 2);
+F([
+  u({ attribute: !1 })
+], R.prototype, "segments", 2);
+F([
+  u({ type: Number })
+], R.prototype, "seekTo", 2);
+F([
+  u()
+], R.prototype, "segmentUrlBase", 2);
+F([
   d()
-], M.prototype, "message", 2);
-N([
+], R.prototype, "message", 2);
+F([
   d()
-], M.prototype, "gapAt", 2);
-N([
+], R.prototype, "gapAt", 2);
+F([
   d()
-], M.prototype, "clockUtc", 2);
-N([
+], R.prototype, "clockUtc", 2);
+F([
   d()
-], M.prototype, "loadingRun", 2);
-M = N([
-  P("kustos-vision-player")
-], M);
-var us = Object.defineProperty, ps = Object.getOwnPropertyDescriptor, j = (t, e, s, i) => {
+], R.prototype, "loadingRun", 2);
+R = F([
+  B("kustos-vision-player")
+], R);
+var us = Object.defineProperty, ps = Object.getOwnPropertyDescriptor, V = (t, e, s, i) => {
   for (var r = i > 1 ? void 0 : i ? ps(e, s) : e, n = t.length - 1, a; n >= 0; n--)
     (a = t[n]) && (r = (i ? a(e, s, r) : a(r)) || r);
   return i && r && us(e, s, r), r;
 };
 const it = 8, rt = 1.2;
-let H = class extends E {
+let O = class extends E {
   constructor() {
-    super(...arguments), this.entityId = "", this.muted = !0, this.mode = "idle", this.message = "", this.nowSeconds = 0, this.fullscreen = !1, this.zoom = { scale: 1, x: 0, y: 0 }, this.pointers = /* @__PURE__ */ new Map(), this.visible = !1, this.starting = !1, this.onFullscreenChange = () => {
-      this.fullscreen = this.isFullscreen(), this.fullscreen || (this.zoom = { scale: 1, x: 0, y: 0 });
+    super(...arguments), this.entityId = "", this.muted = !0, this.mode = "idle", this.message = "", this.nowSeconds = 0, this.expanded = !1, this.immersive = !1, this.zoom = { scale: 1, x: 0, y: 0 }, this.pointers = /* @__PURE__ */ new Map(), this.visible = !1, this.starting = !1, this.onImmersiveKey = (t) => {
+      t.key === "Escape" && (t.preventDefault(), this.leaveImmersive(!0));
+    }, this.onImmersivePop = () => this.leaveImmersive(!1), this.onFullscreenChange = () => {
+      this.setExpanded(this.isNativeFullscreen() || this.immersive);
     }, this.onWheel = (t) => {
-      if (!this.fullscreen) return;
+      if (!this.expanded) return;
       t.preventDefault();
       const { scale: e, x: s, y: i } = this.zoom, r = t.deltaY < 0 ? rt : 1 / rt, n = Math.min(it, Math.max(1, e * r));
       if (n === e) return;
@@ -2375,9 +2377,9 @@ let H = class extends E {
         h - (h - i) * g
       );
     }, this.onDoubleClick = () => {
-      this.fullscreen && (this.zoom = { scale: 1, x: 0, y: 0 });
+      this.expanded && (this.zoom = { scale: 1, x: 0, y: 0 });
     }, this.onPointerDown = (t) => {
-      if (!this.fullscreen) return;
+      if (!this.expanded) return;
       const e = t.composedPath()[0];
       e instanceof HTMLElement && e.closest(".exit") || this.pointers.size === 0 && this.zoom.scale === 1 && t.pointerType === "mouse" || (this.setPointerCapture(t.pointerId), this.pointers.set(t.pointerId, { x: t.clientX, y: t.clientY }), this.rebaseGesture());
     }, this.onPointerMove = (t) => {
@@ -2407,29 +2409,68 @@ let H = class extends E {
     }, 1e3), this.observer = new IntersectionObserver((t) => {
       const e = t.some((s) => s.isIntersecting);
       e !== this.visible && (this.visible = e, e ? this.start() : this.stop());
-    }), this.observer.observe(this), this.addEventListener("fullscreenchange", this.onFullscreenChange), document.addEventListener("fullscreenchange", this.onFullscreenChange), this.addEventListener("wheel", this.onWheel, { passive: !1 }), this.addEventListener("dblclick", this.onDoubleClick), this.addEventListener("pointerdown", this.onPointerDown), this.addEventListener("pointermove", this.onPointerMove), this.addEventListener("pointerup", this.onPointerUp), this.addEventListener("pointercancel", this.onPointerUp);
+    }), this.observer.observe(this), this.addEventListener("fullscreenchange", this.onFullscreenChange), document.addEventListener("fullscreenchange", this.onFullscreenChange), document.addEventListener("webkitfullscreenchange", this.onFullscreenChange), this.addEventListener("dblclick", this.onDoubleClick), this.addEventListener("pointerdown", this.onPointerDown), this.addEventListener("pointermove", this.onPointerMove), this.addEventListener("pointerup", this.onPointerUp), this.addEventListener("pointercancel", this.onPointerUp);
   }
   disconnectedCallback() {
-    super.disconnectedCallback(), this.clockTimer !== void 0 && clearInterval(this.clockTimer), this.clockTimer = void 0, this.observer?.disconnect(), this.observer = void 0, this.removeEventListener("fullscreenchange", this.onFullscreenChange), document.removeEventListener("fullscreenchange", this.onFullscreenChange), this.removeEventListener("wheel", this.onWheel), this.removeEventListener("dblclick", this.onDoubleClick), this.removeEventListener("pointerdown", this.onPointerDown), this.removeEventListener("pointermove", this.onPointerMove), this.removeEventListener("pointerup", this.onPointerUp), this.removeEventListener("pointercancel", this.onPointerUp), this.stop();
+    super.disconnectedCallback(), this.clockTimer !== void 0 && clearInterval(this.clockTimer), this.clockTimer = void 0, this.observer?.disconnect(), this.observer = void 0, this.removeEventListener("fullscreenchange", this.onFullscreenChange), document.removeEventListener("fullscreenchange", this.onFullscreenChange), document.removeEventListener(
+      "webkitfullscreenchange",
+      this.onFullscreenChange
+    ), this.leaveImmersive(!1), this.removeEventListener("wheel", this.onWheel), this.removeEventListener("dblclick", this.onDoubleClick), this.removeEventListener("pointerdown", this.onPointerDown), this.removeEventListener("pointermove", this.onPointerMove), this.removeEventListener("pointerup", this.onPointerUp), this.removeEventListener("pointercancel", this.onPointerUp), this.stop();
   }
   // --------------------------------------------------------------------
   // Fullscreen and the loupe
   // --------------------------------------------------------------------
   /**
-   * Whether this very element fills the screen.
+   * Whether this very element natively fills the screen.
    *
    * document.fullscreenElement is retargeted at shadow boundaries and
    * answers with the outermost host, never with an element nested in
    * shadow roots like this one; the containing root's view is the one
-   * that names this element itself.
+   * that names this element itself. Older WebKit only has the prefixed,
+   * unretargeted answer.
    */
-  isFullscreen() {
+  isNativeFullscreen() {
     const t = this.getRootNode();
-    return (t instanceof ShadowRoot ? t.fullscreenElement : document.fullscreenElement) === this;
+    return (t instanceof ShadowRoot ? t.fullscreenElement : document.fullscreenElement) === this ? !0 : document.webkitFullscreenElement === this;
+  }
+  nativeFullscreenAvailable() {
+    const t = document, e = this;
+    return typeof e.requestFullscreen == "function" && document.fullscreenEnabled ? !0 : typeof e.webkitRequestFullscreen == "function" && t.webkitFullscreenEnabled === !0;
   }
   /** Fill the screen with this picture, or step back out of it. */
   async toggleFullscreen() {
-    this.isFullscreen() ? await document.exitFullscreen() : await this.requestFullscreen();
+    if (this.expanded) {
+      this.collapse();
+      return;
+    }
+    if (this.nativeFullscreenAvailable())
+      try {
+        const t = this;
+        if (await (typeof t.requestFullscreen == "function" ? t.requestFullscreen({ navigationUI: "hide" }) : t.webkitRequestFullscreen?.()), this.isNativeFullscreen()) return;
+      } catch {
+      }
+    this.enterImmersive();
+  }
+  collapse() {
+    if (this.immersive) {
+      this.leaveImmersive(!0);
+      return;
+    }
+    const t = document;
+    typeof document.exitFullscreen == "function" ? document.exitFullscreen() : t.webkitExitFullscreen?.();
+  }
+  enterImmersive() {
+    this.immersive = !0, this.setExpanded(!0), window.addEventListener("keydown", this.onImmersiveKey, !0), window.addEventListener("popstate", this.onImmersivePop), history.pushState({ ...history.state ?? {}, kvImmersive: !0 }, "");
+  }
+  leaveImmersive(t) {
+    if (!this.immersive) return;
+    this.immersive = !1, window.removeEventListener("keydown", this.onImmersiveKey, !0), window.removeEventListener("popstate", this.onImmersivePop), this.setExpanded(!1);
+    const e = history.state;
+    t && e?.kvImmersive && history.back();
+  }
+  /** Both routes to the screen meet here; the loupe lives and dies with it. */
+  setExpanded(t) {
+    this.expanded !== t && (this.expanded = t, t ? this.addEventListener("wheel", this.onWheel, { passive: !1 }) : (this.removeEventListener("wheel", this.onWheel), this.zoom = { scale: 1, x: 0, y: 0 }));
   }
   /** Keep the picture covering the box: no gaps past any edge. */
   clampedZoom(t, e, s) {
@@ -2560,12 +2601,12 @@ let H = class extends E {
     const t = ["webrtc", "hls", "mjpeg"].includes(this.mode), { scale: e, x: s, y: i } = this.zoom;
     return o`<div
       class="stage"
-      style="transform: translate(${s}px, ${i}px) scale(${e}); cursor: ${this.fullscreen && e > 1 ? "grab" : "default"}"
+      style="transform: translate(${s}px, ${i}px) scale(${e}); cursor: ${this.expanded && e > 1 ? "grab" : "default"}"
     >
       ${this.renderPicture()}
     </div>
     ${t ? o`<div class="clock">${ft(this.nowSeconds)}</div>` : c}
-    ${this.fullscreen ? o`<button
+    ${this.expanded ? o`<button
           class="exit"
           title="Vollbild verlassen"
           @click=${() => void this.toggleFullscreen()}
@@ -2583,9 +2624,15 @@ let H = class extends E {
           </svg>
         </button>` : c}
     ${e > 1 ? o`<div class="zoombadge">${e.toFixed(1)}×</div>` : c}
-    ${this.fullscreen && e === 1 ? o`<div class="zoomhint">
-          Mausrad oder zwei Finger: Lupe · Ziehen: verschieben ·
-          Doppeltipp: zurücksetzen · Esc: verlassen
+    ${this.expanded && e === 1 ? o`<div class="zoomhint">
+          <span class="fine"
+            >Mausrad: Lupe · Ziehen: verschieben · Doppelklick: zurücksetzen ·
+            Esc: verlassen</span
+          >
+          <span class="coarse"
+            >Zwei Finger: Lupe · Ziehen: verschieben · Doppeltipp:
+            zurücksetzen · Kreuz oben rechts: verlassen</span
+          >
         </div>` : c}`;
   }
   renderPicture() {
@@ -2615,7 +2662,7 @@ let H = class extends E {
     }
   }
 };
-H.styles = R`
+O.styles = H`
     :host {
       display: block;
       position: relative;
@@ -2625,6 +2672,9 @@ H.styles = R`
       aspect-ratio: 16 / 9;
       overflow: hidden;
     }
+    /* Three ways to be the whole screen. Each needs its own rule: a
+       selector list dies whole in a browser that does not know one of its
+       parts, and :-webkit-full-screen is exactly such a part. */
     :host(:fullscreen) {
       /* The screen decides the shape now, not the tile. */
       aspect-ratio: auto;
@@ -2632,6 +2682,29 @@ H.styles = R`
       height: 100%;
       /* The loupe's fingers, not the browser's gestures. */
       touch-action: none;
+    }
+    :host(:-webkit-full-screen) {
+      aspect-ratio: auto;
+      width: 100%;
+      height: 100%;
+      touch-action: none;
+    }
+    /* The screen, taken without the browser's help - for iPhone Safari and
+       the companion app's web view, which have no fullscreen API for an
+       element at all. */
+    :host([immersive]) {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100vh;
+      /* Follows the address bar as it slides away. */
+      height: 100dvh;
+      z-index: 120;
+      aspect-ratio: auto;
+      touch-action: none;
+      /* Nothing behind this may scroll while a finger pans the picture. */
+      overscroll-behavior: contain;
     }
     .stage {
       position: absolute;
@@ -2663,19 +2736,32 @@ H.styles = R`
       font-family: ui-monospace, monospace;
     }
     .zoomhint {
-      bottom: 8px;
-      left: 8px;
+      /* Clear of the home indicator and the rounded corners. */
+      bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+      left: calc(8px + env(safe-area-inset-left, 0px));
+    }
+    .zoomhint .coarse {
+      display: none;
+    }
+    @media (pointer: coarse) {
+      .zoomhint .fine {
+        display: none;
+      }
+      .zoomhint .coarse {
+        display: inline;
+      }
     }
     .exit {
       position: absolute;
-      top: 8px;
-      right: 8px;
+      /* Out from under the notch and the rounded corner. */
+      top: calc(8px + env(safe-area-inset-top, 0px));
+      right: calc(8px + env(safe-area-inset-right, 0px));
       z-index: 2;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      width: 40px;
-      height: 40px;
+      width: 48px;
+      height: 48px;
       padding: 0;
       border: none;
       border-radius: 50%;
@@ -2683,9 +2769,17 @@ H.styles = R`
       color: #fff;
       cursor: pointer;
     }
-    /* The clock makes room for the exit button while it is on screen. */
+    /* The clock makes room for the exit button while it is on screen -
+       one rule per fullscreen flavour, see above. */
     :host(:fullscreen) .clock {
-      right: 56px;
+      right: calc(64px + env(safe-area-inset-right, 0px));
+    }
+    :host(:-webkit-full-screen) .clock {
+      right: calc(64px + env(safe-area-inset-right, 0px));
+    }
+    :host([immersive]) .clock {
+      right: calc(64px + env(safe-area-inset-right, 0px));
+      top: calc(8px + env(safe-area-inset-top, 0px));
     }
     .overlay {
       position: absolute;
@@ -2713,40 +2807,43 @@ H.styles = R`
       z-index: 1;
     }
   `;
-j([
-  p({ attribute: !1 })
-], H.prototype, "hass", 2);
-j([
-  p()
-], H.prototype, "entityId", 2);
-j([
-  p({ type: Boolean })
-], H.prototype, "muted", 2);
-j([
+V([
+  u({ attribute: !1 })
+], O.prototype, "hass", 2);
+V([
+  u()
+], O.prototype, "entityId", 2);
+V([
+  u({ type: Boolean })
+], O.prototype, "muted", 2);
+V([
   d()
-], H.prototype, "mode", 2);
-j([
+], O.prototype, "mode", 2);
+V([
   d()
-], H.prototype, "message", 2);
-j([
+], O.prototype, "message", 2);
+V([
   d()
-], H.prototype, "nowSeconds", 2);
-j([
+], O.prototype, "nowSeconds", 2);
+V([
   d()
-], H.prototype, "fullscreen", 2);
-j([
+], O.prototype, "expanded", 2);
+V([
+  u({ type: Boolean, reflect: !0 })
+], O.prototype, "immersive", 2);
+V([
   d()
-], H.prototype, "zoom", 2);
-H = j([
-  P("kustos-vision-live-stream")
-], H);
-var gs = Object.defineProperty, ms = Object.getOwnPropertyDescriptor, G = (t, e, s, i) => {
+], O.prototype, "zoom", 2);
+O = V([
+  B("kustos-vision-live-stream")
+], O);
+var gs = Object.defineProperty, ms = Object.getOwnPropertyDescriptor, q = (t, e, s, i) => {
   for (var r = i > 1 ? void 0 : i ? ms(e, s) : e, n = t.length - 1, a; n >= 0; n--)
     (a = t[n]) && (r = (i ? a(e, s, r) : a(r)) || r);
   return i && r && gs(e, s, r), r;
 };
-const bs = ["ptz_up", "ptz_left", "ptz_right", "ptz_down", "siren_on", "siren_off"], vs = ["light", "siren", "privacy_mode"];
-let I = class extends E {
+const vs = ["ptz_up", "ptz_left", "ptz_right", "ptz_down", "siren_on", "siren_off"], bs = ["light", "siren", "privacy_mode"];
+let L = class extends E {
   constructor() {
     super(...arguments), this.viewId = "", this.narrow = !1, this.busy = "", this.error = "";
   }
@@ -2844,9 +2941,9 @@ let I = class extends E {
     const t = this.shownCapabilities, e = this.shownControls;
     if (!t.length && !e.length) return c;
     const s = [];
-    for (const n of bs)
-      t.includes(n) && s.push(this.renderButton(n, ts[n] ?? J(n)));
     for (const n of vs)
+      t.includes(n) && s.push(this.renderButton(n, ts[n] ?? J(n)));
+    for (const n of bs)
       t.includes(n) && s.push(
         this.renderButton(n, `${J(n)} an`, !0),
         this.renderButton(n, `${J(n)} aus`, !1)
@@ -2901,9 +2998,9 @@ let I = class extends E {
     `;
   }
 };
-I.styles = [
+L.styles = [
   W,
-  R`
+  H`
       :host {
         display: block;
         /* shared's :host serves full-page views and sets min-height: 100%;
@@ -3003,30 +3100,30 @@ I.styles = [
       }
     `
 ];
-G([
-  p({ attribute: !1 })
-], I.prototype, "hass", 2);
-G([
-  p({ attribute: !1 })
-], I.prototype, "api", 2);
-G([
-  p({ attribute: !1 })
-], I.prototype, "camera", 2);
-G([
-  p()
-], I.prototype, "viewId", 2);
-G([
-  p({ type: Boolean })
-], I.prototype, "narrow", 2);
-G([
+q([
+  u({ attribute: !1 })
+], L.prototype, "hass", 2);
+q([
+  u({ attribute: !1 })
+], L.prototype, "api", 2);
+q([
+  u({ attribute: !1 })
+], L.prototype, "camera", 2);
+q([
+  u()
+], L.prototype, "viewId", 2);
+q([
+  u({ type: Boolean })
+], L.prototype, "narrow", 2);
+q([
   d()
-], I.prototype, "busy", 2);
-G([
+], L.prototype, "busy", 2);
+q([
   d()
-], I.prototype, "error", 2);
-I = G([
-  P("kustos-vision-camera-tile")
-], I);
+], L.prototype, "error", 2);
+L = q([
+  B("kustos-vision-camera-tile")
+], L);
 var fs = Object.defineProperty, ys = Object.getOwnPropertyDescriptor, ne = (t, e, s, i) => {
   for (var r = i > 1 ? void 0 : i ? ys(e, s) : e, n = t.length - 1, a; n >= 0; n--)
     (a = t[n]) && (r = (i ? a(e, s, r) : a(r)) || r);
@@ -3065,7 +3162,7 @@ let K = class extends E {
     `;
   }
 };
-K.styles = R`
+K.styles = H`
     :host {
       display: block;
       /* A phone has no 16px to spare on each side; a monitor does. */
@@ -3115,24 +3212,24 @@ K.styles = R`
     }
   `;
 ne([
-  p({ attribute: !1 })
+  u({ attribute: !1 })
 ], K.prototype, "hass", 2);
 ne([
-  p({ attribute: !1 })
+  u({ attribute: !1 })
 ], K.prototype, "api", 2);
 ne([
-  p({ attribute: !1 })
+  u({ attribute: !1 })
 ], K.prototype, "view", 2);
 ne([
-  p({ attribute: !1 })
+  u({ attribute: !1 })
 ], K.prototype, "cameras", 2);
 ne([
-  p({ type: Boolean })
+  u({ type: Boolean })
 ], K.prototype, "narrow", 2);
 K = ne([
-  P("kustos-vision-live-view")
+  B("kustos-vision-live-view")
 ], K);
-var ws = Object.defineProperty, $s = Object.getOwnPropertyDescriptor, V = (t, e, s, i) => {
+var ws = Object.defineProperty, $s = Object.getOwnPropertyDescriptor, I = (t, e, s, i) => {
   for (var r = i > 1 ? void 0 : i ? $s(e, s) : e, n = t.length - 1, a; n >= 0; n--)
     (a = t[n]) && (r = (i ? a(e, s, r) : a(r)) || r);
   return i && r && ws(e, s, r), r;
@@ -3282,7 +3379,7 @@ let D = class extends E {
     `;
   }
 };
-D.styles = R`
+D.styles = H`
     :host {
       display: block;
       user-select: none;
@@ -3401,38 +3498,38 @@ D.styles = R`
       font-size: 0.85em;
     }
   `;
-V([
-  p({ type: Number })
+I([
+  u({ type: Number })
 ], D.prototype, "from", 2);
-V([
-  p({ type: Number })
+I([
+  u({ type: Number })
 ], D.prototype, "to", 2);
-V([
-  p({ attribute: !1 })
+I([
+  u({ attribute: !1 })
 ], D.prototype, "blocks", 2);
-V([
-  p({ attribute: !1 })
+I([
+  u({ attribute: !1 })
 ], D.prototype, "segments", 2);
-V([
-  p({ type: Number })
+I([
+  u({ type: Number })
 ], D.prototype, "position", 2);
-V([
-  p()
+I([
+  u()
 ], D.prototype, "thumbnailUrlBase", 2);
-V([
-  p({ attribute: !1 })
+I([
+  u({ attribute: !1 })
 ], D.prototype, "api", 2);
-V([
+I([
   d()
 ], D.prototype, "hover", 2);
-V([
+I([
   d()
 ], D.prototype, "dragging", 2);
-V([
+I([
   d()
 ], D.prototype, "preview", 2);
-D = V([
-  P("kustos-vision-timeline")
+D = I([
+  B("kustos-vision-timeline")
 ], D);
 var ks = Object.defineProperty, _s = Object.getOwnPropertyDescriptor, w = (t, e, s, i) => {
   for (var r = i > 1 ? void 0 : i ? _s(e, s) : e, n = t.length - 1, a; n >= 0; n--)
@@ -3761,7 +3858,7 @@ let y = class extends E {
 };
 y.styles = [
   W,
-  R`
+  H`
       /* The tab has to fit on one screen: picker, picture and timeline all
          visible at once, because scrolling to reach the timeline while
          watching the picture defeats the point of having both. So the view
@@ -3847,13 +3944,13 @@ y.styles = [
     `
 ];
 w([
-  p({ attribute: !1 })
+  u({ attribute: !1 })
 ], y.prototype, "api", 2);
 w([
-  p({ attribute: !1 })
+  u({ attribute: !1 })
 ], y.prototype, "cameras", 2);
 w([
-  p({ type: Boolean })
+  u({ type: Boolean })
 ], y.prototype, "stampAvailable", 2);
 w([
   d()
@@ -3907,7 +4004,7 @@ w([
   d()
 ], y.prototype, "rangeToTime", 2);
 y = w([
-  P("kustos-vision-recordings")
+  B("kustos-vision-recordings")
 ], y);
 /**
  * @license
@@ -3936,7 +4033,7 @@ let Es = class {
  * Copyright 2020 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
  */
-const { I: Ts } = Lt, ot = (t) => t, lt = () => document.createComment(""), le = (t, e, s) => {
+const { I: Ts } = Vt, ot = (t) => t, lt = () => document.createComment(""), le = (t, e, s) => {
   const i = t._$AA.parentNode, r = e === void 0 ? t._$AB : e._$AA;
   if (s === void 0) {
     const n = i.insertBefore(lt(), r), a = i.insertBefore(lt(), r);
@@ -3956,7 +4053,7 @@ const { I: Ts } = Lt, ot = (t) => t, lt = () => document.createComment(""), le =
     }
   }
   return s;
-}, Z = (t, e, s = t) => (t._$AI(e, s), t), Cs = {}, Ds = (t, e = Cs) => t._$AH = e, Os = (t) => t._$AH, Ee = (t) => {
+}, Z = (t, e, s = t) => (t._$AI(e, s), t), Cs = {}, Ds = (t, e = Cs) => t._$AH = e, zs = (t) => t._$AH, Ee = (t) => {
   t._$AR(), t._$AA.remove();
 };
 /**
@@ -3984,36 +4081,36 @@ const ht = (t, e, s) => {
     return this.dt(t, e, s).values;
   }
   update(t, [e, s, i]) {
-    const r = Os(t), { values: n, keys: a } = this.dt(e, s, i);
+    const r = zs(t), { values: n, keys: a } = this.dt(e, s, i);
     if (!Array.isArray(r)) return this.ut = a, n;
     const l = this.ut ??= [], h = [];
-    let g, v, u = 0, b = r.length - 1, m = 0, f = n.length - 1;
-    for (; u <= b && m <= f; ) if (r[u] === null) u++;
-    else if (r[b] === null) b--;
-    else if (l[u] === a[m]) h[m] = Z(r[u], n[m]), u++, m++;
-    else if (l[b] === a[f]) h[f] = Z(r[b], n[f]), b--, f--;
-    else if (l[u] === a[f]) h[f] = Z(r[u], n[f]), le(t, h[f + 1], r[u]), u++, f--;
-    else if (l[b] === a[m]) h[m] = Z(r[b], n[m]), le(t, r[u], r[b]), b--, m++;
-    else if (g === void 0 && (g = ht(a, m, f), v = ht(l, u, b)), g.has(l[u])) if (g.has(l[b])) {
-      const C = v.get(a[m]), ke = C !== void 0 ? r[C] : null;
+    let g, b, p = 0, v = r.length - 1, m = 0, f = n.length - 1;
+    for (; p <= v && m <= f; ) if (r[p] === null) p++;
+    else if (r[v] === null) v--;
+    else if (l[p] === a[m]) h[m] = Z(r[p], n[m]), p++, m++;
+    else if (l[v] === a[f]) h[f] = Z(r[v], n[f]), v--, f--;
+    else if (l[p] === a[f]) h[f] = Z(r[p], n[f]), le(t, h[f + 1], r[p]), p++, f--;
+    else if (l[v] === a[m]) h[m] = Z(r[v], n[m]), le(t, r[p], r[v]), v--, m++;
+    else if (g === void 0 && (g = ht(a, m, f), b = ht(l, p, v)), g.has(l[p])) if (g.has(l[v])) {
+      const C = b.get(a[m]), ke = C !== void 0 ? r[C] : null;
       if (ke === null) {
-        const Re = le(t, r[u]);
-        Z(Re, n[m]), h[m] = Re;
-      } else h[m] = Z(ke, n[m]), le(t, r[u], ke), r[C] = null;
+        const He = le(t, r[p]);
+        Z(He, n[m]), h[m] = He;
+      } else h[m] = Z(ke, n[m]), le(t, r[p], ke), r[C] = null;
       m++;
-    } else Ee(r[b]), b--;
-    else Ee(r[u]), u++;
+    } else Ee(r[v]), v--;
+    else Ee(r[p]), p++;
     for (; m <= f; ) {
       const C = le(t, h[f + 1]);
       Z(C, n[m]), h[m++] = C;
     }
-    for (; u <= b; ) {
-      const C = r[u++];
+    for (; p <= v; ) {
+      const C = r[p++];
       C !== null && Ee(C);
     }
     return this.ut = a, Ds(t, h), ee;
   }
-}), zs = 150;
+}), Os = 150;
 class wt {
   constructor() {
     this.before = /* @__PURE__ */ new Map();
@@ -4037,7 +4134,7 @@ class wt {
         const n = r - s.getBoundingClientRect().top;
         n !== 0 && s.animate(
           [{ transform: `translateY(${n}px)` }, { transform: "none" }],
-          { duration: zs, easing: "ease-out" }
+          { duration: Os, easing: "ease-out" }
         );
       }
       this.before.clear();
@@ -4073,7 +4170,7 @@ let $ = class extends E {
     super.connectedCallback(), this.camera && (this.slug = this.camera.slug, this.name = this.camera.name, this.streams = this.camera.streams.map((t) => ({ ...t })), this.capabilities = structuredClone(this.camera.capabilities), this.retentionDays = this.camera.retention_days, this.enabled = this.camera.enabled, this.viewSettings = structuredClone(this.camera.view_settings ?? {}), this.controls = structuredClone(this.camera.controls ?? []), this.loadCandidates()), this.baseline = JSON.stringify(this.payload()), Me(this.unsaved);
   }
   disconnectedCallback() {
-    super.disconnectedCallback(), He(this.unsaved);
+    super.disconnectedCallback(), Re(this.unsaved);
   }
   /** Fetch the sibling entities of this camera's device, without changing
    *  anything about the camera itself. */
@@ -4378,7 +4475,7 @@ let $ = class extends E {
                             @change=${(l) => {
         const h = l.target.checked, g = new Set(r ?? n);
         h ? g.add(a) : g.delete(a), this.patchView(t.id, {
-          capabilities: n.filter((v) => g.has(v))
+          capabilities: n.filter((b) => g.has(b))
         });
       }}
                           />
@@ -4690,7 +4787,7 @@ let $ = class extends E {
 };
 $.styles = [
   W,
-  R`
+  H`
       .member-row {
         display: flex;
         align-items: center;
@@ -4701,22 +4798,22 @@ $.styles = [
     `
 ];
 _([
-  p({ attribute: !1 })
+  u({ attribute: !1 })
 ], $.prototype, "api", 2);
 _([
-  p({ attribute: !1 })
+  u({ attribute: !1 })
 ], $.prototype, "camera", 2);
 _([
-  p({ attribute: !1 })
+  u({ attribute: !1 })
 ], $.prototype, "capabilityKeys", 2);
 _([
-  p({ attribute: !1 })
+  u({ attribute: !1 })
 ], $.prototype, "available", 2);
 _([
-  p({ attribute: !1 })
+  u({ attribute: !1 })
 ], $.prototype, "views", 2);
 _([
-  p({ attribute: !1 })
+  u({ attribute: !1 })
 ], $.prototype, "allCameras", 2);
 _([
   d()
@@ -4752,14 +4849,14 @@ _([
   d()
 ], $.prototype, "error", 2);
 $ = _([
-  P("kustos-vision-camera-editor")
+  B("kustos-vision-camera-editor")
 ], $);
-var Hs = Object.defineProperty, Rs = Object.getOwnPropertyDescriptor, A = (t, e, s, i) => {
-  for (var r = i > 1 ? void 0 : i ? Rs(e, s) : e, n = t.length - 1, a; n >= 0; n--)
+var Rs = Object.defineProperty, Hs = Object.getOwnPropertyDescriptor, A = (t, e, s, i) => {
+  for (var r = i > 1 ? void 0 : i ? Hs(e, s) : e, n = t.length - 1, a; n >= 0; n--)
     (a = t[n]) && (r = (i ? a(e, s, r) : a(r)) || r);
-  return i && r && Hs(e, s, r), r;
+  return i && r && Rs(e, s, r), r;
 };
-const Vs = [
+const Is = [
   ["boolean", "Ja/Nein"],
   ["text", "Text"],
   ["number", "Anzahl"],
@@ -4776,7 +4873,7 @@ let x = class extends E {
     };
   }
   disconnectedCallback() {
-    super.disconnectedCallback(), He(this.unsaved);
+    super.disconnectedCallback(), Re(this.unsaved);
   }
   async connectedCallback() {
     if (super.connectedCallback(), this.profile)
@@ -4952,7 +5049,7 @@ let x = class extends E {
           <div>
             <label>Antworttyp</label>
             <kustos-vision-select
-              .options=${Vs.map(([s, i]) => ({ value: s, label: i }))}
+              .options=${Is.map(([s, i]) => ({ value: s, label: i }))}
               .value=${t.type}
               @value-changed=${(s) => this.patchObservation(e, {
       type: s.detail.value
@@ -5219,16 +5316,16 @@ ${JSON.stringify(this.lastRun.raw, null, 2)}</pre
 };
 x.styles = W;
 A([
-  p({ attribute: !1 })
+  u({ attribute: !1 })
 ], x.prototype, "api", 2);
 A([
-  p({ attribute: !1 })
+  u({ attribute: !1 })
 ], x.prototype, "camera", 2);
 A([
-  p({ attribute: !1 })
+  u({ attribute: !1 })
 ], x.prototype, "profile", 2);
 A([
-  p({ attribute: !1 })
+  u({ attribute: !1 })
 ], x.prototype, "hass", 2);
 A([
   d()
@@ -5270,12 +5367,12 @@ A([
   d()
 ], x.prototype, "error", 2);
 x = A([
-  P("kustos-vision-vision-editor")
+  B("kustos-vision-vision-editor")
 ], x);
-var Is = Object.defineProperty, Ls = Object.getOwnPropertyDescriptor, O = (t, e, s, i) => {
-  for (var r = i > 1 ? void 0 : i ? Ls(e, s) : e, n = t.length - 1, a; n >= 0; n--)
+var Ls = Object.defineProperty, Vs = Object.getOwnPropertyDescriptor, z = (t, e, s, i) => {
+  for (var r = i > 1 ? void 0 : i ? Vs(e, s) : e, n = t.length - 1, a; n >= 0; n--)
     (a = t[n]) && (r = (i ? a(e, s, r) : a(r)) || r);
-  return i && r && Is(e, s, r), r;
+  return i && r && Ls(e, s, r), r;
 };
 const Us = [
   ["cameras", "Kameras"],
@@ -5283,7 +5380,7 @@ const Us = [
   ["storage", "Speicher"],
   ["views", "Ansichten"],
   ["system", "System"]
-], be = 1e3 * 1e3 * 1e3;
+], ve = 1e3 * 1e3 * 1e3;
 let T = class extends E {
   constructor() {
     super(...arguments), this.section = "cameras", this.adding = !1, this.available = [], this.busy = !1, this.error = "", this.viewFlip = new wt(), this.unsavedSections = {
@@ -5304,7 +5401,7 @@ let T = class extends E {
     super.connectedCallback(), Me(this.unsavedSections);
   }
   disconnectedCallback() {
-    super.disconnectedCallback(), He(this.unsavedSections);
+    super.disconnectedCallback(), Re(this.unsavedSections);
   }
   async refresh() {
     this.dispatchEvent(new CustomEvent("changed", { bubbles: !0, composed: !0 }));
@@ -5512,7 +5609,7 @@ let T = class extends E {
   // Storage
   // ------------------------------------------------------------------
   renderStorage() {
-    const { storage: t, totals: e } = this.snapshot, s = t.max_total_bytes === null ? "" : String(t.max_total_bytes / be);
+    const { storage: t, totals: e } = this.snapshot, s = t.max_total_bytes === null ? "" : String(t.max_total_bytes / ve);
     return o`
       <div class="card">
         <h2>Speicher</h2>
@@ -5585,7 +5682,7 @@ let T = class extends E {
   storageDirty() {
     const t = this.storageInput("base_path"), e = this.storageInput("segment"), s = this.storageInput("budget");
     if (!t || !e || !s) return !1;
-    const { storage: i } = this.snapshot, r = i.max_total_bytes === null ? null : i.max_total_bytes / be, n = s.value.trim() === "" ? null : Number(s.value);
+    const { storage: i } = this.snapshot, r = i.max_total_bytes === null ? null : i.max_total_bytes / ve, n = s.value.trim() === "" ? null : Number(s.value);
     return t.value.trim() !== i.base_path || Number(e.value) !== i.segment_seconds || n !== r;
   }
   resetStorageInputs() {
@@ -5594,7 +5691,7 @@ let T = class extends E {
     const s = this.storageInput("segment");
     s && (s.value = String(t.segment_seconds));
     const i = this.storageInput("budget");
-    i && (i.value = t.max_total_bytes === null ? "" : String(t.max_total_bytes / be));
+    i && (i.value = t.max_total_bytes === null ? "" : String(t.max_total_bytes / ve));
   }
   async saveStorage() {
     const t = this.renderRoot, e = Number(
@@ -5608,7 +5705,7 @@ Was bereits unter ${this.snapshot.storage.base_path} liegt, bleibt unverändert 
       () => this.api.setStorage({
         base_path: i,
         segment_seconds: e,
-        max_total_bytes: s === "" ? null : Math.round(Number(s) * be)
+        max_total_bytes: s === "" ? null : Math.round(Number(s) * ve)
       })
     );
   }
@@ -5874,53 +5971,53 @@ Was bereits unter ${this.snapshot.storage.base_path} liegt, bleibt unverändert 
   }
 };
 T.styles = W;
-O([
-  p({ attribute: !1 })
+z([
+  u({ attribute: !1 })
 ], T.prototype, "api", 2);
-O([
-  p({ attribute: !1 })
+z([
+  u({ attribute: !1 })
 ], T.prototype, "snapshot", 2);
-O([
-  p({ attribute: !1 })
+z([
+  u({ attribute: !1 })
 ], T.prototype, "hass", 2);
-O([
+z([
   d()
 ], T.prototype, "section", 2);
-O([
+z([
   d()
 ], T.prototype, "editing", 2);
-O([
+z([
   d()
 ], T.prototype, "adding", 2);
-O([
+z([
   d()
 ], T.prototype, "available", 2);
-O([
+z([
   d()
 ], T.prototype, "visionFor", 2);
-O([
+z([
   d()
 ], T.prototype, "busy", 2);
-O([
+z([
   d()
 ], T.prototype, "error", 2);
-O([
+z([
   d()
 ], T.prototype, "viewsDraft", 2);
-O([
+z([
   d()
 ], T.prototype, "viewDrag", 2);
-T = O([
-  P("kustos-vision-settings")
+T = z([
+  B("kustos-vision-settings")
 ], T);
-var Ns = Object.defineProperty, js = Object.getOwnPropertyDescriptor, L = (t, e, s, i) => {
-  for (var r = i > 1 ? void 0 : i ? js(e, s) : e, n = t.length - 1, a; n >= 0; n--)
+var Ns = Object.defineProperty, Fs = Object.getOwnPropertyDescriptor, U = (t, e, s, i) => {
+  for (var r = i > 1 ? void 0 : i ? Fs(e, s) : e, n = t.length - 1, a; n >= 0; n--)
     (a = t[n]) && (r = (i ? a(e, s, r) : a(r)) || r);
   return i && r && Ns(e, s, r), r;
 };
 const he = "__recordings", Y = "__settings";
 globalThis.kustosVisionBuild = Xt;
-let z = class extends E {
+let P = class extends E {
   constructor() {
     super(...arguments), this.narrow = !1, this.active = "", this.error = "", this.reconnecting = !1, this.reconnectError = "", this.lastViewId = "", this.onBeforeUnload = (t) => {
       Qt() && t.preventDefault();
@@ -6168,9 +6265,9 @@ let z = class extends E {
     `;
   }
 };
-z.styles = [
+P.styles = [
   W,
-  R`
+  H`
       :host {
         display: flex;
         flex-direction: column;
@@ -6365,36 +6462,36 @@ z.styles = [
       }
     `
 ];
-L([
-  p({ attribute: !1 })
-], z.prototype, "hass", 2);
-L([
-  p({ type: Boolean, reflect: !0 })
-], z.prototype, "narrow", 2);
-L([
+U([
+  u({ attribute: !1 })
+], P.prototype, "hass", 2);
+U([
+  u({ type: Boolean, reflect: !0 })
+], P.prototype, "narrow", 2);
+U([
   d()
-], z.prototype, "snapshot", 2);
-L([
+], P.prototype, "snapshot", 2);
+U([
   d()
-], z.prototype, "active", 2);
-L([
+], P.prototype, "active", 2);
+U([
   d()
-], z.prototype, "error", 2);
-L([
+], P.prototype, "error", 2);
+U([
   d()
-], z.prototype, "reconnecting", 2);
-L([
+], P.prototype, "reconnecting", 2);
+U([
   d()
-], z.prototype, "reconnectError", 2);
-L([
+], P.prototype, "reconnectError", 2);
+U([
   d()
-], z.prototype, "lastViewId", 2);
-L([
+], P.prototype, "lastViewId", 2);
+U([
   d()
-], z.prototype, "viewMenu", 2);
-z = L([
-  P("kustos-vision-panel")
-], z);
+], P.prototype, "viewMenu", 2);
+P = U([
+  B("kustos-vision-panel")
+], P);
 export {
-  z as CamwatchPanel
+  P as CamwatchPanel
 };

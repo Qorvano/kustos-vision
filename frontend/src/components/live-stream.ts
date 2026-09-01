@@ -47,8 +47,11 @@ export class CamwatchLiveStream extends LitElement {
   @state() private message = "";
   /** Ticks once a second while a live picture is showing. */
   @state() private nowSeconds = 0;
-  /** Whether this element currently fills the screen. */
-  @state() private fullscreen = false;
+  /** Whether the picture fills the screen, by whichever of the two routes. */
+  @state() private expanded = false;
+  /** Filling the screen without the browser's help: iPhone Safari and the
+      companion app's web view have no fullscreen API for an element. */
+  @property({ type: Boolean, reflect: true }) immersive = false;
   /** The loupe: how far in, and where the picture's origin sits. */
   @state() private zoom = { scale: 1, x: 0, y: 0 };
 
@@ -83,6 +86,9 @@ export class CamwatchLiveStream extends LitElement {
       aspect-ratio: 16 / 9;
       overflow: hidden;
     }
+    /* Three ways to be the whole screen. Each needs its own rule: a
+       selector list dies whole in a browser that does not know one of its
+       parts, and :-webkit-full-screen is exactly such a part. */
     :host(:fullscreen) {
       /* The screen decides the shape now, not the tile. */
       aspect-ratio: auto;
@@ -90,6 +96,29 @@ export class CamwatchLiveStream extends LitElement {
       height: 100%;
       /* The loupe's fingers, not the browser's gestures. */
       touch-action: none;
+    }
+    :host(:-webkit-full-screen) {
+      aspect-ratio: auto;
+      width: 100%;
+      height: 100%;
+      touch-action: none;
+    }
+    /* The screen, taken without the browser's help - for iPhone Safari and
+       the companion app's web view, which have no fullscreen API for an
+       element at all. */
+    :host([immersive]) {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100vh;
+      /* Follows the address bar as it slides away. */
+      height: 100dvh;
+      z-index: 120;
+      aspect-ratio: auto;
+      touch-action: none;
+      /* Nothing behind this may scroll while a finger pans the picture. */
+      overscroll-behavior: contain;
     }
     .stage {
       position: absolute;
@@ -121,19 +150,32 @@ export class CamwatchLiveStream extends LitElement {
       font-family: ui-monospace, monospace;
     }
     .zoomhint {
-      bottom: 8px;
-      left: 8px;
+      /* Clear of the home indicator and the rounded corners. */
+      bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+      left: calc(8px + env(safe-area-inset-left, 0px));
+    }
+    .zoomhint .coarse {
+      display: none;
+    }
+    @media (pointer: coarse) {
+      .zoomhint .fine {
+        display: none;
+      }
+      .zoomhint .coarse {
+        display: inline;
+      }
     }
     .exit {
       position: absolute;
-      top: 8px;
-      right: 8px;
+      /* Out from under the notch and the rounded corner. */
+      top: calc(8px + env(safe-area-inset-top, 0px));
+      right: calc(8px + env(safe-area-inset-right, 0px));
       z-index: 2;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      width: 40px;
-      height: 40px;
+      width: 48px;
+      height: 48px;
       padding: 0;
       border: none;
       border-radius: 50%;
@@ -141,9 +183,17 @@ export class CamwatchLiveStream extends LitElement {
       color: #fff;
       cursor: pointer;
     }
-    /* The clock makes room for the exit button while it is on screen. */
+    /* The clock makes room for the exit button while it is on screen -
+       one rule per fullscreen flavour, see above. */
     :host(:fullscreen) .clock {
-      right: 56px;
+      right: calc(64px + env(safe-area-inset-right, 0px));
+    }
+    :host(:-webkit-full-screen) .clock {
+      right: calc(64px + env(safe-area-inset-right, 0px));
+    }
+    :host([immersive]) .clock {
+      right: calc(64px + env(safe-area-inset-right, 0px));
+      top: calc(8px + env(safe-area-inset-top, 0px));
     }
     .overlay {
       position: absolute;
@@ -193,10 +243,13 @@ export class CamwatchLiveStream extends LitElement {
     this.observer.observe(this);
     this.addEventListener("fullscreenchange", this.onFullscreenChange);
     // Belt to the element listener's braces: some engines deliver the
-    // change only at the document level for elements inside shadow roots.
+    // change only at the document level for elements inside shadow roots,
+    // and older WebKit only under its prefix.
     document.addEventListener("fullscreenchange", this.onFullscreenChange);
-    // passive:false, because zooming has to keep the wheel from scrolling.
-    this.addEventListener("wheel", this.onWheel, { passive: false });
+    document.addEventListener("webkitfullscreenchange", this.onFullscreenChange);
+    // The wheel listener is registered in setExpanded, only while the
+    // picture owns the screen: an idle tile holding a non-passive wheel
+    // listener slows scrolling over the whole grid.
     this.addEventListener("dblclick", this.onDoubleClick);
     this.addEventListener("pointerdown", this.onPointerDown);
     this.addEventListener("pointermove", this.onPointerMove);
@@ -212,6 +265,11 @@ export class CamwatchLiveStream extends LitElement {
     this.observer = undefined;
     this.removeEventListener("fullscreenchange", this.onFullscreenChange);
     document.removeEventListener("fullscreenchange", this.onFullscreenChange);
+    document.removeEventListener(
+      "webkitfullscreenchange",
+      this.onFullscreenChange,
+    );
+    this.leaveImmersive(false);
     this.removeEventListener("wheel", this.onWheel);
     this.removeEventListener("dblclick", this.onDoubleClick);
     this.removeEventListener("pointerdown", this.onPointerDown);
@@ -226,36 +284,124 @@ export class CamwatchLiveStream extends LitElement {
   // --------------------------------------------------------------------
 
   /**
-   * Whether this very element fills the screen.
+   * Whether this very element natively fills the screen.
    *
    * document.fullscreenElement is retargeted at shadow boundaries and
    * answers with the outermost host, never with an element nested in
    * shadow roots like this one; the containing root's view is the one
-   * that names this element itself.
+   * that names this element itself. Older WebKit only has the prefixed,
+   * unretargeted answer.
    */
-  private isFullscreen(): boolean {
+  private isNativeFullscreen(): boolean {
     const root = this.getRootNode();
-    const element =
+    const viaRoot =
       root instanceof ShadowRoot
         ? root.fullscreenElement
         : document.fullscreenElement;
-    return element === this;
+    if (viaRoot === this) return true;
+    const doc = document as Document & {
+      webkitFullscreenElement?: Element | null;
+    };
+    return doc.webkitFullscreenElement === this;
+  }
+
+  private nativeFullscreenAvailable(): boolean {
+    const doc = document as Document & { webkitFullscreenEnabled?: boolean };
+    const el = this as HTMLElement & {
+      webkitRequestFullscreen?: () => unknown;
+    };
+    if (typeof el.requestFullscreen === "function" && document.fullscreenEnabled) {
+      return true;
+    }
+    return (
+      typeof el.webkitRequestFullscreen === "function" &&
+      doc.webkitFullscreenEnabled === true
+    );
   }
 
   /** Fill the screen with this picture, or step back out of it. */
   async toggleFullscreen(): Promise<void> {
-    if (this.isFullscreen()) {
-      await document.exitFullscreen();
+    if (this.expanded) {
+      this.collapse();
+      return;
+    }
+    if (this.nativeFullscreenAvailable()) {
+      try {
+        const el = this as HTMLElement & {
+          webkitRequestFullscreen?: () => unknown;
+        };
+        await (typeof el.requestFullscreen === "function"
+          ? el.requestFullscreen({ navigationUI: "hide" })
+          : el.webkitRequestFullscreen?.());
+        // The state decides, not the promise: a web view whose host app
+        // does not implement fullscreen resolves it and shows nothing.
+        if (this.isNativeFullscreen()) return;
+      } catch {
+        // Refused. The picture still has to fill the screen.
+      }
+    }
+    this.enterImmersive();
+  }
+
+  private collapse(): void {
+    if (this.immersive) {
+      this.leaveImmersive(true);
+      return;
+    }
+    const doc = document as Document & { webkitExitFullscreen?: () => void };
+    if (typeof document.exitFullscreen === "function") {
+      void document.exitFullscreen();
     } else {
-      await this.requestFullscreen();
+      doc.webkitExitFullscreen?.();
+    }
+  }
+
+  private enterImmersive(): void {
+    this.immersive = true;
+    this.setExpanded(true);
+    window.addEventListener("keydown", this.onImmersiveKey, true);
+    window.addEventListener("popstate", this.onImmersivePop);
+    // One history entry, so a phone's back gesture leaves the picture
+    // rather than the panel; popped again on the way out.
+    history.pushState({ ...(history.state ?? {}), kvImmersive: true }, "");
+  }
+
+  private leaveImmersive(viaUi: boolean): void {
+    if (!this.immersive) return;
+    this.immersive = false;
+    window.removeEventListener("keydown", this.onImmersiveKey, true);
+    window.removeEventListener("popstate", this.onImmersivePop);
+    this.setExpanded(false);
+    const state = history.state as { kvImmersive?: boolean } | null;
+    if (viaUi && state?.kvImmersive) history.back();
+  }
+
+  private onImmersiveKey = (event: KeyboardEvent): void => {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      this.leaveImmersive(true);
+    }
+  };
+
+  private onImmersivePop = (): void => this.leaveImmersive(false);
+
+  /** Both routes to the screen meet here; the loupe lives and dies with it. */
+  private setExpanded(on: boolean): void {
+    if (this.expanded === on) return;
+    this.expanded = on;
+    if (on) {
+      // passive:false, because zooming must keep the wheel from scrolling.
+      this.addEventListener("wheel", this.onWheel, { passive: false });
+    } else {
+      this.removeEventListener("wheel", this.onWheel);
+      // Back in the wall of tiles a magnified crop would masquerade as the
+      // whole picture.
+      this.zoom = { scale: 1, x: 0, y: 0 };
     }
   }
 
   private onFullscreenChange = (): void => {
-    this.fullscreen = this.isFullscreen();
-    // The loupe belongs to the fullscreen viewing; back in the wall of
-    // tiles a magnified crop would masquerade as the whole picture.
-    if (!this.fullscreen) this.zoom = { scale: 1, x: 0, y: 0 };
+    this.setExpanded(this.isNativeFullscreen() || this.immersive);
   };
 
   /** Keep the picture covering the box: no gaps past any edge. */
@@ -269,7 +415,7 @@ export class CamwatchLiveStream extends LitElement {
   }
 
   private onWheel = (event: WheelEvent): void => {
-    if (!this.fullscreen) return;
+    if (!this.expanded) return;
     event.preventDefault();
     const { scale, x, y } = this.zoom;
     const factor = event.deltaY < 0 ? ZOOM_STEP : 1 / ZOOM_STEP;
@@ -288,7 +434,7 @@ export class CamwatchLiveStream extends LitElement {
   };
 
   private onDoubleClick = (): void => {
-    if (!this.fullscreen) return;
+    if (!this.expanded) return;
     this.zoom = { scale: 1, x: 0, y: 0 };
   };
 
@@ -316,7 +462,7 @@ export class CamwatchLiveStream extends LitElement {
   }
 
   private onPointerDown = (event: PointerEvent): void => {
-    if (!this.fullscreen) return;
+    if (!this.expanded) return;
     // A tap on the exit button is a click, not a gesture; capturing its
     // pointer here would swallow the click before the button sees it.
     const origin = event.composedPath()[0];
@@ -537,13 +683,13 @@ export class CamwatchLiveStream extends LitElement {
     return html`<div
       class="stage"
       style="transform: translate(${x}px, ${y}px) scale(${scale}); cursor: ${
-        this.fullscreen && scale > 1 ? "grab" : "default"
+        this.expanded && scale > 1 ? "grab" : "default"
       }"
     >
       ${this.renderPicture()}
     </div>
     ${live ? html`<div class="clock">${clockText(this.nowSeconds)}</div>` : nothing}
-    ${this.fullscreen
+    ${this.expanded
       ? html`<button
           class="exit"
           title="Vollbild verlassen"
@@ -565,10 +711,16 @@ export class CamwatchLiveStream extends LitElement {
     ${scale > 1
       ? html`<div class="zoombadge">${scale.toFixed(1)}×</div>`
       : nothing}
-    ${this.fullscreen && scale === 1
+    ${this.expanded && scale === 1
       ? html`<div class="zoomhint">
-          Mausrad oder zwei Finger: Lupe · Ziehen: verschieben ·
-          Doppeltipp: zurücksetzen · Esc: verlassen
+          <span class="fine"
+            >Mausrad: Lupe · Ziehen: verschieben · Doppelklick: zurücksetzen ·
+            Esc: verlassen</span
+          >
+          <span class="coarse"
+            >Zwei Finger: Lupe · Ziehen: verschieben · Doppeltipp:
+            zurücksetzen · Kreuz oben rechts: verlassen</span
+          >
         </div>`
       : nothing}`;
   }
