@@ -3172,46 +3172,6 @@ let k = class extends A {
     const t = this.streamKeys;
     return o`
       <div class="page">
-        <div class="card">
-          <div class="row">
-            <div class="grow">
-              <label>Kamera</label>
-              <kustos-vision-select
-                .options=${this.cameras.map((e) => ({
-      value: e.slug,
-      label: e.name
-    }))}
-                .value=${this.camera}
-                @value-changed=${(e) => this.selectCamera(e.detail.value)}
-              ></kustos-vision-select>
-            </div>
-            <div class="grow">
-              <label>Tag</label>
-              <kustos-vision-select
-                .options=${this.days.length === 0 ? [{ value: "", label: "keine Aufnahmen" }] : this.days.map((e) => ({ value: e, label: e }))}
-                .value=${this.days.length === 0 ? "" : this.day}
-                @value-changed=${(e) => {
-      e.detail.value && (this.day = e.detail.value, this.loadDay());
-    }}
-              ></kustos-vision-select>
-            </div>
-            ${t.length > 1 ? o`<div class="grow">
-                  <label>Stream</label>
-                  <kustos-vision-select
-                    .options=${[
-      { value: "", label: "alle" },
-      ...t.map((e) => ({ value: e, label: e }))
-    ]}
-                    .value=${this.stream}
-                    @value-changed=${(e) => {
-      this.stream = e.detail.value, this.loadDay();
-    }}
-                  ></kustos-vision-select>
-                </div>` : d}
-          </div>
-          ${this.error ? o`<p class="error">${this.error}</p>` : d}
-        </div>
-
         <kustos-vision-player
           .api=${this.api}
           .segments=${this.segments}
@@ -3241,10 +3201,57 @@ let k = class extends A {
           ></kustos-vision-timeline>
         </div>
 
-        ${this.segments.length > 0 ? o`<div class="row">
+        <div class="cards">
+          <div class="card">
+            <h2>Auswahl</h2>
+            <div class="row">
+              <div class="picker">
+                <label>Kamera</label>
+                <kustos-vision-select
+                  compact
+                  .options=${this.cameras.map((e) => ({
+      value: e.slug,
+      label: e.name
+    }))}
+                  .value=${this.camera}
+                  @value-changed=${(e) => this.selectCamera(e.detail.value)}
+                ></kustos-vision-select>
+              </div>
+              <div class="picker">
+                <label>Tag</label>
+                <kustos-vision-select
+                  compact
+                  .options=${this.days.length === 0 ? [{ value: "", label: "keine Aufnahmen" }] : this.days.map((e) => ({ value: e, label: e }))}
+                  .value=${this.days.length === 0 ? "" : this.day}
+                  @value-changed=${(e) => {
+      e.detail.value && (this.day = e.detail.value, this.loadDay());
+    }}
+                ></kustos-vision-select>
+              </div>
+              ${t.length > 1 ? o`<div class="picker">
+                    <label>Stream</label>
+                    <kustos-vision-select
+                      compact
+                      .options=${[
+      { value: "", label: "alle" },
+      ...t.map((e) => ({ value: e, label: e }))
+    ]}
+                      .value=${this.stream}
+                      @value-changed=${(e) => {
+      this.stream = e.detail.value, this.loadDay();
+    }}
+                    ></kustos-vision-select>
+                  </div>` : d}
+            </div>
+            ${this.error ? o`<p class="error">${this.error}</p>` : d}
+          </div>
+
+          <div class="card">
+            <h2>Download</h2>
+            <div class="row">
               <button
                 class="secondary"
-                ?disabled=${this.busy || this.downloading}
+                ?disabled=${this.busy || this.downloading || this.segments.length === 0}
                 @click=${this.download}
               >
                 Diesen Tag herunterladen
@@ -3260,10 +3267,12 @@ let k = class extends A {
                 />
                 Zeitstempel einbrennen
               </label>
-              <span class="muted">
-                ${this.stampExport && this.stampAvailable ? "Das Video wird neu kodiert und die Aufnahmezeit ins Bild geschrieben; das dauert etwa so lange wie das Material selbst." + (this.stream === "" && this.streamKeys.length > 1 ? " Eingebrannt wird der Stream mit dem meisten Material; oben lässt sich ein bestimmter wählen." : "") : "Die Segmente werden ohne Neukodierung zusammengefügt."}
-              </span>
-            </div>` : d}
+            </div>
+            <p class="hint">
+              ${this.segments.length === 0 ? "Für den gewählten Tag ist nichts aufgezeichnet." : this.stampExport && this.stampAvailable ? "Das Video wird neu kodiert und die Aufnahmezeit ins Bild geschrieben; das dauert etwa so lange wie das Material selbst." + (this.stream === "" && this.streamKeys.length > 1 ? " Eingebrannt wird der Stream mit dem meisten Material; in der Auswahl lässt sich ein bestimmter wählen." : "") : "Die Segmente werden ohne Neukodierung zusammengefügt."}
+            </p>
+          </div>
+        </div>
       </div>
     `;
   }
@@ -3317,6 +3326,22 @@ k.styles = [
       }
       .page .card {
         margin-bottom: 0;
+      }
+      /* The two cards under the picture share the width and wrap when it
+         runs out. */
+      .cards {
+        display: flex;
+        gap: 16px;
+        align-items: flex-start;
+        flex-wrap: wrap;
+      }
+      .cards .card {
+        flex: 1 1 320px;
+      }
+      /* Secondary controls now: each picker keeps a modest width instead
+         of stretching across the card. */
+      .picker {
+        width: 200px;
       }
       label.stamp {
         display: flex;

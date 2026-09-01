@@ -82,6 +82,22 @@ export class CamwatchRecordings extends LitElement {
       .page .card {
         margin-bottom: 0;
       }
+      /* The two cards under the picture share the width and wrap when it
+         runs out. */
+      .cards {
+        display: flex;
+        gap: 16px;
+        align-items: flex-start;
+        flex-wrap: wrap;
+      }
+      .cards .card {
+        flex: 1 1 320px;
+      }
+      /* Secondary controls now: each picker keeps a modest width instead
+         of stretching across the card. */
+      .picker {
+        width: 200px;
+      }
       label.stamp {
         display: flex;
         align-items: center;
@@ -208,54 +224,6 @@ export class CamwatchRecordings extends LitElement {
     const keys = this.streamKeys;
     return html`
       <div class="page">
-        <div class="card">
-          <div class="row">
-            <div class="grow">
-              <label>Kamera</label>
-              <kustos-vision-select
-                .options=${this.cameras.map((c) => ({
-                  value: c.slug,
-                  label: c.name,
-                }))}
-                .value=${this.camera}
-                @value-changed=${(e: CustomEvent<{ value: string }>) =>
-                  this.selectCamera(e.detail.value)}
-              ></kustos-vision-select>
-            </div>
-            <div class="grow">
-              <label>Tag</label>
-              <kustos-vision-select
-                .options=${this.days.length === 0
-                  ? [{ value: "", label: "keine Aufnahmen" }]
-                  : this.days.map((d) => ({ value: d, label: d }))}
-                .value=${this.days.length === 0 ? "" : this.day}
-                @value-changed=${(e: CustomEvent<{ value: string }>) => {
-                  if (!e.detail.value) return;
-                  this.day = e.detail.value;
-                  void this.loadDay();
-                }}
-              ></kustos-vision-select>
-            </div>
-            ${keys.length > 1
-              ? html`<div class="grow">
-                  <label>Stream</label>
-                  <kustos-vision-select
-                    .options=${[
-                      { value: "", label: "alle" },
-                      ...keys.map((k) => ({ value: k, label: k })),
-                    ]}
-                    .value=${this.stream}
-                    @value-changed=${(e: CustomEvent<{ value: string }>) => {
-                      this.stream = e.detail.value;
-                      void this.loadDay();
-                    }}
-                  ></kustos-vision-select>
-                </div>`
-              : nothing}
-          </div>
-          ${this.error ? html`<p class="error">${this.error}</p>` : nothing}
-        </div>
-
         <kustos-vision-player
           .api=${this.api}
           .segments=${this.segments}
@@ -291,11 +259,67 @@ export class CamwatchRecordings extends LitElement {
           ></kustos-vision-timeline>
         </div>
 
-        ${this.segments.length > 0
-          ? html`<div class="row">
+        <div class="cards">
+          <div class="card">
+            <h2>Auswahl</h2>
+            <div class="row">
+              <div class="picker">
+                <label>Kamera</label>
+                <kustos-vision-select
+                  compact
+                  .options=${this.cameras.map((c) => ({
+                    value: c.slug,
+                    label: c.name,
+                  }))}
+                  .value=${this.camera}
+                  @value-changed=${(e: CustomEvent<{ value: string }>) =>
+                    this.selectCamera(e.detail.value)}
+                ></kustos-vision-select>
+              </div>
+              <div class="picker">
+                <label>Tag</label>
+                <kustos-vision-select
+                  compact
+                  .options=${this.days.length === 0
+                    ? [{ value: "", label: "keine Aufnahmen" }]
+                    : this.days.map((d) => ({ value: d, label: d }))}
+                  .value=${this.days.length === 0 ? "" : this.day}
+                  @value-changed=${(e: CustomEvent<{ value: string }>) => {
+                    if (!e.detail.value) return;
+                    this.day = e.detail.value;
+                    void this.loadDay();
+                  }}
+                ></kustos-vision-select>
+              </div>
+              ${keys.length > 1
+                ? html`<div class="picker">
+                    <label>Stream</label>
+                    <kustos-vision-select
+                      compact
+                      .options=${[
+                        { value: "", label: "alle" },
+                        ...keys.map((k) => ({ value: k, label: k })),
+                      ]}
+                      .value=${this.stream}
+                      @value-changed=${(e: CustomEvent<{ value: string }>) => {
+                        this.stream = e.detail.value;
+                        void this.loadDay();
+                      }}
+                    ></kustos-vision-select>
+                  </div>`
+                : nothing}
+            </div>
+            ${this.error ? html`<p class="error">${this.error}</p>` : nothing}
+          </div>
+
+          <div class="card">
+            <h2>Download</h2>
+            <div class="row">
               <button
                 class="secondary"
-                ?disabled=${this.busy || this.downloading}
+                ?disabled=${this.busy ||
+                this.downloading ||
+                this.segments.length === 0}
                 @click=${this.download}
               >
                 Diesen Tag herunterladen
@@ -313,16 +337,19 @@ export class CamwatchRecordings extends LitElement {
                 />
                 Zeitstempel einbrennen
               </label>
-              <span class="muted">
-                ${this.stampExport && this.stampAvailable
+            </div>
+            <p class="hint">
+              ${this.segments.length === 0
+                ? "Für den gewählten Tag ist nichts aufgezeichnet."
+                : this.stampExport && this.stampAvailable
                   ? "Das Video wird neu kodiert und die Aufnahmezeit ins Bild geschrieben; das dauert etwa so lange wie das Material selbst." +
                     (this.stream === "" && this.streamKeys.length > 1
-                      ? " Eingebrannt wird der Stream mit dem meisten Material; oben lässt sich ein bestimmter wählen."
+                      ? " Eingebrannt wird der Stream mit dem meisten Material; in der Auswahl lässt sich ein bestimmter wählen."
                       : "")
                   : "Die Segmente werden ohne Neukodierung zusammengefügt."}
-              </span>
-            </div>`
-          : nothing}
+            </p>
+          </div>
+        </div>
       </div>
     `;
   }
