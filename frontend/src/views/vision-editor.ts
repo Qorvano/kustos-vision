@@ -59,6 +59,7 @@ export class CamwatchVisionEditor extends LitElement {
   @state() private cooldown = 60;
   @state() private budget = 100;
   @state() private enabled = true;
+  @state() private detectPersons = false;
 
   @state() private aiTasks: AiTaskEntity[] = [];
   @state() private history: AnalysisRun[] = [];
@@ -119,6 +120,7 @@ export class CamwatchVisionEditor extends LitElement {
       this.cooldown = this.profile.cooldown_seconds;
       this.budget = this.profile.daily_budget;
       this.enabled = this.profile.enabled;
+      this.detectPersons = this.profile.detect_persons ?? false;
       void this.loadHistory();
     } else {
       // A camera that reports motion is almost always the trigger the user
@@ -148,6 +150,7 @@ export class CamwatchVisionEditor extends LitElement {
       cooldown_seconds: this.cooldown,
       daily_budget: this.budget,
       enabled: this.enabled,
+      detect_persons: this.detectPersons,
     };
   }
 
@@ -844,6 +847,23 @@ export class CamwatchVisionEditor extends LitElement {
               Heute ${state.analyses_today} von ${this.budget} Analysen genutzt.
             </p>`
           : nothing}
+
+        <div class="row" style="margin-top:8px">
+          <label style="margin:0">
+            <input
+              type="checkbox"
+              .checked=${this.detectPersons}
+              @change=${(e: Event) =>
+                (this.detectPersons = (e.target as HTMLInputElement).checked)}
+            />
+            Personenerkennung
+          </label>
+        </div>
+        <p class="hint">
+          Fragt bei jeder Analyse dieser Kamera zusätzlich, ob eine der
+          angelegten Personen zu sehen ist. Die Personen und ihre Fotos
+          verwalten Sie auf der Übersichtsseite der Bilderkennung.
+        </p>
 
         <div class="row" style="margin-top:8px">
           <label style="margin:0">

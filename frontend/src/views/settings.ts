@@ -21,12 +21,25 @@ import type {
   AvailableCamera,
   Camera,
   HomeAssistant,
+  ReferenceImage,
   Snapshot,
   StreamState,
   View,
 } from "../types";
 import "./camera-editor";
 import "./vision-editor";
+
+/** A person as edited on the card, stripped of live state. */
+type PersonDraft = {
+  id: string;
+  name: string;
+  enabled: boolean;
+  references: ReferenceImage[];
+};
+
+/** Mirrors the backend cap (core/persons.py): more photos per person risk
+ *  overflowing a small model's context wholesale. */
+const MAX_PHOTOS_PER_PERSON = 2;
 
 type Section = "cameras" | "vision" | "storage" | "views" | "system";
 
@@ -55,6 +68,11 @@ export class CamwatchSettings extends LitElement {
   @state() private error = "";
   /** Edits to the view list that are not stored yet, see renderViews. */
   @state() private viewsDraft?: View[];
+  /** Edits to the persons card that are not stored yet, see renderPersons. */
+  @state() private personsDraft?: PersonDraft[];
+  /** The Abklingzeit field while it differs from the stored value. */
+  @state() private absenceInput?: string;
+  @state() private personPhotoUrls = new Map<string, string>();
   /** A view row travelling with the pointer, see onViewDragStart. */
   @state() private viewDrag?: { fromIndex: number; currentIndex: number };
 
@@ -74,14 +92,18 @@ export class CamwatchSettings extends LitElement {
   /** The unsaved work this page itself holds: the view-list draft and the
       storage fields. The editors it opens register on their own. */
   private readonly unsavedSections: UnsavedWork = {
-    isDirty: () => this.viewsDirty() || this.storageDirty(),
+    isDirty: () =>
+      this.viewsDirty() || this.storageDirty() || this.personsDirty(),
     save: async () => {
       if (this.viewsDirty() && !(await this.commitViews())) return false;
       if (this.storageDirty() && !(await this.saveStorage())) return false;
+      if (this.personsDirty() && !(await this.commitPersons())) return false;
       return true;
     },
     discard: () => {
       this.viewsDraft = undefined;
+      this.personsDraft = undefined;
+      this.absenceInput = undefined;
       this.resetStorageInputs();
     },
   };
@@ -328,6 +350,305 @@ export class CamwatchSettings extends LitElement {
                 )}
               </table>
             </div>`}
+      </div>
+      ${this.renderPersons()}
+    `;
+  }
+
+  // ------------------------------------------------------------------
+  // Persons
+  // ------------------------------------------------------------------
+
+  private snapshotPersons(): PersonDraft[] {
+    return (this.snapshot.persons?.people ?? []).map((person) => ({
+      id: person.id,
+      name: person.name,
+      enabled: person.enabled ?? true,
+      references: person.references ?? [],
+    }));
+  }
+
+  /** The person list as currently edited; the draft until it is stored. */
+  private draftPersons(): PersonDraft[] {
+    return this.personsDraft ?? this.snapshotPersons();
+  }
+
+  private personsDirty(): boolean {
+    if (
+      this.absenceInput !== undefined &&
+      Number(this.absenceInput) !==
+        (this.snapshot.persons?.absence_seconds ?? 0)
+    ) {
+      return true;
+    }
+    if (!this.personsDraft) return false;
+    return (
+      JSON.stringify(this.personsDraft) !==
+      JSON.stringify(this.snapshotPersons())
+    );
+  }
+
+  private async commitPersons(): Promise<boolean> {
+    const draft = this.draftPersons();
+    if (draft.some((person) => !person.name.trim())) {
+      this.error = "Jede Person braucht einen Namen.";
+      return false;
+    }
+    const before = this.snapshotPersons();
+    // Deletions first, then upserts, then the shared option - each through
+    // its own command, so a failure leaves a consistent, reloadable state.
+    for (const person of before) {
+      if (draft.some((d) => d.id === person.id)) continue;
+      if (!(await this.run(() => this.api.deletePerson(person.id)))) {
+        return false;
+      }
+    }
+    for (const person of draft) {
+      const previous = before.find((p) => p.id === person.id);
+      if (previous && JSON.stringify(previous) === JSON.stringify(person)) {
+        continue;
+      }
+      const ok = await this.run(() =>
+        this.api.setPerson({
+          ...(person.id ? { person_id: person.id } : {}),
+          name: person.name.trim(),
+          enabled: person.enabled,
+          references: person.references,
+        }),
+      );
+      if (!ok) return false;
+    }
+    if (this.absenceInput !== undefined) {
+      const seconds = Math.max(0, Math.round(Number(this.absenceInput) || 0));
+      if (!(await this.run(() => this.api.setPersonsOptions(seconds)))) {
+        return false;
+      }
+      this.absenceInput = undefined;
+    }
+    this.personsDraft = undefined;
+    return true;
+  }
+
+  private patchPerson(index: number, patch: Partial<PersonDraft>): void {
+    this.personsDraft = this.draftPersons().map((person, i) =>
+      i === index ? { ...person, ...patch } : person,
+    );
+  }
+
+  private addPerson(): void {
+    // No id yet: the server derives it from the name on creation, because
+    // the id is the entity's identity and must not come from a half-typed
+    // name here.
+    this.personsDraft = [
+      ...this.draftPersons(),
+      { id: "", name: "", enabled: true, references: [] },
+    ];
+  }
+
+  private async uploadPersonPhoto(
+    index: number,
+    input: HTMLInputElement,
+  ): Promise<void> {
+    const file = input.files?.[0];
+    input.value = "";
+    if (!file) return;
+    this.busy = true;
+    this.error = "";
+    try {
+      const { asset_id } = await this.api.uploadReference(file);
+      const person = this.draftPersons()[index];
+      if (person.references.length >= MAX_PHOTOS_PER_PERSON) return;
+      this.patchPerson(index, {
+        references: [...person.references, { asset_id }],
+      });
+    } catch (err) {
+      this.error = errorText(err);
+    } finally {
+      this.busy = false;
+    }
+  }
+
+  /** A displayable URL for a stored photo, signed lazily on first use. */
+  private personPhotoUrl(assetId: string): string | undefined {
+    const known = this.personPhotoUrls.get(assetId);
+    if (known !== undefined) return known || undefined;
+    this.personPhotoUrls.set(assetId, "");
+    void this.api
+      .referenceUrl(assetId)
+      .then((url) => {
+        this.personPhotoUrls = new Map(this.personPhotoUrls).set(assetId, url);
+      })
+      .catch(() => {
+        // The thumbnail simply stays empty.
+      });
+    return undefined;
+  }
+
+  private personStateText(personId: string): string {
+    const person = this.snapshot.persons?.people.find(
+      (p) => p.id === personId,
+    );
+    const state = person?.state;
+    if (!state) return "";
+    if (state.present) {
+      return state.last_camera
+        ? `anwesend (zuletzt: ${state.last_camera})`
+        : "anwesend";
+    }
+    if (state.last_seen) {
+      return `abwesend, zuletzt ${new Date(state.last_seen).toLocaleString()}`;
+    }
+    return "noch nie gesehen";
+  }
+
+  private renderPersonRow(person: PersonDraft, index: number) {
+    return html`
+      <div class="divided">
+        <div class="row" style="align-items:center">
+          <div class="grow">
+            <label>Name</label>
+            <input
+              .value=${person.name}
+              placeholder="Wer soll erkannt werden?"
+              @change=${(e: Event) =>
+                this.patchPerson(index, {
+                  name: (e.target as HTMLInputElement).value,
+                })}
+            />
+          </div>
+          <label style="margin:0">
+            <input
+              type="checkbox"
+              .checked=${person.enabled}
+              @change=${(e: Event) =>
+                this.patchPerson(index, {
+                  enabled: (e.target as HTMLInputElement).checked,
+                })}
+            />
+            Aktiv
+          </label>
+          <button
+            class="danger compact"
+            ?disabled=${this.busy}
+            @click=${() =>
+              (this.personsDraft = this.draftPersons().filter(
+                (_, i) => i !== index,
+              ))}
+          >
+            Person entfernen
+          </button>
+        </div>
+        <div class="row" style="align-items:center;margin-top:8px">
+          ${person.references.map(
+            (reference, refIndex) => html`
+              ${this.personPhotoUrl(reference.asset_id)
+                ? html`<img
+                    style="display:block;height:64px;border-radius:4px"
+                    src=${this.personPhotoUrl(reference.asset_id)!}
+                    alt="Referenzfoto"
+                  />`
+                : html`<span class="muted">Foto wird geladen …</span>`}
+              <button
+                class="danger compact"
+                ?disabled=${this.busy}
+                @click=${() =>
+                  this.patchPerson(index, {
+                    references: person.references.filter(
+                      (_, i) => i !== refIndex,
+                    ),
+                  })}
+              >
+                Foto entfernen
+              </button>
+            `,
+          )}
+          <button
+            class="secondary compact"
+            ?disabled=${this.busy ||
+            person.references.length >= MAX_PHOTOS_PER_PERSON}
+            @click=${() =>
+              this.renderRoot
+                .querySelector<HTMLInputElement>(
+                  `input[data-photo-for="${index}"]`,
+                )
+                ?.click()}
+          >
+            Foto hinzufügen
+          </button>
+          <input
+            type="file"
+            accept="image/jpeg,image/png"
+            hidden
+            data-photo-for=${index}
+            @change=${(e: Event) =>
+              this.uploadPersonPhoto(index, e.target as HTMLInputElement)}
+          />
+          ${person.id
+            ? html`<span class="muted">${this.personStateText(person.id)}</span>`
+            : nothing}
+        </div>
+      </div>
+    `;
+  }
+
+  private renderPersons() {
+    const people = this.draftPersons();
+    const dirty = this.personsDirty();
+    return html`
+      <div class="card">
+        <h2>Personen</h2>
+        <p class="hint">
+          Personen, die das Modell anhand von Referenzfotos wiedererkennen
+          soll. Jede Person bekommt einen Anwesenheits-Sensor; gefragt wird
+          nur bei Kameras, deren Bilderkennung die Personenerkennung
+          eingeschaltet hat.
+        </p>
+        ${people.map((person, index) => this.renderPersonRow(person, index))}
+        <div class="row" style="margin-top:8px">
+          <button
+            class="secondary"
+            ?disabled=${this.busy}
+            @click=${() => this.addPerson()}
+          >
+            Person hinzufügen
+          </button>
+        </div>
+        <div class="fields" style="margin-top:8px">
+          <div>
+            <label>Abklingzeit in Sekunden</label>
+            <input
+              type="number"
+              min="0"
+              .value=${this.absenceInput ??
+              String(this.snapshot.persons?.absence_seconds ?? 0)}
+              @change=${(e: Event) =>
+                (this.absenceInput = (e.target as HTMLInputElement).value)}
+            />
+          </div>
+        </div>
+        <p class="hint">
+          Wie lange eine Person als anwesend gilt, nachdem sie zuletzt erkannt
+          wurde. 600 Sekunden entsprechen zehn Minuten; das überbrückt, dass
+          sich jemand kurz abwendet oder hinter dem Auto steht. Erst danach
+          meldet der Sensor wieder abwesend.
+        </p>
+        ${dirty
+          ? html`<div class="row" style="margin-top:8px">
+              <button ?disabled=${this.busy} @click=${() => this.commitPersons()}>
+                Speichern
+              </button>
+              <button
+                class="secondary"
+                ?disabled=${this.busy}
+                @click=${() => {
+                  this.personsDraft = undefined;
+                  this.absenceInput = undefined;
+                }}
+              >
+                Verwerfen
+              </button>
+            </div>`
+          : nothing}
       </div>
     `;
   }

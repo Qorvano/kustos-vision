@@ -10,6 +10,7 @@ import type {
   AvailableCamera,
   Camera,
   HomeAssistant,
+  ReferenceImage,
   Snapshot,
   Suggestion,
   Timeline,
@@ -280,6 +281,29 @@ export class CamwatchApi {
 
   aiTaskEntities(): Promise<{ ai_task: AiTaskEntity[] }> {
     return this.hass.callWS({ type: `${DOMAIN}/vision/backends` });
+  }
+
+  setPerson(person: {
+    person_id?: string;
+    name: string;
+    enabled: boolean;
+    references: ReferenceImage[];
+  }): Promise<Snapshot> {
+    return this.hass.callWS({ type: `${DOMAIN}/persons/set`, ...person });
+  }
+
+  deletePerson(personId: string): Promise<Snapshot> {
+    return this.hass.callWS({
+      type: `${DOMAIN}/persons/delete`,
+      person_id: personId,
+    });
+  }
+
+  setPersonsOptions(absenceSeconds: number): Promise<Snapshot> {
+    return this.hass.callWS({
+      type: `${DOMAIN}/persons/options`,
+      absence_seconds: absenceSeconds,
+    });
   }
 
   /** Upload a reference picture. The body is FormData and the Content-Type

@@ -134,7 +134,28 @@ export interface VisionProfile {
   cooldown_seconds: number;
   daily_budget: number;
   enabled: boolean;
+  /** Whether this camera's analyses also ask for the configured people. */
+  detect_persons?: boolean;
   state: VisionState;
+}
+
+export interface PersonState {
+  present: boolean;
+  last_seen: string | null;
+  last_camera: string | null;
+}
+
+export interface PersonProfile {
+  id: string;
+  name: string;
+  enabled?: boolean;
+  references?: ReferenceImage[];
+  state?: PersonState;
+}
+
+export interface PersonsSnapshot {
+  absence_seconds: number;
+  people: PersonProfile[];
 }
 
 export interface AnalysisRun {
@@ -188,6 +209,7 @@ export interface Snapshot {
   cameras: Camera[];
   views: View[];
   vision: VisionProfile[];
+  persons: PersonsSnapshot;
   capability_keys: string[];
   totals: {
     used_bytes: number;
