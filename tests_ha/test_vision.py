@@ -927,3 +927,218 @@ async def test_a_missing_reference_never_fails_the_analysis(
     result = await entry.runtime_data.vision.async_analyse("beispiel", force=True)
     assert result is not None
     assert analysed[0]["request"].references == ()
+
+
+# ----------------------------------------------------------------------
+# Persons
+# ----------------------------------------------------------------------
+
+
+def make_person(person_id: str = "dustin", **overrides):
+    from custom_components.kustos_vision.core.persons import PersonProfile
+
+    values = {"id": person_id, "name": "Dustin"}
+    values.update(overrides)
+    return PersonProfile(**values)
+
+
+async def setup_with_person(setup_vision, detect: bool = True):
+    entry = await setup_vision([profile(detect_persons=detect)])
+    coordinator = entry.runtime_data
+    await coordinator.async_set_config(
+        coordinator.config.with_person(make_person())
+    )
+    return entry
+
+
+def sighting_stub(seen: bool):
+    """A backend stub whose only opinion is whether the person was matched."""
+
+    async def _analyse(hass, camera, prof, entity_id, request=None):
+        return VisionResult(
+            values={"paket": True},
+            raw={},
+            duration_s=0.1,
+            persons={p.id: seen for p in (request.persons if request else ())},
+        )
+
+    return AsyncMock(side_effect=_analyse)
+
+
+async def test_detect_persons_off_sends_no_person_fields(
+    hass: HomeAssistant, setup_vision, analysed
+) -> None:
+    entry = await setup_with_person(setup_vision, detect=False)
+    await entry.runtime_data.vision.async_analyse("beispiel", force=True)
+    assert analysed[0]["request"].persons == ()
+
+
+async def test_detect_persons_passes_only_the_enabled_people(
+    hass: HomeAssistant, setup_vision, analysed
+) -> None:
+    entry = await setup_with_person(setup_vision)
+    coordinator = entry.runtime_data
+    await coordinator.async_set_config(
+        coordinator.config.with_person(
+            make_person("gast", name="Gast", enabled=False)
+        )
+    )
+    await coordinator.vision.async_analyse("beispiel", force=True)
+    assert [p.id for p in analysed[0]["request"].persons] == ["dustin"]
+
+
+async def test_a_sighting_turns_the_person_present_and_the_timer_ends_it(
+    hass: HomeAssistant, setup_vision
+) -> None:
+    """The whole presence contract: on within one analysis, off only after
+    the Abklingzeit - never because one frame did not show them."""
+    from pytest_homeassistant_custom_component.common import (
+        async_fire_time_changed,
+    )
+
+    entry = await setup_with_person(setup_vision)
+    coordinator = entry.runtime_data
+    with patch(
+        "custom_components.kustos_vision.vision_runner.async_analyse",
+        sighting_stub(True),
+    ):
+        await coordinator.vision.async_analyse("beispiel", force=True)
+    assert coordinator.persons.state_for("dustin").present is True
+    assert coordinator.persons.state_for("dustin").last_camera == "beispiel"
+
+    # One second past the configured off-delay: absent.
+    delay = coordinator.config.persons.absence_seconds
+    async_fire_time_changed(hass, dt_util.utcnow() + timedelta(seconds=delay + 1))
+    await hass.async_block_till_done()
+    assert coordinator.persons.state_for("dustin").present is False
+
+
+async def test_not_seeing_someone_never_switches_them_absent(
+    hass: HomeAssistant, setup_vision
+) -> None:
+    """Regression guard: the model not matching a person in one frame is not
+    evidence they left - they turned round or stood behind the car."""
+    entry = await setup_with_person(setup_vision)
+    coordinator = entry.runtime_data
+    with patch(
+        "custom_components.kustos_vision.vision_runner.async_analyse",
+        sighting_stub(True),
+    ):
+        await coordinator.vision.async_analyse("beispiel", force=True)
+    with patch(
+        "custom_components.kustos_vision.vision_runner.async_analyse",
+        sighting_stub(False),
+    ):
+        await coordinator.vision.async_analyse("beispiel", force=True)
+    assert coordinator.persons.state_for("dustin").present is True
+
+
+async def test_a_new_sighting_rearms_the_timer_instead_of_stacking(
+    hass: HomeAssistant, setup_vision, freezer
+) -> None:
+    from pytest_homeassistant_custom_component.common import (
+        async_fire_time_changed,
+    )
+
+    entry = await setup_with_person(setup_vision)
+    coordinator = entry.runtime_data
+    delay = coordinator.config.persons.absence_seconds
+
+    async def tick(seconds: int) -> None:
+        freezer.tick(timedelta(seconds=seconds))
+        async_fire_time_changed(hass, dt_util.utcnow())
+        await hass.async_block_till_done()
+
+    with patch(
+        "custom_components.kustos_vision.vision_runner.async_analyse",
+        sighting_stub(True),
+    ):
+        await coordinator.vision.async_analyse("beispiel", force=True)
+        # Two thirds into the delay: seen again, which re-arms.
+        await tick(delay * 2 // 3)
+        await coordinator.vision.async_analyse("beispiel", force=True)
+
+    # Past the FIRST sighting's would-be expiry: still present.
+    await tick(delay // 2)
+    assert coordinator.persons.state_for("dustin").present is True
+
+    # Past the re-armed expiry: absent.
+    await tick(delay)
+    assert coordinator.persons.state_for("dustin").present is False
+
+
+async def test_the_person_has_a_presence_entity_on_the_hub(
+    hass: HomeAssistant, setup_vision
+) -> None:
+    entry = await setup_with_person(setup_vision)
+    coordinator = entry.runtime_data
+    await hass.async_block_till_done()
+
+    from homeassistant.helpers import entity_registry as er
+
+    registry = er.async_get(hass)
+    match = next(
+        (
+            e
+            for e in registry.entities.values()
+            if e.unique_id == f"{entry.entry_id}_person_dustin"
+        ),
+        None,
+    )
+    assert match is not None
+    assert hass.states.get(match.entity_id).state == "off"
+
+    with patch(
+        "custom_components.kustos_vision.vision_runner.async_analyse",
+        sighting_stub(True),
+    ):
+        await coordinator.vision.async_analyse("beispiel", force=True)
+    await hass.async_block_till_done()
+    state = hass.states.get(match.entity_id)
+    assert state.state == "on"
+    assert state.attributes["last_camera"] == "beispiel"
+
+
+async def test_persons_ws_round_trip(
+    hass: HomeAssistant, hass_ws_client, setup_vision
+) -> None:
+    """Create, reconfigure and delete over the websocket, snapshot included."""
+    await setup_vision()
+    client = await hass_ws_client(hass)
+
+    await client.send_json_auto_id(
+        {"type": f"{DOMAIN}/persons/set", "name": "Dustin"}
+    )
+    reply = await client.receive_json()
+    assert reply["success"]
+    people = reply["result"]["persons"]["people"]
+    assert people[0]["id"] == "dustin"
+    assert people[0]["state"]["present"] is False
+
+    await client.send_json_auto_id(
+        {"type": f"{DOMAIN}/persons/options", "absence_seconds": 120}
+    )
+    reply = await client.receive_json()
+    assert reply["result"]["persons"]["absence_seconds"] == 120
+
+    await client.send_json_auto_id(
+        {"type": f"{DOMAIN}/persons/delete", "person_id": "dustin"}
+    )
+    reply = await client.receive_json()
+    assert reply["result"]["persons"]["people"] == []
+
+
+async def test_a_second_person_under_the_same_name_is_refused(
+    hass: HomeAssistant, hass_ws_client, setup_vision
+) -> None:
+    """The id is an entity's identity; silently replacing somebody else's
+    would rebind their history."""
+    await setup_vision()
+    client = await hass_ws_client(hass)
+    for _ in range(2):
+        await client.send_json_auto_id(
+            {"type": f"{DOMAIN}/persons/set", "name": "Dustin"}
+        )
+        reply = await client.receive_json()
+    assert not reply["success"]
+    assert reply["error"]["code"] == "invalid_config"

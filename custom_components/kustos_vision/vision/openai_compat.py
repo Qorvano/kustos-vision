@@ -21,7 +21,7 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from ..core.config import CameraConfig, VisionProfile
 from ..core.observations import to_json_schema
-from . import VisionError, VisionRequest, build_prompt
+from . import VisionError, VisionRequest, analysis_fields, build_prompt
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -127,7 +127,7 @@ async def async_run(
             "json_schema": {
                 "name": SCHEMA_NAME,
                 "strict": True,
-                "schema": to_json_schema(list(profile.active_observations)),
+                "schema": to_json_schema(analysis_fields(profile, request)),
             },
         },
         # Nothing here benefits from invention: the same picture should give

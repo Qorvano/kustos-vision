@@ -23,12 +23,15 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 from homeassistant.util import dt as dt_util
+from homeassistant.util import slugify
 
 from .actions import CapabilityError, async_trigger
 from .config_flow import async_validate_base_path
 from .capture import async_capture_frame
 from .const import DATA_STAMP_AVAILABLE, DOMAIN, LOCAL_STATE_DIR
+from .core.persons import PersonProfile
 from .core.references import (
+    ReferenceImage,
     asset_id_for,
     asset_path,
     find_asset,
@@ -89,6 +92,9 @@ def async_register(hass: HomeAssistant) -> None:
         ws_vision_backends,
         ws_delete_reference,
         ws_capture_reference,
+        ws_set_person,
+        ws_delete_person,
+        ws_persons_options,
     ):
         websocket_api.async_register_command(hass, command)
 
@@ -162,10 +168,31 @@ def _snapshot(coordinator: CamwatchCoordinator) -> dict[str, Any]:
             }
         )
 
+    persons = {
+        "absence_seconds": coordinator.config.persons.absence_seconds,
+        "people": [
+            {
+                **person.as_dict(),
+                "state": {
+                    "present": presence.present,
+                    "last_seen": (
+                        presence.last_seen.isoformat()
+                        if presence.last_seen
+                        else None
+                    ),
+                    "last_camera": presence.last_camera,
+                },
+            }
+            for person in coordinator.config.persons.people
+            for presence in [coordinator.persons.state_for(person.id)]
+        ],
+    }
+
     return {
         "storage": coordinator.config.storage.as_dict(),
         "cameras": cameras,
         "vision": vision,
+        "persons": persons,
         "views": [
             {
                 **view.as_dict(),
@@ -893,6 +920,7 @@ async def ws_timeline(
         vol.Optional("cooldown_seconds"): vol.All(int, vol.Range(min=0)),
         vol.Optional("daily_budget"): vol.All(int, vol.Range(min=1)),
         vol.Optional("enabled", default=True): bool,
+        vol.Optional("detect_persons", default=False): bool,
     }
 )
 @websocket_api.async_response
@@ -910,6 +938,7 @@ async def ws_set_vision(
         "triggers": msg["triggers"],
         "context": msg["context"],
         "enabled": msg["enabled"],
+        "detect_persons": msg["detect_persons"],
     }
     for optional in ("cooldown_seconds", "daily_budget"):
         if optional in msg:
@@ -967,9 +996,12 @@ async def ws_delete_reference(
     asset_id = msg["asset_id"]
     referenced = referenced_asset_ids(
         [
-            observation
-            for profile in coordinator.config.vision
-            for observation in profile.observations
+            *(
+                observation
+                for profile in coordinator.config.vision
+                for observation in profile.observations
+            ),
+            *coordinator.config.persons.people,
         ]
     )
     if asset_id in referenced:
@@ -982,6 +1014,96 @@ async def ws_delete_reference(
     if path is not None:
         await hass.async_add_executor_job(path.unlink)
     connection.send_result(msg["id"], {"deleted": path is not None})
+
+
+@websocket_api.require_admin
+@websocket_api.websocket_command(
+    {
+        vol.Required("type"): f"{DOMAIN}/persons/set",
+        # person_id, not "id": the websocket envelope already owns "id".
+        vol.Optional("person_id"): str,
+        vol.Required("name"): str,
+        vol.Optional("enabled", default=True): bool,
+        vol.Optional("references", default=[]): [dict],
+    }
+)
+@websocket_api.async_response
+async def ws_set_person(
+    hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict
+) -> None:
+    """Create or replace one person the model is asked to recognise."""
+    if (coordinator := _require(hass, connection, msg)) is None:
+        return
+    name = msg["name"].strip()
+    if not name:
+        connection.send_error(msg["id"], "invalid_config", "a person needs a name")
+        return
+    # The id is the entity's identity, derived from the name only on
+    # creation; renaming later keeps the entity and its history.
+    person_id = msg.get("person_id") or slugify(name)
+    if msg.get("person_id") is None and coordinator.config.persons.person(person_id):
+        connection.send_error(
+            msg["id"],
+            "invalid_config",
+            f"a person with the identifier {person_id!r} already exists",
+        )
+        return
+    try:
+        person = PersonProfile(
+            id=person_id,
+            name=name,
+            enabled=msg["enabled"],
+            references=tuple(
+                ReferenceImage.from_dict(r) for r in msg["references"]
+            ),
+        )
+        updated = coordinator.config.with_person(person)
+    except (ConfigError, ValueError, KeyError) as err:
+        connection.send_error(msg["id"], "invalid_config", str(err))
+        return
+    await coordinator.async_set_config(updated)
+    connection.send_result(msg["id"], _snapshot(coordinator))
+
+
+@websocket_api.require_admin
+@websocket_api.websocket_command(
+    {vol.Required("type"): f"{DOMAIN}/persons/delete", vol.Required("person_id"): str}
+)
+@websocket_api.async_response
+async def ws_delete_person(
+    hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict
+) -> None:
+    """Remove one person. Their entity stays behind, unavailable, so a person
+    re-created under the same id keeps their history."""
+    if (coordinator := _require(hass, connection, msg)) is None:
+        return
+    if coordinator.config.persons.person(msg["person_id"]) is None:
+        connection.send_error(msg["id"], "not_found", "no such person")
+        return
+    await coordinator.async_set_config(
+        coordinator.config.without_person(msg["person_id"])
+    )
+    connection.send_result(msg["id"], _snapshot(coordinator))
+
+
+@websocket_api.require_admin
+@websocket_api.websocket_command(
+    {
+        vol.Required("type"): f"{DOMAIN}/persons/options",
+        vol.Required("absence_seconds"): vol.All(int, vol.Range(min=0)),
+    }
+)
+@websocket_api.async_response
+async def ws_persons_options(
+    hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict
+) -> None:
+    """Change the one setting that governs all people: the off-delay."""
+    if (coordinator := _require(hass, connection, msg)) is None:
+        return
+    await coordinator.async_set_config(
+        coordinator.config.with_persons_options(msg["absence_seconds"])
+    )
+    connection.send_result(msg["id"], _snapshot(coordinator))
 
 
 @websocket_api.require_admin

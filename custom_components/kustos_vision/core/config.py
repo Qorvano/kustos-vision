@@ -19,6 +19,7 @@ from enum import StrEnum
 from typing import Any, Self
 
 from .observations import Observation, ObservationError
+from .persons import PersonProfile, PersonsConfig
 from .paths import is_valid_slug
 from .recorder import AudioMode
 
@@ -514,6 +515,10 @@ class VisionProfile:
     cooldown_seconds: int = DEFAULT_COOLDOWN_SECONDS
     daily_budget: int = DEFAULT_DAILY_BUDGET
     enabled: bool = True
+    detect_persons: bool = False
+    """Whether this camera's analyses also ask for the configured people.
+    One switch, off by default: not every camera should recognise persons,
+    and every person question costs the request pictures and context."""
 
     def __post_init__(self) -> None:
         if not is_valid_slug(self.camera_slug):
@@ -550,6 +555,7 @@ class VisionProfile:
             "cooldown_seconds": self.cooldown_seconds,
             "daily_budget": self.daily_budget,
             "enabled": self.enabled,
+            "detect_persons": self.detect_persons,
         }
 
     @classmethod
@@ -573,6 +579,7 @@ class VisionProfile:
             # condition_entity, the old "only while this entity is on" gate,
             # may still sit in stored data and is deliberately ignored.
             enabled=bool(data.get("enabled", True)),
+            detect_persons=bool(data.get("detect_persons", False)),
         )
 
 
@@ -668,6 +675,7 @@ class CamwatchConfig:
     cameras: tuple[CameraConfig, ...] = ()
     views: tuple[ViewConfig, ...] = ()
     vision: tuple[VisionProfile, ...] = ()
+    persons: PersonsConfig = field(default_factory=PersonsConfig)
 
     def camera(self, slug: str) -> CameraConfig | None:
         return next((c for c in self.cameras if c.slug == slug), None)
@@ -869,6 +877,29 @@ class CamwatchConfig:
             self, vision=tuple(p for p in self.vision if p.camera_slug != camera_slug)
         )
 
+    def with_person(self, person: PersonProfile) -> Self:
+        """Add or replace one person, keyed by the id that names the entity."""
+        others = tuple(p for p in self.persons.people if p.id != person.id)
+        return replace(
+            self, persons=replace(self.persons, people=(*others, person))
+        )
+
+    def without_person(self, person_id: str) -> Self:
+        return replace(
+            self,
+            persons=replace(
+                self.persons,
+                people=tuple(p for p in self.persons.people if p.id != person_id),
+            ),
+        )
+
+    def with_persons_options(self, absence_seconds: int) -> Self:
+        if absence_seconds < 0:
+            raise ConfigError("absence_seconds must not be negative")
+        return replace(
+            self, persons=replace(self.persons, absence_seconds=absence_seconds)
+        )
+
     @property
     def retention_days_by_camera(self) -> dict[str, int]:
         """The per-camera age limits, in the shape the retention policy wants.
@@ -886,6 +917,7 @@ class CamwatchConfig:
             "cameras": [c.as_dict() for c in self.cameras],
             "views": [v.as_dict() for v in self.views],
             "vision": [p.as_dict() for p in self.vision],
+            "persons": self.persons.as_dict(),
         }
 
     @classmethod
@@ -914,6 +946,9 @@ class CamwatchConfig:
             cameras=cameras,
             views=views,
             vision=vision,
+            # Absent in every configuration stored before the feature; the
+            # default covers that without a version bump.
+            persons=PersonsConfig.from_dict(data.get("persons", {})),
         )
 
 

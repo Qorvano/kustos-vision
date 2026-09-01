@@ -17,13 +17,13 @@ from homeassistant.core import HomeAssistant
 
 from ..core.config import CameraConfig, VisionProfile
 from ..core.observations import to_ai_task_structure
-from . import VisionError, VisionRequest, build_prompt
+from . import VisionError, VisionRequest, analysis_fields, build_prompt
 
 TASK_NAME = "kustos_vision vision"
 
 
-def _structure(profile: VisionProfile) -> vol.Schema:
-    """Turn the observations into the schema the answer is validated against.
+def _structure(asked: list) -> vol.Schema:
+    """Turn the asked fields into the schema the answer is validated against.
 
     Built the same way the ai_task service builds it from YAML, so a model that
     answers with something else fails here rather than writing nonsense into a
@@ -33,7 +33,7 @@ def _structure(profile: VisionProfile) -> vol.Schema:
     from homeassistant.helpers import selector
 
     fields = {}
-    for key, spec in to_ai_task_structure(list(profile.active_observations)).items():
+    for key, spec in to_ai_task_structure(asked).items():
         fields[vol.Required(key, description=spec[CONF_DESCRIPTION])] = (
             selector.selector(spec[CONF_SELECTOR])
         )
@@ -61,7 +61,7 @@ async def async_run(
             task_name=TASK_NAME,
             entity_id=profile.backend.entity_id,
             instructions=build_prompt(camera, profile),
-            structure=_structure(profile),
+            structure=_structure(analysis_fields(profile, request)),
             attachments=[
                 {
                     "media_content_id": f"media-source://camera/{camera_entity_id}",

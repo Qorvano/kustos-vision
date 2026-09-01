@@ -42,7 +42,12 @@ from .core.capture import (
     frames_dir,
 )
 from .core.config import CamwatchConfig, VisionProfile
-from .core.references import find_asset, plan_pictures
+from .core.persons import PersonProfile, plan_person_pictures
+from .core.references import (
+    MAX_PICTURES_PER_REQUEST,
+    find_asset,
+    plan_pictures,
+)
 from .vision import (
     ReferencePicture,
     VisionError,
@@ -270,10 +275,16 @@ class VisionRunner:
             state.analyses_today = state.count_for(today) + 1
             self._coordinator.async_update_listeners()
             frame: CapturedFrame | None = None
+            # Only enabled people, and only when this camera opted in.
+            persons: tuple[PersonProfile, ...] = (
+                tuple(p for p in config.persons.people if p.enabled)
+                if profile.detect_persons
+                else ()
+            )
             try:
                 # References first - they are static files and must not sit
                 # between the frame grab and the request.
-                references = await self._async_load_references(profile)
+                references = await self._async_load_references(profile, persons)
                 # The picture is taken here and nowhere earlier. The distance
                 # between the grab and the request is what "current" means;
                 # everything before this point is bookkeeping that must not
@@ -287,7 +298,9 @@ class VisionRunner:
                     camera,
                     profile,
                     entity_id,
-                    request=VisionRequest(frame=frame, references=references),
+                    request=VisionRequest(
+                        frame=frame, references=references, persons=persons
+                    ),
                 )
             except VisionError as err:
                 state.last_error = str(err)
@@ -304,6 +317,11 @@ class VisionRunner:
             state.last_error = None
             state.last_run = dt_util.utcnow()
             state.values.update(result.values)
+            # A True is a sighting; a False is nothing at all - only the
+            # tracker's timer ever switches a person to absent.
+            for person_id, seen in result.persons.items():
+                if seen:
+                    self._coordinator.persons.async_seen(person_id, camera_slug)
             self._record(state, reason, result, None, frame=frame)
             self._coordinator.async_update_listeners()
             return result
@@ -324,15 +342,23 @@ class VisionRunner:
         )
 
     async def _async_load_references(
-        self, profile: VisionProfile
+        self,
+        profile: VisionProfile,
+        persons: tuple[PersonProfile, ...] = (),
     ) -> tuple[ReferencePicture, ...]:
-        """Load the reference pictures this profile's questions carry.
+        """Load the reference pictures this analysis carries.
 
-        A missing file is a warning, never a failure: the analysis without
-        its reference still answers something, a refused analysis answers
-        nothing at all.
+        Question references first, person photos after, and the total capped
+        so the whole request stays inside a small model's context - an
+        overflowing request fails wholesale. A missing file is a warning,
+        never a failure: the analysis without its reference still answers
+        something, a refused analysis answers nothing at all.
         """
-        planned = plan_pictures(list(profile.active_observations))
+        budget = MAX_PICTURES_PER_REQUEST - 1  # the frame occupies one slot
+        planned = (
+            *plan_pictures(list(profile.active_observations)),
+            *plan_person_pictures(persons),
+        )[:budget]
         if not planned:
             return ()
         local_state = Path(self._hass.config.path(LOCAL_STATE_DIR))

@@ -13,6 +13,7 @@ from . import CamwatchEntry
 from .coordinator import CamwatchCoordinator
 from .core.observations import Observation, ObservationType
 from .entity import CamwatchCameraEntity, async_setup_cameras
+from .person_entity import async_setup_persons
 from .vision_entity import ObservationEntity, async_setup_observations
 
 
@@ -38,6 +39,7 @@ async def async_setup_entry(
             else []
         ),
     )
+    async_setup_persons(entry, coordinator, async_add_entities)
 
 
 class RecordingBinarySensor(CamwatchCameraEntity, BinarySensorEntity):

@@ -202,6 +202,29 @@ def test_config_round_trips() -> None:
     assert CamwatchConfig.from_dict(config.as_dict()) == config
 
 
+def test_config_with_persons_round_trips() -> None:
+    from kustos_vision.core.persons import PersonProfile, PersonsConfig
+
+    config = CamwatchConfig(
+        storage=storage(),
+        cameras=(camera(),),
+        persons=PersonsConfig(
+            people=(PersonProfile(id="dustin", name="Dustin"),),
+            absence_seconds=120,
+        ),
+    )
+    assert CamwatchConfig.from_dict(config.as_dict()) == config
+
+
+def test_a_stored_config_without_a_persons_key_loads() -> None:
+    """Every configuration stored before the feature lacks the key; the
+    default covers that without a version bump."""
+    data = CamwatchConfig(storage=storage()).as_dict()
+    del data["persons"]
+    loaded = CamwatchConfig.from_dict(data)
+    assert loaded.persons.people == ()
+
+
 def test_stored_version_is_recorded() -> None:
     assert CamwatchConfig(storage=storage()).as_dict()["version"] == CONFIG_VERSION
 

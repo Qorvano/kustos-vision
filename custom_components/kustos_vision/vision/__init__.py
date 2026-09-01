@@ -26,7 +26,14 @@ from homeassistant.exceptions import HomeAssistantError
 
 from ..core.capture import CapturedFrame
 from ..core.config import CameraConfig, VisionBackendKind, VisionProfile
-from ..core.observations import coerce_answers
+from ..core.observations import Observation, coerce_answers
+from ..core.persons import (
+    PersonField,
+    PersonProfile,
+    is_person_field,
+    person_id_from_field,
+    person_observations,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -63,6 +70,11 @@ class VisionRequest:
     """Reference pictures, already loaded, in the order they travel - always
     AFTER the frame, so a truncating runner loses references, not evidence."""
 
+    persons: tuple[PersonProfile, ...] = ()
+    """The people this analysis asks for. Their boolean fields are merged
+    into the schema at request time and split back out of the answer here,
+    so the entities never see a person key."""
+
 
 @dataclass(frozen=True, slots=True)
 class VisionResult:
@@ -81,6 +93,9 @@ class VisionResult:
     the only way to improve a prompt without guessing."""
 
     duration_s: float = 0.0
+
+    persons: dict[str, bool] = field(default_factory=dict)
+    """Person id -> whether the model matched them in this frame."""
 
 
 def build_prompt(camera: CameraConfig, profile: VisionProfile) -> str:
@@ -137,11 +152,33 @@ async def async_analyse(
             f"the model answered with {type(raw).__name__}, not a set of fields"
         )
 
-    values, problems = coerce_answers(list(profile.active_observations), raw)
+    values, problems = coerce_answers(analysis_fields(profile, request), raw)
+    # The person fields are split back out here, once, so neither the
+    # backends nor the observation entities ever see a person key.
+    persons: dict[str, bool] = {}
+    for key in [k for k in values if is_person_field(k)]:
+        persons[person_id_from_field(key)] = bool(values.pop(key))
     if problems:
         _LOGGER.debug(
             "kustos_vision: %s could not be read from the answer: %s",
             camera.slug,
             problems,
         )
-    return VisionResult(values=values, problems=problems, raw=raw, duration_s=duration)
+    return VisionResult(
+        values=values,
+        problems=problems,
+        raw=raw,
+        duration_s=duration,
+        persons=persons,
+    )
+
+
+def analysis_fields(
+    profile: VisionProfile, request: VisionRequest | None
+) -> list[Observation | PersonField]:
+    """Every field one analysis asks: the user's questions plus the synthetic
+    person fields. One function, used for the schema AND for reading the
+    answer, so the two cannot disagree about what was asked.
+    """
+    extra = person_observations(request.persons) if request is not None else ()
+    return [*profile.active_observations, *extra]

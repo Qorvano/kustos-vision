@@ -28,6 +28,7 @@ from .core.references import (
     references_dir,
 )
 from .maintenance import MaintenanceResult, MaintenanceRunner, interval_for
+from .persons import PersonPresenceTracker
 from .recorder import RecorderManager, StreamStatus
 from .storage import CamwatchStore
 from .supervisor_mount import async_reconnectable_mount
@@ -104,6 +105,7 @@ class CamwatchCoordinator(DataUpdateCoordinator[CamwatchData]):
         self.recorder = RecorderManager(hass, self._on_recorder_change)
         self.maintenance = MaintenanceRunner(hass, index)
         self.vision = VisionRunner(hass, self)
+        self.persons = PersonPresenceTracker(hass, self)
         # Why the recording location cannot be used right now, or None. The
         # location is probed every cycle rather than once at setup: the one
         # place it can be changed is the panel, and the panel only exists
@@ -147,6 +149,7 @@ class CamwatchCoordinator(DataUpdateCoordinator[CamwatchData]):
     async def async_shutdown(self) -> None:
         """Stop recording and stop watching. Called on unload and on stop."""
         self.vision.async_stop()
+        self.persons.async_stop()
         await self.recorder.async_stop_all()
         await super().async_shutdown()
 
@@ -173,6 +176,7 @@ class CamwatchCoordinator(DataUpdateCoordinator[CamwatchData]):
 
         await self.recorder.async_apply(config.storage, config.cameras)
         self.vision.async_apply(config)
+        self.persons.async_apply(config)
         self.hass.async_create_task(self.async_prune_references())
         await self.async_publish_state()
 
@@ -182,11 +186,17 @@ class CamwatchCoordinator(DataUpdateCoordinator[CamwatchData]):
         The grace period inside the sweep protects a picture that was
         uploaded but whose profile has not been saved yet.
         """
+        # Everything that names a picture counts: the questions of every
+        # profile AND the configured people - a person's photo is exactly as
+        # referenced as a question's.
         referenced = referenced_asset_ids(
             [
-                observation
-                for profile in self.config.vision
-                for observation in profile.observations
+                *(
+                    observation
+                    for profile in self.config.vision
+                    for observation in profile.observations
+                ),
+                *self.config.persons.people,
             ]
         )
         directory = references_dir(Path(self.hass.config.path(LOCAL_STATE_DIR)))
