@@ -153,7 +153,9 @@ async def async_analyse(
     request: VisionRequest | None = None,
 ) -> VisionResult:
     """Run one analysis through whichever backend the profile names."""
-    if not profile.active_observations:
+    # Fields, not observations: a profile without questions still asks
+    # something when the request carries people to recognise.
+    if not analysis_fields(profile, request):
         raise VisionError(f"vision profile for {camera.slug!r} asks nothing")
 
     if profile.backend.kind is VisionBackendKind.AI_TASK:

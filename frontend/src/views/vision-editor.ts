@@ -139,6 +139,15 @@ export class CamwatchVisionEditor extends LitElement {
     }
   }
 
+  /** A profile that would have nothing to analyse cannot be saved.
+
+      Regression: this used to demand at least one question, which locked
+      the Speichern button for a camera that should ONLY recognise persons -
+      while the navigation guard's save happily stored exactly that. */
+  private saveBlocked(): boolean {
+    return this.observations.length === 0 && !this.detectPersons;
+  }
+
   /** What save() sends, and the yardstick unsaved work is measured by. */
   private payload() {
     return {
@@ -886,8 +895,15 @@ ${JSON.stringify(this.lastRun.raw, null, 2)}</pre
           : nothing}
         ${this.renderHistory()}
 
+        ${this.saveBlocked() && !this.busy
+          ? html`<p class="hint">
+              Ohne Frage und ohne Personenerkennung gäbe es nichts zu
+              analysieren. Legen Sie eine Frage an oder schalten Sie die
+              Personenerkennung ein.
+            </p>`
+          : nothing}
         <div class="row" style="margin-top:16px">
-          <button ?disabled=${this.busy || this.observations.length === 0} @click=${this.save}>
+          <button ?disabled=${this.busy || this.saveBlocked()} @click=${this.save}>
             Speichern
           </button>
           ${this.profile

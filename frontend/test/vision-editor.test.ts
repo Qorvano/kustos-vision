@@ -14,6 +14,8 @@ import type { Observation } from "../src/types";
 type EditorInternals = {
   api: CamwatchApi;
   camera: { slug: string };
+  detectPersons: boolean;
+  saveBlocked(): boolean;
   observations: Observation[];
   baseline: string;
   unsaved: { isDirty(): boolean };
@@ -35,6 +37,29 @@ const QUESTION: Observation = {
   type: "boolean",
   question: "Ist die gelbe Tonne zu sehen?",
 };
+
+describe("saving is blocked only when there is nothing to analyse", () => {
+  // Regression: the Speichern button demanded at least one question, which
+  // locked it for a camera that should ONLY recognise persons - while the
+  // navigation guard's save happily stored exactly that configuration.
+  it("a person-only profile can be saved", () => {
+    const el = editor([]);
+    el.detectPersons = true;
+    expect(el.saveBlocked()).toBe(false);
+  });
+
+  it("no questions and no person detection is nothing to analyse", () => {
+    const el = editor([]);
+    el.detectPersons = false;
+    expect(el.saveBlocked()).toBe(true);
+  });
+
+  it("a question alone is enough", () => {
+    const el = editor([{ ...QUESTION }]);
+    el.detectPersons = false;
+    expect(el.saveBlocked()).toBe(false);
+  });
+});
 
 describe("reference pictures are unsaved work until saved", () => {
   it("adding a photo makes the editor dirty", async () => {

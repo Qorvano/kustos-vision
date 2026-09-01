@@ -84,6 +84,21 @@ class VisionState:
         return self.analyses_today if self.budget_day == today else 0
 
 
+def _asks_anything(profile: VisionProfile, config: CamwatchConfig) -> bool:
+    """Whether an analysis of this profile would have any field at all.
+
+    Before persons existed, "no questions" was the whole definition of a
+    pointless profile. A profile without questions is meaningful now when it
+    recognises the configured people - the person fields are synthesised at
+    request time, so they never show up in active_observations.
+    """
+    if profile.active_observations:
+        return True
+    return profile.detect_persons and any(
+        person.enabled for person in config.persons.people
+    )
+
+
 def _read_asset(local_state: Path, asset_id: str) -> tuple[bytes, str] | None:
     """Read one stored reference picture, or None when it is gone."""
     path = find_asset(local_state, asset_id)
@@ -139,7 +154,7 @@ class VisionRunner:
 
         watched: dict[str, list[str]] = {}
         for profile in config.vision:
-            if not profile.enabled or not profile.active_observations:
+            if not profile.enabled or not _asks_anything(profile, config):
                 continue
             for entity_id in profile.triggers:
                 watched.setdefault(entity_id, []).append(profile.camera_slug)
@@ -212,7 +227,7 @@ class VisionRunner:
         """Return why an analysis must not run now, or None when it may."""
         if not profile.enabled:
             return "the profile is switched off"
-        if not profile.active_observations:
+        if not _asks_anything(profile, self._coordinator.config):
             return "the profile asks nothing"
 
         today = dt_util.now().date()

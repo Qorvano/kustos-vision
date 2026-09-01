@@ -1203,3 +1203,31 @@ async def test_the_media_source_refuses_what_the_views_would_refuse(
         await media_source.async_resolve_media(
             hass, f"media-source://kustos_vision/{identifier}", None
         )
+
+
+async def test_a_profile_with_only_person_detection_still_runs(
+    hass: HomeAssistant, setup_vision, analysed
+) -> None:
+    """Regression: "no questions" used to be the whole definition of a
+    pointless profile, so a camera meant to ONLY recognise persons never
+    subscribed its trigger and every analysis was refused - while the
+    editor's navigation guard happily saved exactly that configuration."""
+    entry = await setup_vision([profile(observations=[], detect_persons=True)])
+    coordinator = entry.runtime_data
+    await coordinator.async_set_config(
+        coordinator.config.with_person(make_person())
+    )
+    await fire(hass, "off")
+    await fire(hass, "on")
+    assert len(analysed) == 1
+    assert [p.id for p in analysed[0]["request"].persons] == ["dustin"]
+
+
+async def test_person_detection_without_any_person_is_still_pointless(
+    hass: HomeAssistant, setup_vision, analysed
+) -> None:
+    """The switch alone asks nothing; only configured, enabled people do."""
+    await setup_vision([profile(observations=[], detect_persons=True)])
+    await fire(hass, "off")
+    await fire(hass, "on")
+    assert analysed == []

@@ -435,3 +435,55 @@ def test_ai_task_falls_back_to_the_camera_attachment_without_a_frame() -> None:
             "media_content_type": "image/jpeg",
         }
     ]
+
+
+async def test_a_person_only_analysis_passes_the_asks_nothing_guard(
+    hass: HomeAssistant,
+) -> None:
+    """The guard counts fields, not stored questions: people to recognise
+    are fields too, synthesised at request time."""
+    import json as jsonlib
+    from unittest.mock import patch
+
+    from custom_components.kustos_vision.core.capture import (
+        CapturedFrame,
+        FrameSource,
+    )
+    from custom_components.kustos_vision.core.persons import PersonProfile
+    from custom_components.kustos_vision.vision import (
+        VisionRequest,
+        async_analyse,
+    )
+    from custom_components.kustos_vision.vision import openai_compat  # noqa: F401
+    from homeassistant.util import dt as dt_util
+
+    class FakeResponse:
+        status = 200
+
+        async def text(self) -> str:
+            return jsonlib.dumps(
+                {"choices": [{"message": {"content": "{\"_person_dustin\": true}"}}]}
+            )
+
+    class FakeSession:
+        async def post(self, url, json=None, headers=None, timeout=None):
+            return FakeResponse()
+
+    empty = VisionProfile(camera_slug="beispiel", backend=PROFILE.backend)
+    request = VisionRequest(
+        frame=CapturedFrame(
+            content=b"frame",
+            content_type="image/jpeg",
+            taken_at=dt_util.utcnow(),
+            source=FrameSource.STREAM,
+        ),
+        persons=(PersonProfile(id="dustin", name="Dustin"),),
+    )
+    with patch(
+        "custom_components.kustos_vision.vision.openai_compat."
+        "async_get_clientsession",
+        return_value=FakeSession(),
+    ):
+        result = await async_analyse(hass, CAMERA, empty, "camera.vg", request=request)
+    assert result.persons == {"dustin": True}
+    assert result.values == {}
