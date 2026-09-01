@@ -19,13 +19,20 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from aiohttp import web
-from homeassistant.components.http import HomeAssistantView
+from homeassistant.components.http import KEY_HASS_USER, HomeAssistantView
 from homeassistant.core import HomeAssistant
 
 from .const import DATA_STAMP_AVAILABLE, DOMAIN, LOCAL_STATE_DIR
 from .core.capture import frames_dir, is_frame_name
 from .core.index import SegmentIndex
 from .core.paths import is_valid_slug, parse_day_dir, parse_segment_name
+from .core.references import (
+    MAX_REFERENCE_BYTES,
+    asset_id_for,
+    asset_path,
+    find_asset,
+    sniff_image,
+)
 from .export import STAMP_DEFAULT_QUALITY, STAMP_QUALITY_CRF, stream_export
 
 _LOGGER = logging.getLogger(__name__)
@@ -34,6 +41,7 @@ SEGMENT_URL = f"/api/{DOMAIN}/segment"
 THUMBNAIL_URL = f"/api/{DOMAIN}/thumbnail"
 EXPORT_URL = f"/api/{DOMAIN}/export"
 VISION_FRAME_URL = f"/api/{DOMAIN}/vision-frame"
+REFERENCE_URL = f"/api/{DOMAIN}/reference"
 
 # Ring slots are REUSED: the same name holds a different run's picture after
 # twenty analyses. no-cache still permits FileResponse's ETag/Last-Modified
@@ -52,6 +60,10 @@ MAX_EXPORT_SECONDS = 25 * 60 * 60
 # should not fetch the same bytes twice. A day is far below the shortest
 # retention anyone would configure.
 CACHE_SECONDS = 24 * 60 * 60
+
+# References are content-addressed: the bytes behind an id can never change,
+# which is what earns the immutable that the frame ring cannot claim.
+REFERENCE_CACHE_CONTROL = f"private, max-age={CACHE_SECONDS}, immutable"
 
 
 def _safe_relative(raw: str) -> Path | None:
@@ -264,9 +276,110 @@ class VisionFrameView(HomeAssistantView):
         )
 
 
+class ReferenceUploadView(HomeAssistantView):
+    """Accepting a reference picture, following core's image_upload.
+
+    A POST view rather than websocket, because the websocket cannot carry
+    binary and base64 would hold the whole picture in memory twice.
+    """
+
+    url = REFERENCE_URL
+    name = f"api:{DOMAIN}:reference-upload"
+    requires_auth = True
+
+    def __init__(self, hass: HomeAssistant) -> None:
+        self.hass = hass
+
+    async def post(self, request: web.Request) -> web.Response:
+        user = request.get(KEY_HASS_USER)
+        if user is None or not user.is_admin:
+            return web.Response(status=403)
+        # aiohttp enforces this itself and refuses an oversized body with 413
+        # before holding a byte of it; checking Content-Length afterwards
+        # would trust the sender about the size of what they sent.
+        request._client_max_size = MAX_REFERENCE_BYTES  # noqa: SLF001
+        try:
+            data = await request.post()
+        except web.HTTPRequestEntityTooLarge:
+            return web.Response(
+                status=413,
+                text=(
+                    "Das Bild ist größer als "
+                    f"{MAX_REFERENCE_BYTES // (1024 * 1024)} MB. Bitte laden "
+                    "Sie eine kleinere Datei hoch."
+                ),
+            )
+
+        uploaded = data.get("file")
+        if not hasattr(uploaded, "file"):
+            return web.Response(
+                status=400, text="Es wurde keine Datei übermittelt."
+            )
+        content = await self.hass.async_add_executor_job(uploaded.file.read)
+
+        # From the content, never from the file name or the browser's claim:
+        # both are the uploader's to choose.
+        content_type = sniff_image(content)
+        if content_type is None:
+            return web.Response(
+                status=400,
+                text="Nur JPEG- und PNG-Bilder werden als Referenz akzeptiert.",
+            )
+
+        asset_id = asset_id_for(content)
+        target = asset_path(
+            Path(self.hass.config.path(LOCAL_STATE_DIR)), asset_id, content_type
+        )
+        await self.hass.async_add_executor_job(_write_asset, target, content)
+        return self.json(
+            {
+                "asset_id": asset_id,
+                "content_type": content_type,
+                "bytes": len(content),
+            }
+        )
+
+
+def _write_asset(target: Path, content: bytes) -> None:
+    target.parent.mkdir(parents=True, exist_ok=True)
+    # Content-addressed: an existing file already holds exactly these bytes.
+    if not target.is_file():
+        target.write_bytes(content)
+
+
+class ReferenceServeView(HomeAssistantView):
+    """One stored reference picture, addressed by its content id."""
+
+    url = REFERENCE_URL + "/{asset_id}"
+    name = f"api:{DOMAIN}:reference"
+    requires_auth = True
+
+    def __init__(self, hass: HomeAssistant) -> None:
+        self.hass = hass
+
+    async def get(
+        self, request: web.Request, asset_id: str
+    ) -> web.StreamResponse:
+        path = await self.hass.async_add_executor_job(
+            find_asset, Path(self.hass.config.path(LOCAL_STATE_DIR)), asset_id
+        )
+        if path is None:
+            return web.Response(status=404)
+        content_type = "image/png" if path.suffix == ".png" else "image/jpeg"
+        return web.FileResponse(
+            path,
+            headers={
+                "Content-Type": content_type,
+                "Cache-Control": REFERENCE_CACHE_CONTROL,
+            },
+        )
+
+
 def async_register_views(hass: HomeAssistant) -> None:
     """Register the file endpoints, once per Home Assistant run."""
     hass.http.register_view(SegmentView(hass))
     hass.http.register_view(ThumbnailView(hass))
     hass.http.register_view(ExportView(hass))
     hass.http.register_view(VisionFrameView(hass))
+    hass.http.register_view(ReferenceUploadView(hass))
+    hass.http.register_view(ReferenceServeView(hass))

@@ -42,7 +42,14 @@ from .core.capture import (
     frames_dir,
 )
 from .core.config import CamwatchConfig, VisionProfile
-from .vision import VisionError, VisionRequest, VisionResult, async_analyse
+from .core.references import find_asset, plan_pictures
+from .vision import (
+    ReferencePicture,
+    VisionError,
+    VisionRequest,
+    VisionResult,
+    async_analyse,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -70,6 +77,18 @@ class VisionState:
     def count_for(self, today: date) -> int:
         """Analyses used today, resetting when the local day rolls over."""
         return self.analyses_today if self.budget_day == today else 0
+
+
+def _read_asset(local_state: Path, asset_id: str) -> tuple[bytes, str] | None:
+    """Read one stored reference picture, or None when it is gone."""
+    path = find_asset(local_state, asset_id)
+    if path is None:
+        return None
+    try:
+        content = path.read_bytes()
+    except OSError:
+        return None
+    return content, "image/png" if path.suffix == ".png" else "image/jpeg"
 
 
 class SkipReason(str):
@@ -252,6 +271,9 @@ class VisionRunner:
             self._coordinator.async_update_listeners()
             frame: CapturedFrame | None = None
             try:
+                # References first - they are static files and must not sit
+                # between the frame grab and the request.
+                references = await self._async_load_references(profile)
                 # The picture is taken here and nowhere earlier. The distance
                 # between the grab and the request is what "current" means;
                 # everything before this point is bookkeeping that must not
@@ -265,7 +287,7 @@ class VisionRunner:
                     camera,
                     profile,
                     entity_id,
-                    request=VisionRequest(frame=frame),
+                    request=VisionRequest(frame=frame, references=references),
                 )
             except VisionError as err:
                 state.last_error = str(err)
@@ -300,6 +322,41 @@ class VisionRunner:
         return frames_dir(
             Path(self._hass.config.path(LOCAL_STATE_DIR)), camera_slug
         )
+
+    async def _async_load_references(
+        self, profile: VisionProfile
+    ) -> tuple[ReferencePicture, ...]:
+        """Load the reference pictures this profile's questions carry.
+
+        A missing file is a warning, never a failure: the analysis without
+        its reference still answers something, a refused analysis answers
+        nothing at all.
+        """
+        planned = plan_pictures(list(profile.active_observations))
+        if not planned:
+            return ()
+        local_state = Path(self._hass.config.path(LOCAL_STATE_DIR))
+        loaded: list[ReferencePicture] = []
+        for picture in planned:
+            data = await self._hass.async_add_executor_job(
+                _read_asset, local_state, picture.asset_id
+            )
+            if data is None:
+                _LOGGER.warning(
+                    "kustos_vision: reference picture %s is missing; "
+                    "the analysis runs without it",
+                    picture.asset_id,
+                )
+                continue
+            content, content_type = data
+            loaded.append(
+                ReferencePicture(
+                    content=content,
+                    content_type=content_type,
+                    preamble=picture.preamble,
+                )
+            )
+        return tuple(loaded)
 
     def _camera_entity(self, camera_slug: str) -> str | None:
         """Which entity to take the snapshot from.

@@ -208,3 +208,126 @@ async def test_analysing_without_questions_is_refused(hass: HomeAssistant) -> No
     empty = VisionProfile(camera_slug="beispiel", backend=PROFILE.backend)
     with pytest.raises(VisionError, match="asks nothing"):
         await async_analyse(hass, CAMERA, empty, "camera.vg")
+
+
+# ----------------------------------------------------------------------
+# The message a request carries
+# ----------------------------------------------------------------------
+
+
+async def test_the_frame_travels_first_and_references_after(
+    hass: HomeAssistant,
+) -> None:
+    """The order is the graceful-degradation guarantee: a runner that
+    truncates or a model that only honours the first image loses references,
+    never the evidence - and the closing text re-anchors the questions on the
+    current frame after the model's attention drifted to later pictures."""
+    import json as jsonlib
+    from unittest.mock import patch
+
+    from custom_components.kustos_vision.core.capture import (
+        CapturedFrame,
+        FrameSource,
+    )
+    from custom_components.kustos_vision.vision import (
+        ReferencePicture,
+        VisionRequest,
+    )
+    from custom_components.kustos_vision.vision import openai_compat
+    from homeassistant.util import dt as dt_util
+
+    captured: dict = {}
+
+    class FakeResponse:
+        status = 200
+
+        async def text(self) -> str:
+            return jsonlib.dumps(
+                {"choices": [{"message": {"content": "{\"paket\": true}"}}]}
+            )
+
+    class FakeSession:
+        async def post(self, url, json=None, headers=None, timeout=None):
+            captured["payload"] = json
+            return FakeResponse()
+
+    request = VisionRequest(
+        frame=CapturedFrame(
+            content=b"frame-bytes",
+            content_type="image/jpeg",
+            taken_at=dt_util.utcnow(),
+            source=FrameSource.STREAM,
+        ),
+        references=(
+            ReferencePicture(
+                content=b"reference-bytes",
+                content_type="image/png",
+                preamble="Reference picture 1. Der Hinterhof.",
+            ),
+        ),
+    )
+    with patch(
+        "custom_components.kustos_vision.vision.openai_compat."
+        "async_get_clientsession",
+        return_value=FakeSession(),
+    ):
+        raw, _ = await openai_compat.async_run(
+            hass, CAMERA, PROFILE, "camera.vg", request=request
+        )
+    assert raw == {"paket": True}
+
+    content = captured["payload"]["messages"][0]["content"]
+    kinds = [part["type"] for part in content]
+    assert kinds == [
+        "text",       # framing prompt
+        "text",       # "this is the current camera frame"
+        "image_url",  # the frame
+        "text",       # the reference's preamble
+        "image_url",  # the reference
+        "text",       # the re-anchor
+    ]
+    assert content[2]["image_url"]["url"].startswith("data:image/jpeg")
+    assert content[4]["image_url"]["url"].startswith("data:image/png")
+    assert "current camera frame" in content[-1]["text"]
+
+
+async def test_without_references_the_message_shape_is_unchanged(
+    hass: HomeAssistant,
+) -> None:
+    """The feature must cost nothing when unused: one text, one image,
+    exactly as before it existed."""
+    import json as jsonlib
+    from unittest.mock import AsyncMock, patch
+
+    from custom_components.kustos_vision.vision import openai_compat
+
+    captured: dict = {}
+
+    class FakeResponse:
+        status = 200
+
+        async def text(self) -> str:
+            return jsonlib.dumps(
+                {"choices": [{"message": {"content": "{}"}}]}
+            )
+
+    class FakeSession:
+        async def post(self, url, json=None, headers=None, timeout=None):
+            captured["payload"] = json
+            return FakeResponse()
+
+    with (
+        patch(
+            "custom_components.kustos_vision.vision.openai_compat."
+            "async_get_clientsession",
+            return_value=FakeSession(),
+        ),
+        patch(
+            "custom_components.kustos_vision.vision.openai_compat._snapshot",
+            AsyncMock(return_value=(b"still", "image/jpeg")),
+        ),
+    ):
+        await openai_compat.async_run(hass, CAMERA, PROFILE, "camera.vg")
+
+    kinds = [p["type"] for p in captured["payload"]["messages"][0]["content"]]
+    assert kinds == ["text", "image_url"]

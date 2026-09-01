@@ -16,10 +16,17 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
-from .const import DOMAIN
+import time
+
+from .const import DOMAIN, LOCAL_STATE_DIR
 from .core.config import CamwatchConfig
 from .core.index import SegmentIndex
 from .core.paths import prepare_storage
+from .core.references import (
+    prune_unreferenced,
+    referenced_asset_ids,
+    references_dir,
+)
 from .maintenance import MaintenanceResult, MaintenanceRunner, interval_for
 from .recorder import RecorderManager, StreamStatus
 from .storage import CamwatchStore
@@ -132,6 +139,9 @@ class CamwatchCoordinator(DataUpdateCoordinator[CamwatchData]):
         a vanished recording location reappears. One code path for both.
         """
         self.vision.async_apply(self.config)
+        # Pictures orphaned while Home Assistant was off have no config save
+        # coming that would sweep them; startup is that save's stand-in.
+        self.hass.async_create_task(self.async_prune_references())
         await self.async_config_entry_first_refresh()
 
     async def async_shutdown(self) -> None:
@@ -163,7 +173,26 @@ class CamwatchCoordinator(DataUpdateCoordinator[CamwatchData]):
 
         await self.recorder.async_apply(config.storage, config.cameras)
         self.vision.async_apply(config)
+        self.hass.async_create_task(self.async_prune_references())
         await self.async_publish_state()
+
+    async def async_prune_references(self) -> None:
+        """Sweep stored reference pictures nothing names any more.
+
+        The grace period inside the sweep protects a picture that was
+        uploaded but whose profile has not been saved yet.
+        """
+        referenced = referenced_asset_ids(
+            [
+                observation
+                for profile in self.config.vision
+                for observation in profile.observations
+            ]
+        )
+        directory = references_dir(Path(self.hass.config.path(LOCAL_STATE_DIR)))
+        await self.hass.async_add_executor_job(
+            prune_unreferenced, directory, referenced, time.time()
+        )
 
     async def async_set_paused(self, camera_slug: str, paused: bool) -> None:
         """Pause or resume one camera without touching its configuration."""

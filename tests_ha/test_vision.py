@@ -782,3 +782,148 @@ async def test_the_frame_view_refuses_what_the_ring_never_wrote(
     client = await hass_client()
     response = await client.get(f"/api/{DOMAIN}/vision-frame/{path}")
     assert response.status == 404
+
+
+# ----------------------------------------------------------------------
+# Reference pictures
+# ----------------------------------------------------------------------
+
+
+JPEG_UPLOAD = b"\xff\xd8\xff\xe0-a-tiny-jpeg"
+
+
+def upload_form(content: bytes, filename: str = "foto.jpg"):
+    from aiohttp import FormData
+
+    form = FormData()
+    form.add_field("file", content, filename=filename, content_type="image/jpeg")
+    return form
+
+
+async def test_a_reference_upload_is_content_addressed(
+    hass: HomeAssistant, hass_client, setup_vision
+) -> None:
+    """The same photo uploaded twice is one file and one id."""
+    await setup_vision()
+    client = await hass_client()
+
+    first = await client.post(f"/api/{DOMAIN}/reference", data=upload_form(JPEG_UPLOAD))
+    assert first.status == 200
+    body = await first.json()
+    assert body["content_type"] == "image/jpeg"
+    assert body["bytes"] == len(JPEG_UPLOAD)
+
+    second = await client.post(
+        f"/api/{DOMAIN}/reference", data=upload_form(JPEG_UPLOAD, "anders.png")
+    )
+    assert (await second.json())["asset_id"] == body["asset_id"]
+
+    stored = list(
+        (Path(hass.config.path("kustos_vision")) / "references").iterdir()
+    )
+    assert len(stored) == 1
+
+
+async def test_an_uploaded_reference_is_served_back(
+    hass: HomeAssistant, hass_client, setup_vision
+) -> None:
+    await setup_vision()
+    client = await hass_client()
+    body = await (
+        await client.post(f"/api/{DOMAIN}/reference", data=upload_form(JPEG_UPLOAD))
+    ).json()
+
+    served = await client.get(f"/api/{DOMAIN}/reference/{body['asset_id']}")
+    assert served.status == 200
+    assert await served.read() == JPEG_UPLOAD
+    # Content addressing earns immutable: the bytes behind an id never change.
+    assert "immutable" in served.headers["Cache-Control"]
+
+
+async def test_a_renamed_text_file_is_refused(
+    hass: HomeAssistant, hass_client, setup_vision
+) -> None:
+    """The type comes from the bytes, never from the name or the browser's
+    claim - both are the uploader's to choose."""
+    await setup_vision()
+    client = await hass_client()
+    response = await client.post(
+        f"/api/{DOMAIN}/reference",
+        data=upload_form(b"just text pretending", "echt.jpg"),
+    )
+    assert response.status == 400
+
+
+async def test_an_unknown_reference_is_not_found(
+    hass: HomeAssistant, hass_client, setup_vision
+) -> None:
+    await setup_vision()
+    client = await hass_client()
+    for asset_id in ("f" * 32, "../evil", "f" * 31):
+        response = await client.get(f"/api/{DOMAIN}/reference/{asset_id}")
+        assert response.status == 404
+
+
+async def test_a_non_admin_cannot_upload(
+    hass: HomeAssistant, hass_client, hass_read_only_access_token, setup_vision
+) -> None:
+    await setup_vision()
+    client = await hass_client(hass_read_only_access_token)
+    response = await client.post(
+        f"/api/{DOMAIN}/reference", data=upload_form(JPEG_UPLOAD)
+    )
+    assert response.status == 403
+
+
+async def test_the_runner_loads_references_into_the_request(
+    hass: HomeAssistant, hass_client, setup_vision, analysed
+) -> None:
+    """A question's stored picture reaches the backend loaded, with the
+    preamble that disclaims it as evidence."""
+    entry = await setup_vision(
+        [
+            profile(
+                observations=[
+                    {
+                        "key": "tonne",
+                        "type": "boolean",
+                        "question": "Ist die gelbe Tonne zu sehen?",
+                        "references": [{"asset_id": "0" * 32, "caption": "Der Hinterhof."}],
+                    }
+                ]
+            )
+        ]
+    )
+    references = Path(hass.config.path("kustos_vision")) / "references"
+    references.mkdir(parents=True, exist_ok=True)
+    (references / ("0" * 32 + ".jpg")).write_bytes(JPEG_UPLOAD)
+
+    await entry.runtime_data.vision.async_analyse("beispiel", force=True)
+    request = analysed[0]["request"]
+    assert len(request.references) == 1
+    assert request.references[0].content == JPEG_UPLOAD
+    assert "NOT the current camera frame" in request.references[0].preamble
+
+
+async def test_a_missing_reference_never_fails_the_analysis(
+    hass: HomeAssistant, setup_vision, analysed
+) -> None:
+    """The analysis without its reference still answers something; a refused
+    analysis answers nothing at all."""
+    entry = await setup_vision(
+        [
+            profile(
+                observations=[
+                    {
+                        "key": "tonne",
+                        "type": "boolean",
+                        "question": "Ist die gelbe Tonne zu sehen?",
+                        "references": [{"asset_id": "e" * 32}],
+                    }
+                ]
+            )
+        ]
+    )
+    result = await entry.runtime_data.vision.async_analyse("beispiel", force=True)
+    assert result is not None
+    assert analysed[0]["request"].references == ()

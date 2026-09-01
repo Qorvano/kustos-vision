@@ -36,6 +36,17 @@ class VisionError(HomeAssistantError):
 
 
 @dataclass(frozen=True, slots=True)
+class ReferencePicture:
+    """A picture that is not the current frame, and the text introducing it."""
+
+    content: bytes
+    content_type: str
+    preamble: str
+    """Told to the model right before the picture: what it shows, and that it
+    is not evidence of anything being there now."""
+
+
+@dataclass(frozen=True, slots=True)
 class VisionRequest:
     """Everything one analysis sends beyond the profile itself.
 
@@ -47,6 +58,10 @@ class VisionRequest:
     frame: CapturedFrame | None = None
     """The frame taken at trigger time. When None, the backend falls back to
     asking the camera entity for a still, with all the staleness that brings."""
+
+    references: tuple[ReferencePicture, ...] = ()
+    """Reference pictures, already loaded, in the order they travel - always
+    AFTER the frame, so a truncating runner loses references, not evidence."""
 
 
 @dataclass(frozen=True, slots=True)

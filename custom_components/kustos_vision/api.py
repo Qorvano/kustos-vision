@@ -26,7 +26,8 @@ from homeassistant.util import dt as dt_util
 
 from .actions import CapabilityError, async_trigger
 from .config_flow import async_validate_base_path
-from .const import DATA_STAMP_AVAILABLE, DOMAIN
+from .const import DATA_STAMP_AVAILABLE, DOMAIN, LOCAL_STATE_DIR
+from .core.references import find_asset, referenced_asset_ids
 from .coordinator import CamwatchCoordinator
 from .core.capabilities import (
     CAPABILITY_KEYS,
@@ -78,6 +79,7 @@ def async_register(hass: HomeAssistant) -> None:
         ws_analyse_now,
         ws_vision_history,
         ws_vision_backends,
+        ws_delete_reference,
     ):
         websocket_api.async_register_command(hass, command)
 
@@ -933,6 +935,44 @@ async def ws_delete_vision(
         coordinator.config.without_vision(msg["camera_slug"])
     )
     connection.send_result(msg["id"], _snapshot(coordinator))
+
+
+@websocket_api.require_admin
+@websocket_api.websocket_command(
+    {
+        vol.Required("type"): f"{DOMAIN}/reference/delete",
+        vol.Required("asset_id"): str,
+    }
+)
+@websocket_api.async_response
+async def ws_delete_reference(
+    hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict
+) -> None:
+    """Remove one stored reference picture, unless something still names it.
+
+    The orphan sweep is the real garbage collector; this exists for the
+    immediate cleanup after a mis-upload.
+    """
+    if (coordinator := _require(hass, connection, msg)) is None:
+        return
+    asset_id = msg["asset_id"]
+    referenced = referenced_asset_ids(
+        [
+            observation
+            for profile in coordinator.config.vision
+            for observation in profile.observations
+        ]
+    )
+    if asset_id in referenced:
+        connection.send_error(
+            msg["id"], "still_in_use", "a question still names this picture"
+        )
+        return
+    local_state = Path(hass.config.path(LOCAL_STATE_DIR))
+    path = await hass.async_add_executor_job(find_asset, local_state, asset_id)
+    if path is not None:
+        await hass.async_add_executor_job(path.unlink)
+    connection.send_result(msg["id"], {"deleted": path is not None})
 
 
 @websocket_api.require_admin

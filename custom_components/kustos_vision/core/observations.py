@@ -14,9 +14,11 @@ them from one source means a new observation type cannot be half-supported.
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import Any, Self
+
+from .references import MAX_REFERENCES_PER_OBSERVATION, ReferenceImage
 
 # An observation key becomes part of an entity id, so it has to survive that.
 _KEY_RE = re.compile(r"^[a-z][a-z0-9_]*$")
@@ -74,6 +76,10 @@ class Observation:
     but the model is no longer asked. Pausing beats deleting because deleting
     would also delete the sensor everything downstream is wired to."""
 
+    references: tuple[ReferenceImage, ...] = field(default=())
+    """Pictures the model may compare against when answering this question,
+    e.g. a labelled photo of the backyard naming which bin is which."""
+
     def __post_init__(self) -> None:
         if not _KEY_RE.match(self.key):
             raise ObservationError(
@@ -92,6 +98,13 @@ class Observation:
         if self.type is ObservationType.NUMBER and self.maximum <= self.minimum:
             raise ObservationError(
                 f"observation {self.key!r} has an empty number range"
+            )
+        if len(self.references) > MAX_REFERENCES_PER_OBSERVATION:
+            # Every extra image costs the model a tile budget, and a request
+            # that overflows the context fails wholesale, not partially.
+            raise ObservationError(
+                f"observation {self.key!r} carries more than "
+                f"{MAX_REFERENCES_PER_OBSERVATION} reference pictures"
             )
 
     @property
@@ -119,6 +132,8 @@ class Observation:
             stored["maximum"] = self.maximum
         if not self.enabled:
             stored["enabled"] = False
+        if self.references:
+            stored["references"] = [r.as_dict() for r in self.references]
         return stored
 
     @classmethod
@@ -137,6 +152,9 @@ class Observation:
             minimum=int(data.get("minimum", 0)),
             maximum=int(data.get("maximum", 100)),
             enabled=bool(data.get("enabled", True)),
+            references=tuple(
+                ReferenceImage.from_dict(r) for r in data.get("references", [])
+            ),
         )
 
 

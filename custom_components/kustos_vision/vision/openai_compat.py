@@ -48,6 +48,10 @@ def _endpoint(url: str) -> str:
     return f"{trimmed}/v1/chat/completions"
 
 
+def _data_uri(content: bytes, mime: str) -> str:
+    return f"data:{mime};base64,{base64.b64encode(content).decode('ascii')}"
+
+
 async def _snapshot(hass: HomeAssistant, entity_id: str) -> tuple[bytes, str]:
     """Fetch a still from the camera."""
     try:
@@ -73,19 +77,51 @@ async def async_run(
         content, mime = request.frame.content, request.frame.content_type
     else:
         content, mime = await _snapshot(hass, camera_entity_id)
-    data_uri = f"data:{mime};base64,{base64.b64encode(content).decode('ascii')}"
+
+    # The current frame first, deliberately: a runner or model that honours
+    # only the first image still answers about NOW, so the degradation is
+    # graceful in the direction that matters.
+    parts: list[dict[str, Any]] = [
+        {"type": "text", "text": build_prompt(camera, profile)},
+    ]
+    references = request.references if request is not None else ()
+    if references:
+        parts.append(
+            {
+                "type": "text",
+                "text": (
+                    "This is the current camera frame. Every field is about "
+                    "this picture and about nothing else."
+                ),
+            }
+        )
+    parts.append({"type": "image_url", "image_url": {"url": _data_uri(content, mime)}})
+    for reference in references:
+        parts.append({"type": "text", "text": reference.preamble})
+        parts.append(
+            {
+                "type": "image_url",
+                "image_url": {
+                    "url": _data_uri(reference.content, reference.content_type)
+                },
+            }
+        )
+    if references:
+        # Attention drifts to the most recent image; the last thing the model
+        # reads has to be which picture the questions are about.
+        parts.append(
+            {
+                "type": "text",
+                "text": (
+                    "The first picture is the current camera frame. Answer "
+                    "every field from that picture."
+                ),
+            }
+        )
 
     payload: dict[str, Any] = {
         "model": backend.model,
-        "messages": [
-            {
-                "role": "user",
-                "content": [
-                    {"type": "text", "text": build_prompt(camera, profile)},
-                    {"type": "image_url", "image_url": {"url": data_uri}},
-                ],
-            }
-        ],
+        "messages": [{"role": "user", "content": parts}],
         "response_format": {
             "type": "json_schema",
             "json_schema": {
