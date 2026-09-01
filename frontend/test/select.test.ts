@@ -73,3 +73,46 @@ describe("no native select is left anywhere in the panel", () => {
     }
   });
 });
+
+describe("placeDrop on a phone", () => {
+  const phone = { width: 360, height: 700 };
+
+  it("clamps the left edge inside the viewport", () => {
+    const placed = placeDrop(
+      { top: 100, bottom: 130, left: -30, width: 200 },
+      phone,
+      8,
+    );
+    expect(placed.left).toBe(8);
+  });
+
+  it("clamps the right edge inside the viewport", () => {
+    const placed = placeDrop(
+      { top: 100, bottom: 130, left: 300, width: 200 },
+      phone,
+      8,
+    );
+    expect(placed.left + placed.width).toBeLessThanOrEqual(352);
+  });
+
+  it("widens a sliver anchor to a readable minimum", () => {
+    // Regression: a dropdown in a 120px table cell opened as 120px of
+    // ellipses; the entity ids inside it were unreadable.
+    const placed = placeDrop(
+      { top: 100, bottom: 130, left: 40, width: 120 },
+      phone,
+      8,
+    );
+    expect(placed.width).toBe(200);
+  });
+
+  it("never opens wider than the viewport leaves", () => {
+    const placed = placeDrop(
+      { top: 100, bottom: 130, left: 0, width: 500 },
+      phone,
+      8,
+    );
+    expect(placed.width).toBe(344);
+    expect(placed.left).toBe(8);
+  });
+});
