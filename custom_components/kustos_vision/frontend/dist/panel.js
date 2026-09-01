@@ -1590,7 +1590,7 @@ async function Q() {
       s.discard();
   return !0;
 }
-const ke = "0.6.11", Ht = "kustos-vision-built:0.6.11", It = {
+const ke = "0.6.12", Ht = "kustos-vision-built:0.6.12", It = {
   ptz_up: "Schwenken hoch",
   ptz_down: "Schwenken runter",
   ptz_left: "Schwenken links",
