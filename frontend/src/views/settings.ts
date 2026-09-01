@@ -4,7 +4,7 @@
 // lives here, so there is one place to look for a setting rather than two that
 // can disagree.
 
-import { LitElement, html, nothing } from "lit";
+import { LitElement, css, html, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import { errorText, formatBytes, type CamwatchApi } from "../api";
 import {
@@ -52,8 +52,18 @@ export class CamwatchSettings extends LitElement {
   @state() private error = "";
   /** Edits to the view list that are not stored yet, see renderViews. */
   @state() private viewsDraft?: View[];
+  /** A view row travelling with the pointer, see onViewDragStart. */
+  @state() private viewDrag?: { fromIndex: number; currentIndex: number };
 
-  static override styles = shared;
+  static override styles = [
+    shared,
+    css`
+      /* The row travelling with the pointer, dimmed like HA's sortables. */
+      .view-row.dragging {
+        opacity: 0.6;
+      }
+    `,
+  ];
 
   /** The unsaved work this page itself holds: the view-list draft and the
       storage fields. The editors it opens register on their own. */
@@ -508,7 +518,7 @@ export class CamwatchSettings extends LitElement {
   }
 
   private renderViews() {
-    const views = this.draftViews();
+    const views = this.viewsWithPreview();
     return html`
       <div class="card">
         <h2>Ansichten</h2>
@@ -546,7 +556,11 @@ export class CamwatchSettings extends LitElement {
 
   private renderViewRow(view: View, index: number) {
     return html`
-      <div class="divided">
+      <div
+        class="divided view-row ${this.viewDrag?.currentIndex === index
+          ? "dragging"
+          : ""}"
+      >
         <div class="row">
           <div class="grow">
             <label>Name</label>
@@ -584,23 +598,28 @@ export class CamwatchSettings extends LitElement {
           Bedienelementen, wird bei der jeweiligen Kamera festgelegt.
         </p>
         <div class="row" style="margin-top:8px">
-          <button
-            class="secondary"
-            ?disabled=${index === 0}
-            @click=${() => this.moveView(index, -1)}
-          >
-            nach oben
-          </button>
-          <button
-            class="secondary"
-            ?disabled=${index === this.draftViews().length - 1}
-            @click=${() => this.moveView(index, 1)}
-          >
-            nach unten
-          </button>
           <button class="danger" @click=${() => this.removeView(index)}>
             Entfernen
           </button>
+          <span class="grow"></span>
+          <span
+            class="drag-handle"
+            title="Ziehen zum Verschieben"
+            @pointerdown=${(e: PointerEvent) => this.onViewDragStart(index, e)}
+            @pointermove=${(e: PointerEvent) => this.onViewDragMove(e)}
+            @pointerup=${() => this.onViewDragEnd()}
+            @pointercancel=${() => (this.viewDrag = undefined)}
+          >
+            <svg
+              viewBox="0 0 24 24"
+              width="20"
+              height="20"
+              fill="currentColor"
+              aria-hidden="true"
+            >
+              <path d="M4 9h16v2H4zM4 13h16v2H4z" />
+            </svg>
+          </span>
         </div>
       </div>
     `;
@@ -616,15 +635,59 @@ export class CamwatchSettings extends LitElement {
     );
   }
 
-  private moveView(index: number, delta: number): void {
-    const views = [...this.draftViews()];
-    const [moved] = views.splice(index, 1);
-    views.splice(index + delta, 0, moved);
-    this.viewsDraft = views;
-  }
-
   private removeView(index: number): void {
     this.viewsDraft = this.draftViews().filter((_, i) => i !== index);
+  }
+
+  /** The list as shown: the draft, rearranged live while a row is dragged. */
+  private viewsWithPreview(): View[] {
+    const views = [...this.draftViews()];
+    const drag = this.viewDrag;
+    if (!drag) return views;
+    const [moved] = views.splice(drag.fromIndex, 1);
+    views.splice(drag.currentIndex, 0, moved);
+    return views;
+  }
+
+  private onViewDragStart(index: number, event: PointerEvent): void {
+    if (this.busy) return;
+    const handle = event.currentTarget as HTMLElement;
+    event.preventDefault();
+    handle.setPointerCapture(event.pointerId);
+    this.viewDrag = { fromIndex: index, currentIndex: index };
+  }
+
+  private onViewDragMove(event: PointerEvent): void {
+    const drag = this.viewDrag;
+    if (!drag) return;
+    // View rows are not the same height - their hints wrap differently -
+    // so the drop position comes from the actual row rectangles rather
+    // than from a uniform step.
+    const rows = Array.from(this.renderRoot.querySelectorAll(".view-row"));
+    let index = drag.currentIndex;
+    rows.forEach((row, i) => {
+      const rect = row.getBoundingClientRect();
+      if (event.clientY >= rect.top && event.clientY <= rect.bottom) index = i;
+    });
+    const first = rows[0]?.getBoundingClientRect();
+    if (first && event.clientY < first.top) index = 0;
+    const last = rows[rows.length - 1]?.getBoundingClientRect();
+    if (last && event.clientY > last.bottom) index = rows.length - 1;
+    if (index !== drag.currentIndex) {
+      this.viewDrag = { ...drag, currentIndex: index };
+    }
+  }
+
+  private onViewDragEnd(): void {
+    const drag = this.viewDrag;
+    this.viewDrag = undefined;
+    if (!drag || drag.fromIndex === drag.currentIndex) return;
+    // Into the draft, not into storage: the order is saved with the rest
+    // of the list when Speichern is pressed.
+    const views = [...this.draftViews()];
+    const [moved] = views.splice(drag.fromIndex, 1);
+    views.splice(drag.currentIndex, 0, moved);
+    this.viewsDraft = views;
   }
 
   private addView(): void {

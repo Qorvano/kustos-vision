@@ -37,14 +37,14 @@ let Ye = class {
     return this.cssText;
   }
 };
-const at = (t) => new Ye(typeof t == "string" ? t : t + "", void 0, Se), B = (t, ...e) => {
-  const s = t.length === 1 ? t[0] : e.reduce((i, r, a) => i + ((n) => {
-    if (n._$cssResult$ === !0) return n.cssText;
-    if (typeof n == "number") return n;
-    throw Error("Value passed to 'css' function must be a 'css' function result: " + n + ". Use 'unsafeCSS' to pass non-literal values, but take care to ensure page security.");
-  })(r) + t[a + 1], t[0]);
+const at = (t) => new Ye(typeof t == "string" ? t : t + "", void 0, Se), z = (t, ...e) => {
+  const s = t.length === 1 ? t[0] : e.reduce((i, r, n) => i + ((a) => {
+    if (a._$cssResult$ === !0) return a.cssText;
+    if (typeof a == "number") return a;
+    throw Error("Value passed to 'css' function must be a 'css' function result: " + a + ". Use 'unsafeCSS' to pass non-literal values, but take care to ensure page security.");
+  })(r) + t[n + 1], t[0]);
   return new Ye(s, t, Se);
-}, nt = (t, e) => {
+}, ot = (t, e) => {
   if (_e) t.adoptedStyleSheets = e.map((s) => s instanceof CSSStyleSheet ? s : s.styleSheet);
   else for (const s of e) {
     const i = document.createElement("style"), r = ge.litNonce;
@@ -60,10 +60,10 @@ const at = (t) => new Ye(typeof t == "string" ? t : t + "", void 0, Se), B = (t,
  * Copyright 2017 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
  */
-const { is: ot, defineProperty: lt, getOwnPropertyDescriptor: ht, getOwnPropertyNames: dt, getOwnPropertySymbols: ct, getPrototypeOf: ut } = Object, fe = globalThis, Re = fe.trustedTypes, pt = Re ? Re.emptyScript : "", gt = fe.reactiveElementPolyfillSupport, re = (t, e) => t, be = { toAttribute(t, e) {
+const { is: lt, defineProperty: ht, getOwnPropertyDescriptor: dt, getOwnPropertyNames: ct, getOwnPropertySymbols: ut, getPrototypeOf: pt } = Object, fe = globalThis, Me = fe.trustedTypes, gt = Me ? Me.emptyScript : "", bt = fe.reactiveElementPolyfillSupport, ne = (t, e) => t, be = { toAttribute(t, e) {
   switch (e) {
     case Boolean:
-      t = t ? pt : null;
+      t = t ? gt : null;
       break;
     case Object:
     case Array:
@@ -88,44 +88,44 @@ const { is: ot, defineProperty: lt, getOwnPropertyDescriptor: ht, getOwnProperty
       }
   }
   return s;
-} }, Ae = (t, e) => !ot(t, e), Ne = { attribute: !0, type: String, converter: be, reflect: !1, useDefault: !1, hasChanged: Ae };
+} }, Ae = (t, e) => !lt(t, e), Re = { attribute: !0, type: String, converter: be, reflect: !1, useDefault: !1, hasChanged: Ae };
 Symbol.metadata ??= Symbol("metadata"), fe.litPropertyMetadata ??= /* @__PURE__ */ new WeakMap();
-let J = class extends HTMLElement {
+let Y = class extends HTMLElement {
   static addInitializer(e) {
     this._$Ei(), (this.l ??= []).push(e);
   }
   static get observedAttributes() {
     return this.finalize(), this._$Eh && [...this._$Eh.keys()];
   }
-  static createProperty(e, s = Ne) {
+  static createProperty(e, s = Re) {
     if (s.state && (s.attribute = !1), this._$Ei(), this.prototype.hasOwnProperty(e) && ((s = Object.create(s)).wrapped = !0), this.elementProperties.set(e, s), !s.noAccessor) {
       const i = Symbol(), r = this.getPropertyDescriptor(e, i, s);
-      r !== void 0 && lt(this.prototype, e, r);
+      r !== void 0 && ht(this.prototype, e, r);
     }
   }
   static getPropertyDescriptor(e, s, i) {
-    const { get: r, set: a } = ht(this.prototype, e) ?? { get() {
+    const { get: r, set: n } = dt(this.prototype, e) ?? { get() {
       return this[s];
-    }, set(n) {
-      this[s] = n;
+    }, set(a) {
+      this[s] = a;
     } };
-    return { get: r, set(n) {
+    return { get: r, set(a) {
       const l = r?.call(this);
-      a?.call(this, n), this.requestUpdate(e, l, i);
+      n?.call(this, a), this.requestUpdate(e, l, i);
     }, configurable: !0, enumerable: !0 };
   }
   static getPropertyOptions(e) {
-    return this.elementProperties.get(e) ?? Ne;
+    return this.elementProperties.get(e) ?? Re;
   }
   static _$Ei() {
-    if (this.hasOwnProperty(re("elementProperties"))) return;
-    const e = ut(this);
+    if (this.hasOwnProperty(ne("elementProperties"))) return;
+    const e = pt(this);
     e.finalize(), e.l !== void 0 && (this.l = [...e.l]), this.elementProperties = new Map(e.elementProperties);
   }
   static finalize() {
-    if (this.hasOwnProperty(re("finalized"))) return;
-    if (this.finalized = !0, this._$Ei(), this.hasOwnProperty(re("properties"))) {
-      const s = this.properties, i = [...dt(s), ...ct(s)];
+    if (this.hasOwnProperty(ne("finalized"))) return;
+    if (this.finalized = !0, this._$Ei(), this.hasOwnProperty(ne("properties"))) {
+      const s = this.properties, i = [...ct(s), ...ut(s)];
       for (const r of i) this.createProperty(r, s[r]);
     }
     const e = this[Symbol.metadata];
@@ -171,7 +171,7 @@ let J = class extends HTMLElement {
   }
   createRenderRoot() {
     const e = this.shadowRoot ?? this.attachShadow(this.constructor.shadowRootOptions);
-    return nt(e, this.constructor.elementStyles), e;
+    return ot(e, this.constructor.elementStyles), e;
   }
   connectedCallback() {
     this.renderRoot ??= this.createRenderRoot(), this.enableUpdating(!0), this._$EO?.forEach((e) => e.hostConnected?.());
@@ -187,29 +187,29 @@ let J = class extends HTMLElement {
   _$ET(e, s) {
     const i = this.constructor.elementProperties.get(e), r = this.constructor._$Eu(e, i);
     if (r !== void 0 && i.reflect === !0) {
-      const a = (i.converter?.toAttribute !== void 0 ? i.converter : be).toAttribute(s, i.type);
-      this._$Em = e, a == null ? this.removeAttribute(r) : this.setAttribute(r, a), this._$Em = null;
+      const n = (i.converter?.toAttribute !== void 0 ? i.converter : be).toAttribute(s, i.type);
+      this._$Em = e, n == null ? this.removeAttribute(r) : this.setAttribute(r, n), this._$Em = null;
     }
   }
   _$AK(e, s) {
     const i = this.constructor, r = i._$Eh.get(e);
     if (r !== void 0 && this._$Em !== r) {
-      const a = i.getPropertyOptions(r), n = typeof a.converter == "function" ? { fromAttribute: a.converter } : a.converter?.fromAttribute !== void 0 ? a.converter : be;
+      const n = i.getPropertyOptions(r), a = typeof n.converter == "function" ? { fromAttribute: n.converter } : n.converter?.fromAttribute !== void 0 ? n.converter : be;
       this._$Em = r;
-      const l = n.fromAttribute(s, a.type);
+      const l = a.fromAttribute(s, n.type);
       this[r] = l ?? this._$Ej?.get(r) ?? l, this._$Em = null;
     }
   }
-  requestUpdate(e, s, i, r = !1, a) {
+  requestUpdate(e, s, i, r = !1, n) {
     if (e !== void 0) {
-      const n = this.constructor;
-      if (r === !1 && (a = this[e]), i ??= n.getPropertyOptions(e), !((i.hasChanged ?? Ae)(a, s) || i.useDefault && i.reflect && a === this._$Ej?.get(e) && !this.hasAttribute(n._$Eu(e, i)))) return;
+      const a = this.constructor;
+      if (r === !1 && (n = this[e]), i ??= a.getPropertyOptions(e), !((i.hasChanged ?? Ae)(n, s) || i.useDefault && i.reflect && n === this._$Ej?.get(e) && !this.hasAttribute(a._$Eu(e, i)))) return;
       this.C(e, s, i);
     }
     this.isUpdatePending === !1 && (this._$ES = this._$EP());
   }
-  C(e, s, { useDefault: i, reflect: r, wrapped: a }, n) {
-    i && !(this._$Ej ??= /* @__PURE__ */ new Map()).has(e) && (this._$Ej.set(e, n ?? s ?? this[e]), a !== !0 || n !== void 0) || (this._$AL.has(e) || (this.hasUpdated || i || (s = void 0), this._$AL.set(e, s)), r === !0 && this._$Em !== e && (this._$Eq ??= /* @__PURE__ */ new Set()).add(e));
+  C(e, s, { useDefault: i, reflect: r, wrapped: n }, a) {
+    i && !(this._$Ej ??= /* @__PURE__ */ new Map()).has(e) && (this._$Ej.set(e, a ?? s ?? this[e]), n !== !0 || a !== void 0) || (this._$AL.has(e) || (this.hasUpdated || i || (s = void 0), this._$AL.set(e, s)), r === !0 && this._$Em !== e && (this._$Eq ??= /* @__PURE__ */ new Set()).add(e));
   }
   async _$EP() {
     this.isUpdatePending = !0;
@@ -228,13 +228,13 @@ let J = class extends HTMLElement {
     if (!this.isUpdatePending) return;
     if (!this.hasUpdated) {
       if (this.renderRoot ??= this.createRenderRoot(), this._$Ep) {
-        for (const [r, a] of this._$Ep) this[r] = a;
+        for (const [r, n] of this._$Ep) this[r] = n;
         this._$Ep = void 0;
       }
       const i = this.constructor.elementProperties;
-      if (i.size > 0) for (const [r, a] of i) {
-        const { wrapped: n } = a, l = this[r];
-        n !== !0 || this._$AL.has(r) || l === void 0 || this.C(r, void 0, a, l);
+      if (i.size > 0) for (const [r, n] of i) {
+        const { wrapped: a } = n, l = this[r];
+        a !== !0 || this._$AL.has(r) || l === void 0 || this.C(r, void 0, n, l);
       }
     }
     let e = !1;
@@ -271,75 +271,75 @@ let J = class extends HTMLElement {
   firstUpdated(e) {
   }
 };
-J.elementStyles = [], J.shadowRootOptions = { mode: "open" }, J[re("elementProperties")] = /* @__PURE__ */ new Map(), J[re("finalized")] = /* @__PURE__ */ new Map(), gt?.({ ReactiveElement: J }), (fe.reactiveElementVersions ??= []).push("2.1.2");
+Y.elementStyles = [], Y.shadowRootOptions = { mode: "open" }, Y[ne("elementProperties")] = /* @__PURE__ */ new Map(), Y[ne("finalized")] = /* @__PURE__ */ new Map(), bt?.({ ReactiveElement: Y }), (fe.reactiveElementVersions ??= []).push("2.1.2");
 /**
  * @license
  * Copyright 2017 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
  */
-const Ee = globalThis, He = (t) => t, me = Ee.trustedTypes, Ue = me ? me.createPolicy("lit-html", { createHTML: (t) => t }) : void 0, Xe = "$lit$", L = `lit$${Math.random().toFixed(9).slice(2)}$`, Qe = "?" + L, bt = `<${Qe}>`, F = document, ae = () => F.createComment(""), ne = (t) => t === null || typeof t != "object" && typeof t != "function", Ce = Array.isArray, mt = (t) => Ce(t) || typeof t?.[Symbol.iterator] == "function", $e = `[ 	
-\f\r]`, te = /<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g, Me = /-->/g, Ie = />/g, K = RegExp(`>|${$e}(?:([^\\s"'>=/]+)(${$e}*=${$e}*(?:[^ 	
-\f\r"'\`<>=]|("|')|))|$)`, "g"), Le = /'/g, je = /"/g, et = /^(?:script|style|textarea|title)$/i, vt = (t) => (e, ...s) => ({ _$litType$: t, strings: e, values: s }), o = vt(1), Q = Symbol.for("lit-noChange"), h = Symbol.for("lit-nothing"), Ve = /* @__PURE__ */ new WeakMap(), W = F.createTreeWalker(F, 129);
+const Ee = globalThis, He = (t) => t, me = Ee.trustedTypes, Ie = me ? me.createPolicy("lit-html", { createHTML: (t) => t }) : void 0, Xe = "$lit$", V = `lit$${Math.random().toFixed(9).slice(2)}$`, Qe = "?" + V, mt = `<${Qe}>`, G = document, ae = () => G.createComment(""), oe = (t) => t === null || typeof t != "object" && typeof t != "function", Ce = Array.isArray, vt = (t) => Ce(t) || typeof t?.[Symbol.iterator] == "function", $e = `[ 	
+\f\r]`, se = /<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g, Ne = /-->/g, Ue = />/g, K = RegExp(`>|${$e}(?:([^\\s"'>=/]+)(${$e}*=${$e}*(?:[^ 	
+\f\r"'\`<>=]|("|')|))|$)`, "g"), Le = /'/g, Ve = /"/g, et = /^(?:script|style|textarea|title)$/i, ft = (t) => (e, ...s) => ({ _$litType$: t, strings: e, values: s }), o = ft(1), ee = Symbol.for("lit-noChange"), h = Symbol.for("lit-nothing"), je = /* @__PURE__ */ new WeakMap(), F = G.createTreeWalker(G, 129);
 function tt(t, e) {
   if (!Ce(t) || !t.hasOwnProperty("raw")) throw Error("invalid template strings array");
-  return Ue !== void 0 ? Ue.createHTML(e) : e;
+  return Ie !== void 0 ? Ie.createHTML(e) : e;
 }
-const ft = (t, e) => {
+const yt = (t, e) => {
   const s = t.length - 1, i = [];
-  let r, a = e === 2 ? "<svg>" : e === 3 ? "<math>" : "", n = te;
+  let r, n = e === 2 ? "<svg>" : e === 3 ? "<math>" : "", a = se;
   for (let l = 0; l < s; l++) {
     const c = t[l];
     let p, b, g = -1, S = 0;
-    for (; S < c.length && (n.lastIndex = S, b = n.exec(c), b !== null); ) S = n.lastIndex, n === te ? b[1] === "!--" ? n = Me : b[1] !== void 0 ? n = Ie : b[2] !== void 0 ? (et.test(b[2]) && (r = RegExp("</" + b[2], "g")), n = K) : b[3] !== void 0 && (n = K) : n === K ? b[0] === ">" ? (n = r ?? te, g = -1) : b[1] === void 0 ? g = -2 : (g = n.lastIndex - b[2].length, p = b[1], n = b[3] === void 0 ? K : b[3] === '"' ? je : Le) : n === je || n === Le ? n = K : n === Me || n === Ie ? n = te : (n = K, r = void 0);
-    const C = n === K && t[l + 1].startsWith("/>") ? " " : "";
-    a += n === te ? c + bt : g >= 0 ? (i.push(p), c.slice(0, g) + Xe + c.slice(g) + L + C) : c + L + (g === -2 ? l : C);
+    for (; S < c.length && (a.lastIndex = S, b = a.exec(c), b !== null); ) S = a.lastIndex, a === se ? b[1] === "!--" ? a = Ne : b[1] !== void 0 ? a = Ue : b[2] !== void 0 ? (et.test(b[2]) && (r = RegExp("</" + b[2], "g")), a = K) : b[3] !== void 0 && (a = K) : a === K ? b[0] === ">" ? (a = r ?? se, g = -1) : b[1] === void 0 ? g = -2 : (g = a.lastIndex - b[2].length, p = b[1], a = b[3] === void 0 ? K : b[3] === '"' ? Ve : Le) : a === Ve || a === Le ? a = K : a === Ne || a === Ue ? a = se : (a = K, r = void 0);
+    const T = a === K && t[l + 1].startsWith("/>") ? " " : "";
+    n += a === se ? c + mt : g >= 0 ? (i.push(p), c.slice(0, g) + Xe + c.slice(g) + V + T) : c + V + (g === -2 ? l : T);
   }
-  return [tt(t, a + (t[s] || "<?>") + (e === 2 ? "</svg>" : e === 3 ? "</math>" : "")), i];
+  return [tt(t, n + (t[s] || "<?>") + (e === 2 ? "</svg>" : e === 3 ? "</math>" : "")), i];
 };
-class oe {
+class le {
   constructor({ strings: e, _$litType$: s }, i) {
     let r;
     this.parts = [];
-    let a = 0, n = 0;
-    const l = e.length - 1, c = this.parts, [p, b] = ft(e, s);
-    if (this.el = oe.createElement(p, i), W.currentNode = this.el.content, s === 2 || s === 3) {
+    let n = 0, a = 0;
+    const l = e.length - 1, c = this.parts, [p, b] = yt(e, s);
+    if (this.el = le.createElement(p, i), F.currentNode = this.el.content, s === 2 || s === 3) {
       const g = this.el.content.firstChild;
       g.replaceWith(...g.childNodes);
     }
-    for (; (r = W.nextNode()) !== null && c.length < l; ) {
+    for (; (r = F.nextNode()) !== null && c.length < l; ) {
       if (r.nodeType === 1) {
         if (r.hasAttributes()) for (const g of r.getAttributeNames()) if (g.endsWith(Xe)) {
-          const S = b[n++], C = r.getAttribute(g).split(L), T = /([.?@])?(.*)/.exec(S);
-          c.push({ type: 1, index: a, name: T[2], strings: C, ctor: T[1] === "." ? wt : T[1] === "?" ? $t : T[1] === "@" ? kt : ye }), r.removeAttribute(g);
-        } else g.startsWith(L) && (c.push({ type: 6, index: a }), r.removeAttribute(g));
+          const S = b[a++], T = r.getAttribute(g).split(V), D = /([.?@])?(.*)/.exec(S);
+          c.push({ type: 1, index: n, name: D[2], strings: T, ctor: D[1] === "." ? $t : D[1] === "?" ? kt : D[1] === "@" ? xt : ye }), r.removeAttribute(g);
+        } else g.startsWith(V) && (c.push({ type: 6, index: n }), r.removeAttribute(g));
         if (et.test(r.tagName)) {
-          const g = r.textContent.split(L), S = g.length - 1;
+          const g = r.textContent.split(V), S = g.length - 1;
           if (S > 0) {
             r.textContent = me ? me.emptyScript : "";
-            for (let C = 0; C < S; C++) r.append(g[C], ae()), W.nextNode(), c.push({ type: 2, index: ++a });
+            for (let T = 0; T < S; T++) r.append(g[T], ae()), F.nextNode(), c.push({ type: 2, index: ++n });
             r.append(g[S], ae());
           }
         }
-      } else if (r.nodeType === 8) if (r.data === Qe) c.push({ type: 2, index: a });
+      } else if (r.nodeType === 8) if (r.data === Qe) c.push({ type: 2, index: n });
       else {
         let g = -1;
-        for (; (g = r.data.indexOf(L, g + 1)) !== -1; ) c.push({ type: 7, index: a }), g += L.length - 1;
+        for (; (g = r.data.indexOf(V, g + 1)) !== -1; ) c.push({ type: 7, index: n }), g += V.length - 1;
       }
-      a++;
+      n++;
     }
   }
   static createElement(e, s) {
-    const i = F.createElement("template");
+    const i = G.createElement("template");
     return i.innerHTML = e, i;
   }
 }
-function ee(t, e, s = t, i) {
-  if (e === Q) return e;
+function te(t, e, s = t, i) {
+  if (e === ee) return e;
   let r = i !== void 0 ? s._$Co?.[i] : s._$Cl;
-  const a = ne(e) ? void 0 : e._$litDirective$;
-  return r?.constructor !== a && (r?._$AO?.(!1), a === void 0 ? r = void 0 : (r = new a(t), r._$AT(t, s, i)), i !== void 0 ? (s._$Co ??= [])[i] = r : s._$Cl = r), r !== void 0 && (e = ee(t, r._$AS(t, e.values), r, i)), e;
+  const n = oe(e) ? void 0 : e._$litDirective$;
+  return r?.constructor !== n && (r?._$AO?.(!1), n === void 0 ? r = void 0 : (r = new n(t), r._$AT(t, s, i)), i !== void 0 ? (s._$Co ??= [])[i] = r : s._$Cl = r), r !== void 0 && (e = te(t, r._$AS(t, e.values), r, i)), e;
 }
-class yt {
+class wt {
   constructor(e, s) {
     this._$AV = [], this._$AN = void 0, this._$AD = e, this._$AM = s;
   }
@@ -350,24 +350,24 @@ class yt {
     return this._$AM._$AU;
   }
   u(e) {
-    const { el: { content: s }, parts: i } = this._$AD, r = (e?.creationScope ?? F).importNode(s, !0);
-    W.currentNode = r;
-    let a = W.nextNode(), n = 0, l = 0, c = i[0];
+    const { el: { content: s }, parts: i } = this._$AD, r = (e?.creationScope ?? G).importNode(s, !0);
+    F.currentNode = r;
+    let n = F.nextNode(), a = 0, l = 0, c = i[0];
     for (; c !== void 0; ) {
-      if (n === c.index) {
+      if (a === c.index) {
         let p;
-        c.type === 2 ? p = new he(a, a.nextSibling, this, e) : c.type === 1 ? p = new c.ctor(a, c.name, c.strings, this, e) : c.type === 6 && (p = new xt(a, this, e)), this._$AV.push(p), c = i[++l];
+        c.type === 2 ? p = new de(n, n.nextSibling, this, e) : c.type === 1 ? p = new c.ctor(n, c.name, c.strings, this, e) : c.type === 6 && (p = new _t(n, this, e)), this._$AV.push(p), c = i[++l];
       }
-      n !== c?.index && (a = W.nextNode(), n++);
+      a !== c?.index && (n = F.nextNode(), a++);
     }
-    return W.currentNode = F, r;
+    return F.currentNode = G, r;
   }
   p(e) {
     let s = 0;
     for (const i of this._$AV) i !== void 0 && (i.strings !== void 0 ? (i._$AI(e, i, s), s += i.strings.length - 2) : i._$AI(e[s])), s++;
   }
 }
-class he {
+class de {
   get _$AU() {
     return this._$AM?._$AU ?? this._$Cv;
   }
@@ -386,7 +386,7 @@ class he {
     return this._$AB;
   }
   _$AI(e, s = this) {
-    e = ee(this, e, s), ne(e) ? e === h || e == null || e === "" ? (this._$AH !== h && this._$AR(), this._$AH = h) : e !== this._$AH && e !== Q && this._(e) : e._$litType$ !== void 0 ? this.$(e) : e.nodeType !== void 0 ? this.T(e) : mt(e) ? this.k(e) : this._(e);
+    e = te(this, e, s), oe(e) ? e === h || e == null || e === "" ? (this._$AH !== h && this._$AR(), this._$AH = h) : e !== this._$AH && e !== ee && this._(e) : e._$litType$ !== void 0 ? this.$(e) : e.nodeType !== void 0 ? this.T(e) : vt(e) ? this.k(e) : this._(e);
   }
   O(e) {
     return this._$AA.parentNode.insertBefore(e, this._$AB);
@@ -395,25 +395,25 @@ class he {
     this._$AH !== e && (this._$AR(), this._$AH = this.O(e));
   }
   _(e) {
-    this._$AH !== h && ne(this._$AH) ? this._$AA.nextSibling.data = e : this.T(F.createTextNode(e)), this._$AH = e;
+    this._$AH !== h && oe(this._$AH) ? this._$AA.nextSibling.data = e : this.T(G.createTextNode(e)), this._$AH = e;
   }
   $(e) {
-    const { values: s, _$litType$: i } = e, r = typeof i == "number" ? this._$AC(e) : (i.el === void 0 && (i.el = oe.createElement(tt(i.h, i.h[0]), this.options)), i);
+    const { values: s, _$litType$: i } = e, r = typeof i == "number" ? this._$AC(e) : (i.el === void 0 && (i.el = le.createElement(tt(i.h, i.h[0]), this.options)), i);
     if (this._$AH?._$AD === r) this._$AH.p(s);
     else {
-      const a = new yt(r, this), n = a.u(this.options);
-      a.p(s), this.T(n), this._$AH = a;
+      const n = new wt(r, this), a = n.u(this.options);
+      n.p(s), this.T(a), this._$AH = n;
     }
   }
   _$AC(e) {
-    let s = Ve.get(e.strings);
-    return s === void 0 && Ve.set(e.strings, s = new oe(e)), s;
+    let s = je.get(e.strings);
+    return s === void 0 && je.set(e.strings, s = new le(e)), s;
   }
   k(e) {
     Ce(this._$AH) || (this._$AH = [], this._$AR());
     const s = this._$AH;
     let i, r = 0;
-    for (const a of e) r === s.length ? s.push(i = new he(this.O(ae()), this.O(ae()), this, this.options)) : i = s[r], i._$AI(a), r++;
+    for (const n of e) r === s.length ? s.push(i = new de(this.O(ae()), this.O(ae()), this, this.options)) : i = s[r], i._$AI(n), r++;
     r < s.length && (this._$AR(i && i._$AB.nextSibling, r), s.length = r);
   }
   _$AR(e = this._$AA.nextSibling, s) {
@@ -433,25 +433,25 @@ class ye {
   get _$AU() {
     return this._$AM._$AU;
   }
-  constructor(e, s, i, r, a) {
-    this.type = 1, this._$AH = h, this._$AN = void 0, this.element = e, this.name = s, this._$AM = r, this.options = a, i.length > 2 || i[0] !== "" || i[1] !== "" ? (this._$AH = Array(i.length - 1).fill(new String()), this.strings = i) : this._$AH = h;
+  constructor(e, s, i, r, n) {
+    this.type = 1, this._$AH = h, this._$AN = void 0, this.element = e, this.name = s, this._$AM = r, this.options = n, i.length > 2 || i[0] !== "" || i[1] !== "" ? (this._$AH = Array(i.length - 1).fill(new String()), this.strings = i) : this._$AH = h;
   }
   _$AI(e, s = this, i, r) {
-    const a = this.strings;
-    let n = !1;
-    if (a === void 0) e = ee(this, e, s, 0), n = !ne(e) || e !== this._$AH && e !== Q, n && (this._$AH = e);
+    const n = this.strings;
+    let a = !1;
+    if (n === void 0) e = te(this, e, s, 0), a = !oe(e) || e !== this._$AH && e !== ee, a && (this._$AH = e);
     else {
       const l = e;
       let c, p;
-      for (e = a[0], c = 0; c < a.length - 1; c++) p = ee(this, l[i + c], s, c), p === Q && (p = this._$AH[c]), n ||= !ne(p) || p !== this._$AH[c], p === h ? e = h : e !== h && (e += (p ?? "") + a[c + 1]), this._$AH[c] = p;
+      for (e = n[0], c = 0; c < n.length - 1; c++) p = te(this, l[i + c], s, c), p === ee && (p = this._$AH[c]), a ||= !oe(p) || p !== this._$AH[c], p === h ? e = h : e !== h && (e += (p ?? "") + n[c + 1]), this._$AH[c] = p;
     }
-    n && !r && this.j(e);
+    a && !r && this.j(e);
   }
   j(e) {
     e === h ? this.element.removeAttribute(this.name) : this.element.setAttribute(this.name, e ?? "");
   }
 }
-class wt extends ye {
+class $t extends ye {
   constructor() {
     super(...arguments), this.type = 3;
   }
@@ -459,7 +459,7 @@ class wt extends ye {
     this.element[this.name] = e === h ? void 0 : e;
   }
 }
-class $t extends ye {
+class kt extends ye {
   constructor() {
     super(...arguments), this.type = 4;
   }
@@ -467,20 +467,20 @@ class $t extends ye {
     this.element.toggleAttribute(this.name, !!e && e !== h);
   }
 }
-class kt extends ye {
-  constructor(e, s, i, r, a) {
-    super(e, s, i, r, a), this.type = 5;
+class xt extends ye {
+  constructor(e, s, i, r, n) {
+    super(e, s, i, r, n), this.type = 5;
   }
   _$AI(e, s = this) {
-    if ((e = ee(this, e, s, 0) ?? h) === Q) return;
-    const i = this._$AH, r = e === h && i !== h || e.capture !== i.capture || e.once !== i.once || e.passive !== i.passive, a = e !== h && (i === h || r);
-    r && this.element.removeEventListener(this.name, this, i), a && this.element.addEventListener(this.name, this, e), this._$AH = e;
+    if ((e = te(this, e, s, 0) ?? h) === ee) return;
+    const i = this._$AH, r = e === h && i !== h || e.capture !== i.capture || e.once !== i.once || e.passive !== i.passive, n = e !== h && (i === h || r);
+    r && this.element.removeEventListener(this.name, this, i), n && this.element.addEventListener(this.name, this, e), this._$AH = e;
   }
   handleEvent(e) {
     typeof this._$AH == "function" ? this._$AH.call(this.options?.host ?? this.element, e) : this._$AH.handleEvent(e);
   }
 }
-class xt {
+class _t {
   constructor(e, s, i) {
     this.element = e, this.type = 6, this._$AN = void 0, this._$AM = s, this.options = i;
   }
@@ -488,17 +488,17 @@ class xt {
     return this._$AM._$AU;
   }
   _$AI(e) {
-    ee(this, e);
+    te(this, e);
   }
 }
-const _t = Ee.litHtmlPolyfillSupport;
-_t?.(oe, he), (Ee.litHtmlVersions ??= []).push("3.3.3");
-const St = (t, e, s) => {
+const St = Ee.litHtmlPolyfillSupport;
+St?.(le, de), (Ee.litHtmlVersions ??= []).push("3.3.3");
+const At = (t, e, s) => {
   const i = s?.renderBefore ?? e;
   let r = i._$litPart$;
   if (r === void 0) {
-    const a = s?.renderBefore ?? null;
-    i._$litPart$ = r = new he(e.insertBefore(ae(), a), a, void 0, s ?? {});
+    const n = s?.renderBefore ?? null;
+    i._$litPart$ = r = new de(e.insertBefore(ae(), n), n, void 0, s ?? {});
   }
   return r._$AI(t), r;
 };
@@ -508,7 +508,7 @@ const St = (t, e, s) => {
  * SPDX-License-Identifier: BSD-3-Clause
  */
 const Te = globalThis;
-class k extends J {
+class k extends Y {
   constructor() {
     super(...arguments), this.renderOptions = { host: this }, this._$Do = void 0;
   }
@@ -518,7 +518,7 @@ class k extends J {
   }
   update(e) {
     const s = this.render();
-    this.hasUpdated || (this.renderOptions.isConnected = this.isConnected), super.update(e), this._$Do = St(s, this.renderRoot, this.renderOptions);
+    this.hasUpdated || (this.renderOptions.isConnected = this.isConnected), super.update(e), this._$Do = At(s, this.renderRoot, this.renderOptions);
   }
   connectedCallback() {
     super.connectedCallback(), this._$Do?.setConnected(!0);
@@ -527,19 +527,19 @@ class k extends J {
     super.disconnectedCallback(), this._$Do?.setConnected(!1);
   }
   render() {
-    return Q;
+    return ee;
   }
 }
 k._$litElement$ = !0, k.finalized = !0, Te.litElementHydrateSupport?.({ LitElement: k });
-const At = Te.litElementPolyfillSupport;
-At?.({ LitElement: k });
+const Et = Te.litElementPolyfillSupport;
+Et?.({ LitElement: k });
 (Te.litElementVersions ??= []).push("4.2.2");
 /**
  * @license
  * Copyright 2017 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
  */
-const O = (t) => (e, s) => {
+const P = (t) => (e, s) => {
   s !== void 0 ? s.addInitializer(() => {
     customElements.define(t, e);
   }) : customElements.define(t, e);
@@ -549,31 +549,31 @@ const O = (t) => (e, s) => {
  * Copyright 2017 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
  */
-const Et = { attribute: !0, type: String, converter: be, reflect: !1, hasChanged: Ae }, Ct = (t = Et, e, s) => {
+const Ct = { attribute: !0, type: String, converter: be, reflect: !1, hasChanged: Ae }, Tt = (t = Ct, e, s) => {
   const { kind: i, metadata: r } = s;
-  let a = globalThis.litPropertyMetadata.get(r);
-  if (a === void 0 && globalThis.litPropertyMetadata.set(r, a = /* @__PURE__ */ new Map()), i === "setter" && ((t = Object.create(t)).wrapped = !0), a.set(s.name, t), i === "accessor") {
-    const { name: n } = s;
+  let n = globalThis.litPropertyMetadata.get(r);
+  if (n === void 0 && globalThis.litPropertyMetadata.set(r, n = /* @__PURE__ */ new Map()), i === "setter" && ((t = Object.create(t)).wrapped = !0), n.set(s.name, t), i === "accessor") {
+    const { name: a } = s;
     return { set(l) {
       const c = e.get.call(this);
-      e.set.call(this, l), this.requestUpdate(n, c, t, !0, l);
+      e.set.call(this, l), this.requestUpdate(a, c, t, !0, l);
     }, init(l) {
-      return l !== void 0 && this.C(n, void 0, t, l), l;
+      return l !== void 0 && this.C(a, void 0, t, l), l;
     } };
   }
   if (i === "setter") {
-    const { name: n } = s;
+    const { name: a } = s;
     return function(l) {
-      const c = this[n];
-      e.call(this, l), this.requestUpdate(n, c, t, !0, l);
+      const c = this[a];
+      e.call(this, l), this.requestUpdate(a, c, t, !0, l);
     };
   }
   throw Error("Unsupported decorator location: " + i);
 };
 function u(t) {
-  return (e, s) => typeof s == "object" ? Ct(t, e, s) : ((i, r, a) => {
-    const n = r.hasOwnProperty(a);
-    return r.constructor.createProperty(a, i), n ? Object.getOwnPropertyDescriptor(r, a) : void 0;
+  return (e, s) => typeof s == "object" ? Tt(t, e, s) : ((i, r, n) => {
+    const a = r.hasOwnProperty(n);
+    return r.constructor.createProperty(n, i), a ? Object.getOwnPropertyDescriptor(r, n) : void 0;
   })(t, e, s);
 }
 /**
@@ -584,7 +584,7 @@ function u(t) {
 function d(t) {
   return u({ ...t, state: !0, attribute: !1 });
 }
-const f = "kustos_vision", Ke = 3600, Tt = 60;
+const f = "kustos_vision", Ke = 3600, Dt = 60;
 class We {
   constructor(e) {
     this.hass = e, this.signatures = /* @__PURE__ */ new Map(), this.fragmentMaps = /* @__PURE__ */ new Map();
@@ -694,7 +694,7 @@ class We {
     });
     return this.signatures.set(e, {
       url: r,
-      usableUntil: i + (Ke - Tt) * 1e3
+      usableUntil: i + (Ke - Dt) * 1e3
     }), r;
   }
   recordingDays(e) {
@@ -771,7 +771,7 @@ function x(t) {
   }
   return t == null ? "Unbekannter Fehler" : String(t);
 }
-function ce(t) {
+function ue(t) {
   if (t === null) return "unbekannt";
   const e = ["B", "kB", "MB", "GB", "TB"];
   let s = t, i = 0;
@@ -779,7 +779,7 @@ function ce(t) {
     s /= 1e3, i += 1;
   return `${s.toFixed(s < 10 && i > 0 ? 1 : 0)} ${e[i]}`;
 }
-const j = B`
+const j = z`
   :host {
     /* The geometry the panel repeats, named once. Each maps onto Home
        Assistant's own variable where the theme system has one, so a theme
@@ -1212,1018 +1212,20 @@ const j = B`
     font-size: 0.85em;
   }
 `;
-var Ot = Object.defineProperty, Dt = Object.getOwnPropertyDescriptor, st = (t, e, s, i) => {
-  for (var r = i > 1 ? void 0 : i ? Dt(e, s) : e, a = t.length - 1, n; a >= 0; a--)
-    (n = t[a]) && (r = (i ? n(e, s, r) : n(r)) || r);
+var Ot = Object.defineProperty, zt = Object.getOwnPropertyDescriptor, U = (t, e, s, i) => {
+  for (var r = i > 1 ? void 0 : i ? zt(e, s) : e, n = t.length - 1, a; n >= 0; n--)
+    (a = t[n]) && (r = (i ? a(e, s, r) : a(r)) || r);
   return i && r && Ot(e, s, r), r;
 };
-let ve = class extends k {
-  constructor() {
-    super(...arguments), this.open = !1;
-  }
-  /** Show the dialog; resolves with what the person decided. */
-  ask() {
-    return this.resolve?.("cancel"), this.open = !0, new Promise((t) => {
-      this.resolve = t, this.updateComplete.then(() => {
-        const e = this.renderRoot.querySelector("button");
-        e instanceof HTMLElement && e.focus();
-      });
-    });
-  }
-  answer(t) {
-    this.open = !1, this.resolve?.(t), this.resolve = void 0;
-  }
-  onKeydown(t) {
-    t.key === "Escape" && (t.preventDefault(), this.answer("cancel"));
-  }
-  render() {
-    return this.open ? o`<div
-      class="scrim"
-      @keydown=${this.onKeydown}
-      @click=${(t) => {
-      t.target === t.currentTarget && this.answer("cancel");
-    }}
-    >
-      <div class="box" role="alertdialog" aria-modal="true">
-        <h2>Ungespeicherte Änderungen</h2>
-        <p>
-          Hier gibt es Änderungen, die noch nicht gespeichert sind. Sollen sie
-          gespeichert werden?
-        </p>
-        <div class="buttons">
-          <button @click=${() => this.answer("save")}>Speichern</button>
-          <button class="danger" @click=${() => this.answer("discard")}>
-            Nicht speichern
-          </button>
-          <button class="secondary" @click=${() => this.answer("cancel")}>
-            Abbrechen
-          </button>
-        </div>
-      </div>
-    </div>` : h;
-  }
-};
-ve.styles = [
-  j,
-  B`
-      :host {
-        min-height: 0;
-        background: none;
-      }
-      .scrim {
-        position: fixed;
-        inset: 0;
-        /* Above every layer the panel uses, the dropdown popover included. */
-        z-index: 110;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: rgba(0, 0, 0, 0.5);
-      }
-      .box {
-        background: var(
-          --ha-card-background,
-          var(--card-background-color, Canvas)
-        );
-        color: var(--primary-text-color, CanvasText);
-        border-radius: var(--kv-radius-card);
-        border: 1px solid var(--divider-color, ButtonBorder);
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-        max-width: 420px;
-        width: calc(100% - 32px);
-        padding: 20px 24px;
-        box-sizing: border-box;
-      }
-      h2 {
-        margin: 0 0 8px;
-        font-size: 20px;
-        font-weight: 400;
-      }
-      p {
-        margin: 0 0 20px;
-        color: var(--secondary-text-color);
-        line-height: 1.4;
-      }
-      .buttons {
-        display: flex;
-        justify-content: flex-end;
-        gap: 8px;
-        flex-wrap: wrap;
-      }
-    `
-];
-st([
-  d()
-], ve.prototype, "open", 2);
-ve = st([
-  O("kustos-vision-unsaved-dialog")
-], ve);
-const le = [];
-function Oe(t) {
-  le.push(t);
-}
-function De(t) {
-  const e = le.indexOf(t);
-  e >= 0 && le.splice(e, 1);
-}
-function zt() {
-  return le.some((t) => t.isDirty());
-}
-let xe;
-function Fe(t) {
-  xe = t;
-}
-async function X() {
-  const t = le.filter((s) => s.isDirty());
-  if (t.length === 0 || !xe) return !0;
-  const e = await xe();
-  if (e === "cancel") return !1;
-  for (const s of t)
-    if (e === "save") {
-      if (!await s.save()) return !1;
-    } else
-      s.discard();
-  return !0;
-}
-const ke = "0.6.11", Pt = "kustos-vision-built:0.6.11", Bt = {
-  ptz_up: "Schwenken hoch",
-  ptz_down: "Schwenken runter",
-  ptz_left: "Schwenken links",
-  ptz_right: "Schwenken rechts",
-  ptz_preset: "Position anfahren",
-  ptz_patrol: "Patrouille",
-  light: "Licht",
-  light_brightness: "Helligkeit",
-  siren: "Sirene",
-  siren_on: "Sirene ein",
-  siren_off: "Sirene aus",
-  night_vision: "Nachtsicht",
-  privacy_mode: "Privatsphäre",
-  motion_trigger: "Bewegungsmelder"
-};
-function Y(t) {
-  const e = Bt[t];
-  if (e) return e;
-  const s = t.replace(/_/g, " ");
-  return s.charAt(0).toUpperCase() + s.slice(1);
-}
-const Rt = {
-  ptz_up: "▲",
-  ptz_down: "▼",
-  ptz_left: "◀",
-  ptz_right: "▶"
-};
-function Ge(t) {
-  return !t || !t.includes(".") ? [] : {
-    button: ["button"],
-    scene: ["button"],
-    script: ["button"],
-    switch: ["switch", "button"],
-    light: ["switch", "button"],
-    siren: ["switch", "button"],
-    fan: ["switch", "button"],
-    input_boolean: ["switch", "button"],
-    select: ["select"],
-    input_select: ["select"],
-    number: ["number"],
-    input_number: ["number"]
-  }[t.split(".", 1)[0]] ?? [];
-}
-const Nt = {
-  button: "Knopf",
-  switch: "An/Aus",
-  select: "Auswahl",
-  number: "Wert"
-};
-var Ht = Object.defineProperty, Ut = Object.getOwnPropertyDescriptor, M = (t, e, s, i) => {
-  for (var r = i > 1 ? void 0 : i ? Ut(e, s) : e, a = t.length - 1, n; a >= 0; a--)
-    (n = t[a]) && (r = (i ? n(e, s, r) : n(r)) || r);
-  return i && r && Ht(e, s, r), r;
-};
-const Mt = 2, qe = 1024 * 1024, Ze = 3, Je = 8, It = "mp4a.40.2";
-function Lt(t, e, s) {
-  const i = [...t].sort((l, c) => l.start - c.start), r = i.filter(
-    (l) => l.start <= e && e < l.start + l.duration
-  );
-  let a = r.find((l) => l.stream_key === s) ?? r[0];
-  if (!a) {
-    const l = i.filter((c) => c.start + c.duration > e);
-    a = l.find(
-      (c) => c.start === l[0]?.start && c.stream_key === s
-    ) ?? l[0];
-  }
-  if (!a) return [];
-  let n = 0;
-  return i.filter(
-    (l) => l.stream_key === a.stream_key && l.start + l.duration > e
-  ).map((l) => {
-    const c = { segment: l, mediaStart: n };
-    return n += l.duration, c;
-  });
-}
-function jt(t, e) {
-  for (const i of t) {
-    if (e < i.segment.start) return i.mediaStart;
-    if (e < i.segment.start + i.segment.duration)
-      return i.mediaStart + (e - i.segment.start);
-  }
-  const s = t[t.length - 1];
-  return s ? s.mediaStart + s.segment.duration : 0;
-}
-function se(t, e) {
-  for (const i of t)
-    if (e < i.mediaStart + i.segment.duration)
-      return i.segment.start + Math.max(0, e - i.mediaStart);
-  const s = t[t.length - 1];
-  return s ? s.segment.start + s.segment.duration : 0;
-}
-function it(t, e) {
-  const [s, i, r, a] = [0, 1, 2, 3].map((n) => e.charCodeAt(n));
-  for (let n = 0; n + 8 < t.length; n += 1)
-    if (t[n] === s && t[n + 1] === i && t[n + 2] === r && t[n + 3] === a)
-      return n;
-  return -1;
-}
-function Vt(t) {
-  return it(t, "mp4a") !== -1;
-}
-function Kt(t) {
-  const e = it(t, "avcC");
-  if (e === -1) return null;
-  const s = t[e + 5], i = t[e + 6], r = t[e + 7];
-  if (s === void 0 || r === void 0) return null;
-  const a = (n) => n.toString(16).padStart(2, "0");
-  return `avc1.${a(s)}${a(i)}${a(r)}`;
-}
-function rt(t) {
-  const e = new Date(t * 1e3);
-  return `${e.toLocaleDateString(void 0, {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric"
-  })} ${e.toLocaleTimeString(void 0, {
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit"
-  })}`;
-}
-const Wt = (t) => t instanceof DOMException && t.name === "QuotaExceededError";
-let z = class extends k {
-  constructor() {
-    super(...arguments), this.segments = [], this.seekTo = 0, this.segmentUrlBase = "/api/kustos_vision/segment", this.message = "", this.loadingRun = !1, this.withAudio = !0, this.placed = [], this.appended = /* @__PURE__ */ new Set(), this.accepted = 0, this.loading = !1, this.generation = 0, this.wired = !1, this.recoveries = 0;
-  }
-  disconnectedCallback() {
-    super.disconnectedCallback(), this.teardown();
-  }
-  updated(t) {
-    t.has("segments") ? (this.recoveries = 0, this.load()) : t.has("seekTo") && (this.recoveries = 0, this.jump(this.seekTo));
-  }
-  video() {
-    return this.renderRoot.querySelector("video");
-  }
-  /** Attach the element listeners exactly once; loads come and go. */
-  wire(t) {
-    this.wired || (this.wired = !0, t.addEventListener("timeupdate", () => {
-      if (this.pump(), this.placed.length > 0 && !t.seeking) {
-        const e = se(this.placed, t.currentTime);
-        this.clockUtc = e, this.dispatchEvent(
-          new CustomEvent("positionchange", {
-            detail: { time: e },
-            bubbles: !0,
-            composed: !0
-          })
-        );
-      }
-    }), t.addEventListener("seeked", () => {
-      this.placed.length > 0 && (this.clockUtc = se(this.placed, t.currentTime));
-    }), t.addEventListener("seeking", () => this.onSeeking()), t.addEventListener("waiting", () => this.skipHole()), t.addEventListener("error", () => {
-      const e = t.error;
-      if (e) {
-        if (this.recoveries < Je && this.placed.length > 0) {
-          this.recoveries += 1;
-          const s = se(this.placed, t.currentTime) + Ze * this.recoveries;
-          console.warn(
-            `kustos_vision: decoder refused playback (${e.message || e.code}), skipping ${Ze * this.recoveries}s ahead (${this.recoveries}/${Je})`
-          ), this.load(s, this.placed[0]?.segment.stream_key, !0);
-          return;
-        }
-        this.message || (this.message = `Der Browser meldet einen Wiedergabefehler${e.message ? `: ${e.message}` : ` (Code ${e.code})`}.`);
-      }
-    }));
-  }
-  jump(t) {
-    if (!this.segments.some(
-      (n) => t >= n.start && t < n.start + n.duration
-    )) {
-      this.gapAt = t, this.video()?.pause();
-      return;
-    }
-    this.gapAt = void 0;
-    const s = this.placed.find(
-      (n) => t >= n.segment.start && t < n.segment.start + n.segment.duration
-    );
-    if (!s) {
-      this.load(t, this.placed[0]?.segment.stream_key);
-      return;
-    }
-    const i = this.video();
-    if (!i) return;
-    const r = s.mediaStart + (t - s.segment.start);
-    if (this.isBuffered(i, r)) {
-      i.currentTime = r;
-      return;
-    }
-    const a = this.placed.find(
-      (n) => !this.appended.has(n.segment.path)
-    );
-    if (this.carry?.path === s.segment.path || a?.segment.path === s.segment.path) {
-      i.currentTime = r, this.pump();
-      return;
-    }
-    this.load(t, s.segment.stream_key);
-  }
-  isBuffered(t, e) {
-    const s = t.buffered;
-    for (let i = 0; i < s.length; i += 1)
-      if (e >= s.start(i) && e <= s.end(i)) return !0;
-    return !1;
-  }
-  /**
-   * React to the element seeking somewhere the buffer does not cover.
-   *
-   * The scrubber can reach every media-timeline position, including footage
-   * that was evicted behind the playhead or not fetched yet. Both are
-   * recoverable; sitting silently on a spinner is not.
-   */
-  onSeeking() {
-    const t = this.video();
-    if (!t || this.placed.length === 0 || this.appended.size === 0) return;
-    const e = t.currentTime;
-    if (this.isBuffered(t, e)) return;
-    const s = this.placed.find((a) => e < a.mediaStart + a.segment.duration);
-    if (!s) return;
-    const i = this.placed.find(
-      (a) => !this.appended.has(a.segment.path)
-    );
-    if (this.carry?.path === s.segment.path || i?.segment.path === s.segment.path) {
-      this.pump();
-      return;
-    }
-    if (!this.appended.has(s.segment.path)) {
-      this.load(se(this.placed, e), s.segment.stream_key);
-      return;
-    }
-    const r = t.buffered;
-    if (r.length > 0 && e < r.start(0)) {
-      this.load(se(this.placed, e), s.segment.stream_key);
-      return;
-    }
-    this.skipHole();
-  }
-  /** Move past a spot whose data will never arrive. */
-  skipHole() {
-    const t = this.video();
-    if (!t) return;
-    const e = t.buffered;
-    for (let s = 0; s < e.length; s += 1)
-      if (e.start(s) > t.currentTime) {
-        t.currentTime = e.start(s);
-        return;
-      }
-  }
-  teardown() {
-    this.generation += 1, this.carry?.reader && this.carry.reader.cancel().catch(() => {
-    });
-    const t = this.video();
-    t && (t.pause(), t.removeAttribute("src"), t.load()), this.loadingRun = !1, this.objectUrl && URL.revokeObjectURL(this.objectUrl), this.objectUrl = void 0, this.buffer = void 0, this.media = void 0, this.placed = [], this.appended.clear(), this.accepted = 0, this.carry = void 0, this.startup = void 0, this.loading = !1;
-  }
-  async load(t, e, s = !1) {
-    const i = this.video(), r = i !== null && !i.paused;
-    this.teardown();
-    const a = this.generation;
-    if (this.message = "", this.gapAt = void 0, this.segments.length === 0) {
-      this.message = "Für diesen Zeitraum ist nichts aufgezeichnet.";
-      return;
-    }
-    if (!("MediaSource" in window)) {
-      this.message = "Dieser Browser unterstützt die Wiedergabe nicht.";
-      return;
-    }
-    this.loadingRun = !0;
-    const n = t ?? this.seekTo ?? this.segments[0].start;
-    if (this.placed = Lt(this.segments, n, e), this.placed.length === 0) {
-      this.message = "Ab diesem Zeitpunkt ist nichts mehr aufgezeichnet.";
-      return;
-    }
-    this.startup = {
-      mediaTime: jt(this.placed, n),
-      resume: s || r,
-      // After a decode refusal the ranged fetch must not start at the
-      // refused keyframe again: measured, that costs one futile recovery
-      // per skip until the skips outgrow the frame's multi-second span.
-      pastRefusal: s
-    };
-    let l;
-    try {
-      l = await this.inspect(this.placed[0].segment);
-    } catch {
-      if (a !== this.generation) return;
-      try {
-        l = await this.inspect(this.placed[0].segment);
-      } catch (T) {
-        this.message = x(T);
-        return;
-      }
-    }
-    if (a !== this.generation) return;
-    if (!l) {
-      this.message = "Diese Aufnahme ist nicht H.264. Die Wiedergabe im Panel unterstützt derzeit nur H.264; die Datei selbst ist unbeschädigt und lässt sich herunterladen.";
-      return;
-    }
-    const c = `video/mp4; codecs="${l}"`, p = `video/mp4; codecs="${l}, ${It}"`, b = this.withAudio ? p : c, g = MediaSource.isTypeSupported(b) ? b : MediaSource.isTypeSupported(c) ? c : null;
-    if (!g) {
-      this.message = `Dieser Browser kann ${l} nicht abspielen.`;
-      return;
-    }
-    const S = new MediaSource();
-    this.media = S, this.objectUrl = URL.createObjectURL(S), await this.updateComplete;
-    const C = this.video();
-    C && (this.wire(C), C.src = this.objectUrl, S.addEventListener(
-      "sourceopen",
-      () => {
-        if (a === this.generation)
-          try {
-            const T = S.addSourceBuffer(g);
-            T.mode = "segments", this.buffer = T, T.addEventListener("updateend", () => void this.pump());
-            const we = this.placed[this.placed.length - 1];
-            we && (S.duration = we.mediaStart + we.segment.duration), this.pump();
-          } catch (T) {
-            this.message = x(T);
-          }
-      },
-      { once: !0 }
-    ));
-  }
-  async inspect(t) {
-    const e = await this.fetchSegment(t, {
-      headers: { Range: "bytes=0-8191" }
-    });
-    if (!e.ok && e.status !== 206)
-      throw new Error(
-        `Die Aufnahme konnte nicht geladen werden (HTTP ${e.status}).`
-      );
-    const s = new Uint8Array(await e.arrayBuffer());
-    return this.withAudio = Vt(s), Kt(s);
-  }
-  urlFor(t) {
-    return `${this.segmentUrlBase}/${t.path}`;
-  }
-  /**
-   * Fetch init plus the fragments from the wanted second onward.
-   *
-   * Falls back to null when the server cannot map the file, in which case
-   * the caller downloads it whole as before. The returned range also ends at
-   * the last complete fragment, so a tail torn off mid-write, the thing a
-   * crashed recorder leaves behind, never reaches the parser at all.
-   */
-  async fetchRanged(t, e, s = !1) {
-    if (!this.api) return null;
-    let i;
-    try {
-      i = await this.api.fragments(t.path);
-    } catch {
-      return null;
-    }
-    if (!i || i.fragments.length === 0) return null;
-    let r = i.fragments[0];
-    for (const l of i.fragments)
-      if (l.start <= e) r = l;
-      else break;
-    if (s && e > 0) {
-      const l = i.fragments.indexOf(r);
-      l >= 0 && l + 1 < i.fragments.length && (r = i.fragments[l + 1]);
-    }
-    const [a, n] = await Promise.all([
-      this.api.authorizedFetch(this.urlFor(t), {
-        headers: { Range: `bytes=0-${i.init_end - 1}` }
-      }),
-      this.api.authorizedFetch(this.urlFor(t), {
-        headers: { Range: `bytes=${r.offset}-${i.data_end - 1}` }
-      })
-    ]);
-    return a.status !== 206 || n.status !== 206 ? null : {
-      init: new Uint8Array(await a.arrayBuffer()),
-      data: n
-    };
-  }
-  /** Fetch a segment with credentials, which the endpoint insists on. */
-  fetchSegment(t, e) {
-    const s = this.urlFor(t);
-    return this.api ? this.api.authorizedFetch(s, e) : Promise.reject(
-      new Error("Die Wiedergabe ist nicht mit Home Assistant verbunden.")
-    );
-  }
-  /** One appendBuffer call, settled on its updateend. */
-  appendOnce(t) {
-    const e = this.buffer;
-    return e ? new Promise((s, i) => {
-      let r;
-      const a = (l) => {
-        r = l;
-      }, n = () => {
-        e.removeEventListener("error", a), e.removeEventListener("updateend", n), r ? i(new Error("Der Puffer hat die Daten abgelehnt.")) : s();
-      };
-      e.addEventListener("error", a), e.addEventListener("updateend", n);
-      try {
-        e.appendBuffer(t);
-      } catch (l) {
-        e.removeEventListener("error", a), e.removeEventListener("updateend", n), i(l);
-      }
-    }) : Promise.reject(new Error("kein Puffer"));
-  }
-  /**
-   * Free the footage the playhead has left behind.
-   *
-   * The browser caps how much a SourceBuffer may hold, and it does not evict
-   * on its own what was never played. One segment length stays: a short seek
-   * back is instant, anything further goes through a reload anyway.
-   */
-  async evictBehind(t) {
-    const e = this.buffer;
-    if (!e || !t || e.updating) return !1;
-    const s = this.placed[0]?.segment.duration ?? 0, i = t.currentTime - s, r = e.buffered;
-    return r.length === 0 || i <= r.start(0) ? !1 : (await new Promise((a) => {
-      e.addEventListener("updateend", () => a(), { once: !0 }), e.remove(r.start(0), i);
-    }), !0);
-  }
-  /** Keep a little footage buffered ahead of the playhead. */
-  async pump() {
-    const t = this.buffer, e = this.media;
-    if (!t || !e || t.updating || this.loading || e.readyState !== "open") return;
-    const s = this.video();
-    if (!this.carry) {
-      const i = this.placed.find((a) => !this.appended.has(a.segment.path));
-      if (!i) {
-        if (this.accepted === 0) {
-          this.loadingRun = !1, this.message = "Keines der Segmente dieses Zeitraums ließ sich laden.";
-          return;
-        }
-        try {
-          e.endOfStream();
-        } catch {
-        }
-        return;
-      }
-      if (s && this.appended.size > 0 && (s.buffered.length > 0 ? s.buffered.end(s.buffered.length - 1) : 0) - s.currentTime > Mt * (this.placed[0]?.segment.duration ?? 0))
-        return;
-      const r = this.generation;
-      this.loading = !0;
-      try {
-        const a = this.startup !== void 0 ? Math.max(0, this.startup.mediaTime - i.mediaStart) : 0, n = await this.fetchRanged(
-          i.segment,
-          a,
-          this.startup?.pastRefusal ?? !1
-        );
-        let l, c = null;
-        if (n ? (l = n.data, c = n.init) : l = await this.fetchSegment(i.segment), !l.ok) throw new Error(`HTTP ${l.status}`);
-        if (r !== this.generation || !this.buffer || e.readyState !== "open")
-          return;
-        if (this.accepted > 0 && this.buffer.abort(), this.buffer.timestampOffset = i.mediaStart, this.appended.add(i.segment.path), this.carry = {
-          path: i.segment.path,
-          // Streamed on purpose: waiting for a whole high-resolution segment
-          // to download before the first append kept the screen black for
-          // the length of a fifty-megabyte transfer after every click.
-          reader: l.body ? l.body.getReader() : null,
-          // A ranged fetch starts mid-file, so the init segment the parser
-          // needs first is prepended here.
-          pending: c ?? (l.body ? new Uint8Array(0) : new Uint8Array(await l.arrayBuffer())),
-          firstOfSegment: !0
-        }, c && !l.body) {
-          const p = new Uint8Array(await l.arrayBuffer()), b = new Uint8Array(c.length + p.length);
-          b.set(c), b.set(p, c.length), this.carry.pending = b;
-        }
-        if (r !== this.generation) return;
-      } catch (a) {
-        this.appended.add(i.segment.path), console.warn(
-          "kustos_vision: segment could not be fetched",
-          i.segment.path,
-          a
-        );
-      } finally {
-        this.loading = !1;
-      }
-      if (!this.carry) {
-        r === this.generation && this.pump();
-        return;
-      }
-    }
-    await this.drainCarry(s);
-  }
-  /** Append the carried segment as its bytes arrive, until done or full. */
-  async drainCarry(t) {
-    const e = this.carry;
-    if (!e || !this.buffer) return;
-    const s = this.generation;
-    this.loading = !0;
-    try {
-      for (; ; ) {
-        const i = e.reader === null && e.pending.length > 0;
-        if (e.pending.length >= qe || i) {
-          const r = e.pending.subarray(0, qe);
-          try {
-            await this.appendOnce(r);
-          } catch (a) {
-            if (s !== this.generation) return;
-            if (Wt(a)) {
-              if (await this.evictBehind(t)) continue;
-              return;
-            }
-            console.warn(
-              "kustos_vision: segment could not be appended",
-              e.path,
-              a
-            ), e.reader && e.reader.cancel().catch(() => {
-            }), this.carry = void 0;
-            return;
-          }
-          if (s !== this.generation) return;
-          e.pending = e.pending.subarray(r.length), e.firstOfSegment && (this.accepted += 1, e.firstOfSegment = !1, this.loadingRun = !1, this.applyStartup()), this.nudgePlayback(t);
-          continue;
-        }
-        if (e.reader) {
-          const { value: r, done: a } = await e.reader.read();
-          if (s !== this.generation) return;
-          if (r && r.length > 0) {
-            const n = new Uint8Array(e.pending.length + r.length);
-            n.set(e.pending), n.set(r, e.pending.length), e.pending = n;
-          }
-          a && (e.reader = null);
-          continue;
-        }
-        this.carry = void 0;
-        break;
-      }
-    } finally {
-      this.loading = !1;
-    }
-    s === this.generation && (this.nudgeStalledSeek(), this.pump());
-  }
-  /**
-   * Ask a stalled element to move again.
-   *
-   * Safari in particular stays frozen after running out of data even once
-   * more has been appended; the person then pressed pause and play by hand.
-   * play() on something already playing is a no-op, so asking every time
-   * costs nothing.
-   */
-  nudgePlayback(t) {
-    t && !t.paused && t.play().catch(() => {
-    });
-  }
-  /** Put the element where the run was asked to start, once data exists. */
-  applyStartup() {
-    const t = this.startup;
-    if (!t) return;
-    this.startup = void 0;
-    const e = this.video();
-    e && (t.mediaTime > 0 && (e.currentTime = t.mediaTime), t.resume && e.play().catch(() => {
-    }));
-  }
-  /**
-     * Unstick a seek whose data turned out not to exist.
-  
-     * A seek into the not-yet-fetched part waits for the pump; when the append
-     * lands and the spot is still dry (a recording shorter than the index
-     * believes), the element would wait forever, so it moves to the next
-     * footage instead.
-     */
-  nudgeStalledSeek() {
-    const t = this.video();
-    !t || !t.seeking || this.isBuffered(t, t.currentTime) || this.skipHole();
-  }
-  render() {
-    return o`
-      <video controls playsinline></video>
-      ${this.clockUtc !== void 0 && !this.message && this.gapAt === void 0 ? o`<div class="clock">${rt(this.clockUtc)}</div>` : h}
-      ${this.gapAt !== void 0 ? o`<div class="gap">
-            Um ${new Date(this.gapAt * 1e3).toLocaleTimeString()} liegt keine
-            Aufnahme vor.
-          </div>` : h}
-      ${this.message ? o`<div class="overlay">${this.message}</div>` : h}
-      ${this.loadingRun && !this.message && this.gapAt === void 0 ? o`<div class="overlay">Lade Aufnahme …</div>` : h}
-    `;
-  }
-};
-z.styles = B`
-    :host {
-      display: block;
-      background: #000;
-      position: relative;
-      aspect-ratio: 16 / 9;
-    }
-    video {
-      width: 100%;
-      height: 100%;
-      display: block;
-      object-fit: contain;
-    }
-    .overlay {
-      position: absolute;
-      inset: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #ccc;
-      font-size: 0.9em;
-      text-align: center;
-      padding: 12px;
-      pointer-events: none;
-    }
-    .clock {
-      position: absolute;
-      top: 8px;
-      right: 8px;
-      background: rgba(0, 0, 0, 0.55);
-      color: #fff;
-      font-family: ui-monospace, monospace;
-      font-size: 0.8em;
-      padding: 2px 8px;
-      border-radius: 6px;
-      pointer-events: none;
-      z-index: 1;
-    }
-    .gap {
-      position: absolute;
-      inset: 0;
-      background: #000;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #888;
-      font-size: 0.9em;
-      text-align: center;
-      padding: 12px;
-    }
-  `;
-M([
-  u({ attribute: !1 })
-], z.prototype, "api", 2);
-M([
-  u({ attribute: !1 })
-], z.prototype, "segments", 2);
-M([
-  u({ type: Number })
-], z.prototype, "seekTo", 2);
-M([
-  u()
-], z.prototype, "segmentUrlBase", 2);
-M([
-  d()
-], z.prototype, "message", 2);
-M([
-  d()
-], z.prototype, "gapAt", 2);
-M([
-  d()
-], z.prototype, "clockUtc", 2);
-M([
-  d()
-], z.prototype, "loadingRun", 2);
-z = M([
-  O("kustos-vision-player")
-], z);
-var Ft = Object.defineProperty, Gt = Object.getOwnPropertyDescriptor, q = (t, e, s, i) => {
-  for (var r = i > 1 ? void 0 : i ? Gt(e, s) : e, a = t.length - 1, n; a >= 0; a--)
-    (n = t[a]) && (r = (i ? n(e, s, r) : n(r)) || r);
-  return i && r && Ft(e, s, r), r;
-};
-let H = class extends k {
-  constructor() {
-    super(...arguments), this.entityId = "", this.muted = !0, this.mode = "idle", this.message = "", this.nowSeconds = 0, this.visible = !1, this.starting = !1;
-  }
-  connectedCallback() {
-    super.connectedCallback(), this.nowSeconds = Date.now() / 1e3, this.clockTimer = setInterval(() => {
-      this.nowSeconds = Date.now() / 1e3;
-    }, 1e3), this.observer = new IntersectionObserver((t) => {
-      const e = t.some((s) => s.isIntersecting);
-      e !== this.visible && (this.visible = e, e ? this.start() : this.stop());
-    }), this.observer.observe(this);
-  }
-  disconnectedCallback() {
-    super.disconnectedCallback(), this.clockTimer !== void 0 && clearInterval(this.clockTimer), this.clockTimer = void 0, this.observer?.disconnect(), this.observer = void 0, this.stop();
-  }
-  updated(t) {
-    t.has("entityId") && this.visible && (this.stop(), this.start());
-  }
-  get accessToken() {
-    return this.hass?.states?.[this.entityId]?.attributes?.access_token;
-  }
-  async start() {
-    if (!(this.starting || !this.entityId || !this.hass)) {
-      this.starting = !0;
-      try {
-        const e = (await this.hass.callWS({
-          type: "camera/capabilities",
-          entity_id: this.entityId
-        })).frontend_stream_types ?? [];
-        if (e.includes("web_rtc") && await this.startWebRtc() || e.includes("hls") && await this.startHls()) return;
-        this.startMjpeg();
-      } catch (t) {
-        this.fail(t);
-      } finally {
-        this.starting = !1;
-      }
-    }
-  }
-  stop() {
-    this.unsubscribe?.(), this.unsubscribe = void 0, this.peer?.close(), this.peer = void 0;
-    const t = this.renderRoot.querySelector("video");
-    t && (t.srcObject = null, t.removeAttribute("src")), this.mode = "idle";
-  }
-  fail(t) {
-    this.mode = "error", this.message = x(t);
-  }
-  // --------------------------------------------------------------------
-  // WebRTC
-  // --------------------------------------------------------------------
-  async startWebRtc() {
-    try {
-      const t = await this.hass.callWS({
-        type: "camera/webrtc/get_client_config",
-        entity_id: this.entityId
-      }), e = new RTCPeerConnection(t.configuration);
-      this.peer = e, e.addTransceiver("video", { direction: "recvonly" }), e.addTransceiver("audio", { direction: "recvonly" });
-      const s = new MediaStream();
-      e.addEventListener("track", (a) => {
-        s.addTrack(a.track);
-        const n = this.renderRoot.querySelector("video");
-        n && (n.srcObject = s);
-      });
-      const i = await e.createOffer();
-      await e.setLocalDescription(i);
-      let r;
-      return e.addEventListener("icecandidate", (a) => {
-        !a.candidate || !r || this.hass.callWS({
-          type: "camera/webrtc/candidate",
-          entity_id: this.entityId,
-          session_id: r,
-          candidate: a.candidate.toJSON()
-        });
-      }), this.mode = "webrtc", this.unsubscribe = await this.subscribe(
-        {
-          type: "camera/webrtc/offer",
-          entity_id: this.entityId,
-          offer: i.sdp
-        },
-        (a) => {
-          a.type === "session" ? r = a.session_id : a.type === "answer" ? e.setRemoteDescription({
-            type: "answer",
-            sdp: a.answer
-          }) : a.type === "candidate" ? e.addIceCandidate(
-            a.candidate
-          ) : a.type === "error" && this.fail(new Error(String(a.message)));
-        }
-      ), !0;
-    } catch {
-      return this.peer?.close(), this.peer = void 0, !1;
-    }
-  }
-  subscribe(t, e) {
-    return this.hass.connection.subscribeMessage(e, t);
-  }
-  // --------------------------------------------------------------------
-  // HLS and MJPEG
-  // --------------------------------------------------------------------
-  async startHls() {
-    if (!document.createElement("video").canPlayType("application/vnd.apple.mpegurl")) return !1;
-    try {
-      const { url: e } = await this.hass.callWS({
-        type: "camera/stream",
-        entity_id: this.entityId,
-        format: "hls"
-      });
-      this.mode = "hls", await this.updateComplete;
-      const s = this.renderRoot.querySelector("video");
-      return s && (s.src = this.hass.hassUrl(e), s.play().catch(() => {
-      })), !0;
-    } catch {
-      return !1;
-    }
-  }
-  startMjpeg() {
-    this.mode = this.accessToken ? "mjpeg" : "still";
-  }
-  // --------------------------------------------------------------------
-  render() {
-    const t = ["webrtc", "hls", "mjpeg"].includes(this.mode);
-    return o`${this.renderPicture()}
-    ${t ? o`<div class="clock">${rt(this.nowSeconds)}</div>` : h}`;
-  }
-  renderPicture() {
-    const t = this.accessToken;
-    switch (this.mode) {
-      case "webrtc":
-      case "hls":
-        return o`<video autoplay playsinline .muted=${this.muted}></video>`;
-      case "mjpeg":
-        return o`<img
-          alt=""
-          src=${this.hass.hassUrl(
-          `/api/camera_proxy_stream/${this.entityId}?token=${t}`
-        )}
-        />`;
-      case "still":
-        return t ? o`<img
-              alt=""
-              src=${this.hass.hassUrl(
-          `/api/camera_proxy/${this.entityId}?token=${t}`
-        )}
-            />` : o`<div class="overlay">Kein Vorschaubild verfügbar</div>`;
-      case "error":
-        return o`<div class="overlay">${this.message}</div>`;
-      default:
-        return o`<div class="overlay">…</div>${h}`;
-    }
-  }
-};
-H.styles = B`
-    :host {
-      display: block;
-      position: relative;
-      /* The letterbox behind a 16:9 picture, dark in every theme for the
-         same reason the player chrome is: it frames video, not text. */
-      background: #111;
-      aspect-ratio: 16 / 9;
-      overflow: hidden;
-    }
-    video,
-    img {
-      width: 100%;
-      height: 100%;
-      object-fit: contain;
-      display: block;
-    }
-    .overlay {
-      position: absolute;
-      inset: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      text-align: center;
-      padding: 8px;
-      /* On the always-dark backdrop above, not on the theme's surface. */
-      color: #ddd;
-      font-size: 0.9em;
-    }
-    .clock {
-      position: absolute;
-      top: 8px;
-      right: 8px;
-      background: rgba(0, 0, 0, 0.55);
-      color: #fff;
-      font-family: ui-monospace, monospace;
-      font-size: 0.8em;
-      padding: 2px 8px;
-      border-radius: 6px;
-      pointer-events: none;
-      z-index: 1;
-    }
-  `;
-q([
-  u({ attribute: !1 })
-], H.prototype, "hass", 2);
-q([
-  u()
-], H.prototype, "entityId", 2);
-q([
-  u({ type: Boolean })
-], H.prototype, "muted", 2);
-q([
-  d()
-], H.prototype, "mode", 2);
-q([
-  d()
-], H.prototype, "message", 2);
-q([
-  d()
-], H.prototype, "nowSeconds", 2);
-H = q([
-  O("kustos-vision-live-stream")
-], H);
-var qt = Object.defineProperty, Zt = Object.getOwnPropertyDescriptor, I = (t, e, s, i) => {
-  for (var r = i > 1 ? void 0 : i ? Zt(e, s) : e, a = t.length - 1, n; a >= 0; a--)
-    (n = t[a]) && (r = (i ? n(e, s, r) : n(r)) || r);
-  return i && r && qt(e, s, r), r;
-};
-function Jt(t, e) {
+function Pt(t, e) {
   const s = e.trim().toLowerCase();
   return s ? t.filter((i) => i.label.toLowerCase().includes(s)) : t;
 }
-function Yt(t, e, s) {
-  const i = e - t.bottom - s, r = t.top - s, a = r > i;
-  return { up: a, maxHeight: Math.max(a ? r : i, 0), left: t.left, width: t.width };
+function st(t, e, s) {
+  const i = e - t.bottom - s, r = t.top - s, n = r > i;
+  return { up: n, maxHeight: Math.max(n ? r : i, 0), left: t.left, width: t.width };
 }
-let P = class extends k {
+let B = class extends k {
   constructor() {
     super(...arguments), this.options = [], this.value = "", this.search = !1, this.disabled = !1, this.open = !1, this.query = "", this.highlighted = -1, this.onOutsidePointer = (t) => {
       t.composedPath().includes(this) || this.close();
@@ -2245,7 +1247,7 @@ let P = class extends k {
   openDrop() {
     const t = this.renderRoot.querySelector(".select-field");
     if (!(t instanceof HTMLElement)) return;
-    const e = t.getBoundingClientRect(), i = Yt(e, window.innerHeight, 8);
+    const e = t.getBoundingClientRect(), i = st(e, window.innerHeight, 8);
     this.drop = {
       ...i,
       anchorTop: e.top,
@@ -2262,7 +1264,7 @@ let P = class extends k {
     window.removeEventListener("pointerdown", this.onOutsidePointer, !0), window.removeEventListener("scroll", this.onAnyScroll, !0), window.removeEventListener("resize", this.onViewportChange);
   }
   filtered() {
-    return Jt(this.options, this.query);
+    return Pt(this.options, this.query);
   }
   pick(t) {
     t.disabled || (this.value = t.value, this.close(), this.dispatchEvent(
@@ -2360,9 +1362,9 @@ let P = class extends k {
     `;
   }
 };
-P.styles = [
+B.styles = [
   j,
-  B`
+  z`
       :host {
         display: block;
         width: 100%;
@@ -2428,40 +1430,1038 @@ P.styles = [
       }
     `
 ];
-I([
+U([
   u({ attribute: !1 })
-], P.prototype, "options", 2);
-I([
+], B.prototype, "options", 2);
+U([
   u()
-], P.prototype, "value", 2);
-I([
+], B.prototype, "value", 2);
+U([
   u({ type: Boolean })
-], P.prototype, "search", 2);
-I([
+], B.prototype, "search", 2);
+U([
   u({ type: Boolean })
-], P.prototype, "disabled", 2);
-I([
+], B.prototype, "disabled", 2);
+U([
   d()
-], P.prototype, "open", 2);
-I([
+], B.prototype, "open", 2);
+U([
   d()
-], P.prototype, "query", 2);
-I([
+], B.prototype, "query", 2);
+U([
   d()
-], P.prototype, "highlighted", 2);
-I([
+], B.prototype, "highlighted", 2);
+U([
   d()
-], P.prototype, "drop", 2);
-P = I([
-  O("kustos-vision-select")
-], P);
-var Xt = Object.defineProperty, Qt = Object.getOwnPropertyDescriptor, Z = (t, e, s, i) => {
-  for (var r = i > 1 ? void 0 : i ? Qt(e, s) : e, a = t.length - 1, n; a >= 0; a--)
-    (n = t[a]) && (r = (i ? n(e, s, r) : n(r)) || r);
+], B.prototype, "drop", 2);
+B = U([
+  P("kustos-vision-select")
+], B);
+var Bt = Object.defineProperty, Mt = Object.getOwnPropertyDescriptor, it = (t, e, s, i) => {
+  for (var r = i > 1 ? void 0 : i ? Mt(e, s) : e, n = t.length - 1, a; n >= 0; n--)
+    (a = t[n]) && (r = (i ? a(e, s, r) : a(r)) || r);
+  return i && r && Bt(e, s, r), r;
+};
+let ve = class extends k {
+  constructor() {
+    super(...arguments), this.open = !1;
+  }
+  /** Show the dialog; resolves with what the person decided. */
+  ask() {
+    return this.resolve?.("cancel"), this.open = !0, new Promise((t) => {
+      this.resolve = t, this.updateComplete.then(() => {
+        const e = this.renderRoot.querySelector("button");
+        e instanceof HTMLElement && e.focus();
+      });
+    });
+  }
+  answer(t) {
+    this.open = !1, this.resolve?.(t), this.resolve = void 0;
+  }
+  onKeydown(t) {
+    t.key === "Escape" && (t.preventDefault(), this.answer("cancel"));
+  }
+  render() {
+    return this.open ? o`<div
+      class="scrim"
+      @keydown=${this.onKeydown}
+      @click=${(t) => {
+      t.target === t.currentTarget && this.answer("cancel");
+    }}
+    >
+      <div class="box" role="alertdialog" aria-modal="true">
+        <h2>Ungespeicherte Änderungen</h2>
+        <p>
+          Hier gibt es Änderungen, die noch nicht gespeichert sind. Sollen sie
+          gespeichert werden?
+        </p>
+        <div class="buttons">
+          <button @click=${() => this.answer("save")}>Speichern</button>
+          <button class="danger" @click=${() => this.answer("discard")}>
+            Nicht speichern
+          </button>
+          <button class="secondary" @click=${() => this.answer("cancel")}>
+            Abbrechen
+          </button>
+        </div>
+      </div>
+    </div>` : h;
+  }
+};
+ve.styles = [
+  j,
+  z`
+      :host {
+        min-height: 0;
+        background: none;
+      }
+      .scrim {
+        position: fixed;
+        inset: 0;
+        /* Above every layer the panel uses, the dropdown popover included. */
+        z-index: 110;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(0, 0, 0, 0.5);
+      }
+      .box {
+        background: var(
+          --ha-card-background,
+          var(--card-background-color, Canvas)
+        );
+        color: var(--primary-text-color, CanvasText);
+        border-radius: var(--kv-radius-card);
+        border: 1px solid var(--divider-color, ButtonBorder);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        max-width: 420px;
+        width: calc(100% - 32px);
+        padding: 20px 24px;
+        box-sizing: border-box;
+      }
+      h2 {
+        margin: 0 0 8px;
+        font-size: 20px;
+        font-weight: 400;
+      }
+      p {
+        margin: 0 0 20px;
+        color: var(--secondary-text-color);
+        line-height: 1.4;
+      }
+      .buttons {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+    `
+];
+it([
+  d()
+], ve.prototype, "open", 2);
+ve = it([
+  P("kustos-vision-unsaved-dialog")
+], ve);
+const he = [];
+function De(t) {
+  he.push(t);
+}
+function Oe(t) {
+  const e = he.indexOf(t);
+  e >= 0 && he.splice(e, 1);
+}
+function Rt() {
+  return he.some((t) => t.isDirty());
+}
+let xe;
+function Fe(t) {
+  xe = t;
+}
+async function Q() {
+  const t = he.filter((s) => s.isDirty());
+  if (t.length === 0 || !xe) return !0;
+  const e = await xe();
+  if (e === "cancel") return !1;
+  for (const s of t)
+    if (e === "save") {
+      if (!await s.save()) return !1;
+    } else
+      s.discard();
+  return !0;
+}
+const ke = "0.6.11", Ht = "kustos-vision-built:0.6.11", It = {
+  ptz_up: "Schwenken hoch",
+  ptz_down: "Schwenken runter",
+  ptz_left: "Schwenken links",
+  ptz_right: "Schwenken rechts",
+  ptz_preset: "Position anfahren",
+  ptz_patrol: "Patrouille",
+  light: "Licht",
+  light_brightness: "Helligkeit",
+  siren: "Sirene",
+  siren_on: "Sirene ein",
+  siren_off: "Sirene aus",
+  night_vision: "Nachtsicht",
+  privacy_mode: "Privatsphäre",
+  motion_trigger: "Bewegungsmelder"
+};
+function X(t) {
+  const e = It[t];
+  if (e) return e;
+  const s = t.replace(/_/g, " ");
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+const Nt = {
+  ptz_up: "▲",
+  ptz_down: "▼",
+  ptz_left: "◀",
+  ptz_right: "▶"
+};
+function Ge(t) {
+  return !t || !t.includes(".") ? [] : {
+    button: ["button"],
+    scene: ["button"],
+    script: ["button"],
+    switch: ["switch", "button"],
+    light: ["switch", "button"],
+    siren: ["switch", "button"],
+    fan: ["switch", "button"],
+    input_boolean: ["switch", "button"],
+    select: ["select"],
+    input_select: ["select"],
+    number: ["number"],
+    input_number: ["number"]
+  }[t.split(".", 1)[0]] ?? [];
+}
+const Ut = {
+  button: "Knopf",
+  switch: "An/Aus",
+  select: "Auswahl",
+  number: "Wert"
+};
+var Lt = Object.defineProperty, Vt = Object.getOwnPropertyDescriptor, L = (t, e, s, i) => {
+  for (var r = i > 1 ? void 0 : i ? Vt(e, s) : e, n = t.length - 1, a; n >= 0; n--)
+    (a = t[n]) && (r = (i ? a(e, s, r) : a(r)) || r);
+  return i && r && Lt(e, s, r), r;
+};
+const jt = 2, qe = 1024 * 1024, Ze = 3, Je = 8, Kt = "mp4a.40.2";
+function Wt(t, e, s) {
+  const i = [...t].sort((l, c) => l.start - c.start), r = i.filter(
+    (l) => l.start <= e && e < l.start + l.duration
+  );
+  let n = r.find((l) => l.stream_key === s) ?? r[0];
+  if (!n) {
+    const l = i.filter((c) => c.start + c.duration > e);
+    n = l.find(
+      (c) => c.start === l[0]?.start && c.stream_key === s
+    ) ?? l[0];
+  }
+  if (!n) return [];
+  let a = 0;
+  return i.filter(
+    (l) => l.stream_key === n.stream_key && l.start + l.duration > e
+  ).map((l) => {
+    const c = { segment: l, mediaStart: a };
+    return a += l.duration, c;
+  });
+}
+function Ft(t, e) {
+  for (const i of t) {
+    if (e < i.segment.start) return i.mediaStart;
+    if (e < i.segment.start + i.segment.duration)
+      return i.mediaStart + (e - i.segment.start);
+  }
+  const s = t[t.length - 1];
+  return s ? s.mediaStart + s.segment.duration : 0;
+}
+function ie(t, e) {
+  for (const i of t)
+    if (e < i.mediaStart + i.segment.duration)
+      return i.segment.start + Math.max(0, e - i.mediaStart);
+  const s = t[t.length - 1];
+  return s ? s.segment.start + s.segment.duration : 0;
+}
+function rt(t, e) {
+  const [s, i, r, n] = [0, 1, 2, 3].map((a) => e.charCodeAt(a));
+  for (let a = 0; a + 8 < t.length; a += 1)
+    if (t[a] === s && t[a + 1] === i && t[a + 2] === r && t[a + 3] === n)
+      return a;
+  return -1;
+}
+function Gt(t) {
+  return rt(t, "mp4a") !== -1;
+}
+function qt(t) {
+  const e = rt(t, "avcC");
+  if (e === -1) return null;
+  const s = t[e + 5], i = t[e + 6], r = t[e + 7];
+  if (s === void 0 || r === void 0) return null;
+  const n = (a) => a.toString(16).padStart(2, "0");
+  return `avc1.${n(s)}${n(i)}${n(r)}`;
+}
+function nt(t) {
+  const e = new Date(t * 1e3);
+  return `${e.toLocaleDateString(void 0, {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric"
+  })} ${e.toLocaleTimeString(void 0, {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit"
+  })}`;
+}
+const Zt = (t) => t instanceof DOMException && t.name === "QuotaExceededError";
+let M = class extends k {
+  constructor() {
+    super(...arguments), this.segments = [], this.seekTo = 0, this.segmentUrlBase = "/api/kustos_vision/segment", this.message = "", this.loadingRun = !1, this.withAudio = !0, this.placed = [], this.appended = /* @__PURE__ */ new Set(), this.accepted = 0, this.loading = !1, this.generation = 0, this.wired = !1, this.recoveries = 0;
+  }
+  disconnectedCallback() {
+    super.disconnectedCallback(), this.teardown();
+  }
+  updated(t) {
+    t.has("segments") ? (this.recoveries = 0, this.load()) : t.has("seekTo") && (this.recoveries = 0, this.jump(this.seekTo));
+  }
+  video() {
+    return this.renderRoot.querySelector("video");
+  }
+  /** Attach the element listeners exactly once; loads come and go. */
+  wire(t) {
+    this.wired || (this.wired = !0, t.addEventListener("timeupdate", () => {
+      if (this.pump(), this.placed.length > 0 && !t.seeking) {
+        const e = ie(this.placed, t.currentTime);
+        this.clockUtc = e, this.dispatchEvent(
+          new CustomEvent("positionchange", {
+            detail: { time: e },
+            bubbles: !0,
+            composed: !0
+          })
+        );
+      }
+    }), t.addEventListener("seeked", () => {
+      this.placed.length > 0 && (this.clockUtc = ie(this.placed, t.currentTime));
+    }), t.addEventListener("seeking", () => this.onSeeking()), t.addEventListener("waiting", () => this.skipHole()), t.addEventListener("error", () => {
+      const e = t.error;
+      if (e) {
+        if (this.recoveries < Je && this.placed.length > 0) {
+          this.recoveries += 1;
+          const s = ie(this.placed, t.currentTime) + Ze * this.recoveries;
+          console.warn(
+            `kustos_vision: decoder refused playback (${e.message || e.code}), skipping ${Ze * this.recoveries}s ahead (${this.recoveries}/${Je})`
+          ), this.load(s, this.placed[0]?.segment.stream_key, !0);
+          return;
+        }
+        this.message || (this.message = `Der Browser meldet einen Wiedergabefehler${e.message ? `: ${e.message}` : ` (Code ${e.code})`}.`);
+      }
+    }));
+  }
+  jump(t) {
+    if (!this.segments.some(
+      (a) => t >= a.start && t < a.start + a.duration
+    )) {
+      this.gapAt = t, this.video()?.pause();
+      return;
+    }
+    this.gapAt = void 0;
+    const s = this.placed.find(
+      (a) => t >= a.segment.start && t < a.segment.start + a.segment.duration
+    );
+    if (!s) {
+      this.load(t, this.placed[0]?.segment.stream_key);
+      return;
+    }
+    const i = this.video();
+    if (!i) return;
+    const r = s.mediaStart + (t - s.segment.start);
+    if (this.isBuffered(i, r)) {
+      i.currentTime = r;
+      return;
+    }
+    const n = this.placed.find(
+      (a) => !this.appended.has(a.segment.path)
+    );
+    if (this.carry?.path === s.segment.path || n?.segment.path === s.segment.path) {
+      i.currentTime = r, this.pump();
+      return;
+    }
+    this.load(t, s.segment.stream_key);
+  }
+  isBuffered(t, e) {
+    const s = t.buffered;
+    for (let i = 0; i < s.length; i += 1)
+      if (e >= s.start(i) && e <= s.end(i)) return !0;
+    return !1;
+  }
+  /**
+   * React to the element seeking somewhere the buffer does not cover.
+   *
+   * The scrubber can reach every media-timeline position, including footage
+   * that was evicted behind the playhead or not fetched yet. Both are
+   * recoverable; sitting silently on a spinner is not.
+   */
+  onSeeking() {
+    const t = this.video();
+    if (!t || this.placed.length === 0 || this.appended.size === 0) return;
+    const e = t.currentTime;
+    if (this.isBuffered(t, e)) return;
+    const s = this.placed.find((n) => e < n.mediaStart + n.segment.duration);
+    if (!s) return;
+    const i = this.placed.find(
+      (n) => !this.appended.has(n.segment.path)
+    );
+    if (this.carry?.path === s.segment.path || i?.segment.path === s.segment.path) {
+      this.pump();
+      return;
+    }
+    if (!this.appended.has(s.segment.path)) {
+      this.load(ie(this.placed, e), s.segment.stream_key);
+      return;
+    }
+    const r = t.buffered;
+    if (r.length > 0 && e < r.start(0)) {
+      this.load(ie(this.placed, e), s.segment.stream_key);
+      return;
+    }
+    this.skipHole();
+  }
+  /** Move past a spot whose data will never arrive. */
+  skipHole() {
+    const t = this.video();
+    if (!t) return;
+    const e = t.buffered;
+    for (let s = 0; s < e.length; s += 1)
+      if (e.start(s) > t.currentTime) {
+        t.currentTime = e.start(s);
+        return;
+      }
+  }
+  teardown() {
+    this.generation += 1, this.carry?.reader && this.carry.reader.cancel().catch(() => {
+    });
+    const t = this.video();
+    t && (t.pause(), t.removeAttribute("src"), t.load()), this.loadingRun = !1, this.objectUrl && URL.revokeObjectURL(this.objectUrl), this.objectUrl = void 0, this.buffer = void 0, this.media = void 0, this.placed = [], this.appended.clear(), this.accepted = 0, this.carry = void 0, this.startup = void 0, this.loading = !1;
+  }
+  async load(t, e, s = !1) {
+    const i = this.video(), r = i !== null && !i.paused;
+    this.teardown();
+    const n = this.generation;
+    if (this.message = "", this.gapAt = void 0, this.segments.length === 0) {
+      this.message = "Für diesen Zeitraum ist nichts aufgezeichnet.";
+      return;
+    }
+    if (!("MediaSource" in window)) {
+      this.message = "Dieser Browser unterstützt die Wiedergabe nicht.";
+      return;
+    }
+    this.loadingRun = !0;
+    const a = t ?? this.seekTo ?? this.segments[0].start;
+    if (this.placed = Wt(this.segments, a, e), this.placed.length === 0) {
+      this.message = "Ab diesem Zeitpunkt ist nichts mehr aufgezeichnet.";
+      return;
+    }
+    this.startup = {
+      mediaTime: Ft(this.placed, a),
+      resume: s || r,
+      // After a decode refusal the ranged fetch must not start at the
+      // refused keyframe again: measured, that costs one futile recovery
+      // per skip until the skips outgrow the frame's multi-second span.
+      pastRefusal: s
+    };
+    let l;
+    try {
+      l = await this.inspect(this.placed[0].segment);
+    } catch {
+      if (n !== this.generation) return;
+      try {
+        l = await this.inspect(this.placed[0].segment);
+      } catch (D) {
+        this.message = x(D);
+        return;
+      }
+    }
+    if (n !== this.generation) return;
+    if (!l) {
+      this.message = "Diese Aufnahme ist nicht H.264. Die Wiedergabe im Panel unterstützt derzeit nur H.264; die Datei selbst ist unbeschädigt und lässt sich herunterladen.";
+      return;
+    }
+    const c = `video/mp4; codecs="${l}"`, p = `video/mp4; codecs="${l}, ${Kt}"`, b = this.withAudio ? p : c, g = MediaSource.isTypeSupported(b) ? b : MediaSource.isTypeSupported(c) ? c : null;
+    if (!g) {
+      this.message = `Dieser Browser kann ${l} nicht abspielen.`;
+      return;
+    }
+    const S = new MediaSource();
+    this.media = S, this.objectUrl = URL.createObjectURL(S), await this.updateComplete;
+    const T = this.video();
+    T && (this.wire(T), T.src = this.objectUrl, S.addEventListener(
+      "sourceopen",
+      () => {
+        if (n === this.generation)
+          try {
+            const D = S.addSourceBuffer(g);
+            D.mode = "segments", this.buffer = D, D.addEventListener("updateend", () => void this.pump());
+            const we = this.placed[this.placed.length - 1];
+            we && (S.duration = we.mediaStart + we.segment.duration), this.pump();
+          } catch (D) {
+            this.message = x(D);
+          }
+      },
+      { once: !0 }
+    ));
+  }
+  async inspect(t) {
+    const e = await this.fetchSegment(t, {
+      headers: { Range: "bytes=0-8191" }
+    });
+    if (!e.ok && e.status !== 206)
+      throw new Error(
+        `Die Aufnahme konnte nicht geladen werden (HTTP ${e.status}).`
+      );
+    const s = new Uint8Array(await e.arrayBuffer());
+    return this.withAudio = Gt(s), qt(s);
+  }
+  urlFor(t) {
+    return `${this.segmentUrlBase}/${t.path}`;
+  }
+  /**
+   * Fetch init plus the fragments from the wanted second onward.
+   *
+   * Falls back to null when the server cannot map the file, in which case
+   * the caller downloads it whole as before. The returned range also ends at
+   * the last complete fragment, so a tail torn off mid-write, the thing a
+   * crashed recorder leaves behind, never reaches the parser at all.
+   */
+  async fetchRanged(t, e, s = !1) {
+    if (!this.api) return null;
+    let i;
+    try {
+      i = await this.api.fragments(t.path);
+    } catch {
+      return null;
+    }
+    if (!i || i.fragments.length === 0) return null;
+    let r = i.fragments[0];
+    for (const l of i.fragments)
+      if (l.start <= e) r = l;
+      else break;
+    if (s && e > 0) {
+      const l = i.fragments.indexOf(r);
+      l >= 0 && l + 1 < i.fragments.length && (r = i.fragments[l + 1]);
+    }
+    const [n, a] = await Promise.all([
+      this.api.authorizedFetch(this.urlFor(t), {
+        headers: { Range: `bytes=0-${i.init_end - 1}` }
+      }),
+      this.api.authorizedFetch(this.urlFor(t), {
+        headers: { Range: `bytes=${r.offset}-${i.data_end - 1}` }
+      })
+    ]);
+    return n.status !== 206 || a.status !== 206 ? null : {
+      init: new Uint8Array(await n.arrayBuffer()),
+      data: a
+    };
+  }
+  /** Fetch a segment with credentials, which the endpoint insists on. */
+  fetchSegment(t, e) {
+    const s = this.urlFor(t);
+    return this.api ? this.api.authorizedFetch(s, e) : Promise.reject(
+      new Error("Die Wiedergabe ist nicht mit Home Assistant verbunden.")
+    );
+  }
+  /** One appendBuffer call, settled on its updateend. */
+  appendOnce(t) {
+    const e = this.buffer;
+    return e ? new Promise((s, i) => {
+      let r;
+      const n = (l) => {
+        r = l;
+      }, a = () => {
+        e.removeEventListener("error", n), e.removeEventListener("updateend", a), r ? i(new Error("Der Puffer hat die Daten abgelehnt.")) : s();
+      };
+      e.addEventListener("error", n), e.addEventListener("updateend", a);
+      try {
+        e.appendBuffer(t);
+      } catch (l) {
+        e.removeEventListener("error", n), e.removeEventListener("updateend", a), i(l);
+      }
+    }) : Promise.reject(new Error("kein Puffer"));
+  }
+  /**
+   * Free the footage the playhead has left behind.
+   *
+   * The browser caps how much a SourceBuffer may hold, and it does not evict
+   * on its own what was never played. One segment length stays: a short seek
+   * back is instant, anything further goes through a reload anyway.
+   */
+  async evictBehind(t) {
+    const e = this.buffer;
+    if (!e || !t || e.updating) return !1;
+    const s = this.placed[0]?.segment.duration ?? 0, i = t.currentTime - s, r = e.buffered;
+    return r.length === 0 || i <= r.start(0) ? !1 : (await new Promise((n) => {
+      e.addEventListener("updateend", () => n(), { once: !0 }), e.remove(r.start(0), i);
+    }), !0);
+  }
+  /** Keep a little footage buffered ahead of the playhead. */
+  async pump() {
+    const t = this.buffer, e = this.media;
+    if (!t || !e || t.updating || this.loading || e.readyState !== "open") return;
+    const s = this.video();
+    if (!this.carry) {
+      const i = this.placed.find((n) => !this.appended.has(n.segment.path));
+      if (!i) {
+        if (this.accepted === 0) {
+          this.loadingRun = !1, this.message = "Keines der Segmente dieses Zeitraums ließ sich laden.";
+          return;
+        }
+        try {
+          e.endOfStream();
+        } catch {
+        }
+        return;
+      }
+      if (s && this.appended.size > 0 && (s.buffered.length > 0 ? s.buffered.end(s.buffered.length - 1) : 0) - s.currentTime > jt * (this.placed[0]?.segment.duration ?? 0))
+        return;
+      const r = this.generation;
+      this.loading = !0;
+      try {
+        const n = this.startup !== void 0 ? Math.max(0, this.startup.mediaTime - i.mediaStart) : 0, a = await this.fetchRanged(
+          i.segment,
+          n,
+          this.startup?.pastRefusal ?? !1
+        );
+        let l, c = null;
+        if (a ? (l = a.data, c = a.init) : l = await this.fetchSegment(i.segment), !l.ok) throw new Error(`HTTP ${l.status}`);
+        if (r !== this.generation || !this.buffer || e.readyState !== "open")
+          return;
+        if (this.accepted > 0 && this.buffer.abort(), this.buffer.timestampOffset = i.mediaStart, this.appended.add(i.segment.path), this.carry = {
+          path: i.segment.path,
+          // Streamed on purpose: waiting for a whole high-resolution segment
+          // to download before the first append kept the screen black for
+          // the length of a fifty-megabyte transfer after every click.
+          reader: l.body ? l.body.getReader() : null,
+          // A ranged fetch starts mid-file, so the init segment the parser
+          // needs first is prepended here.
+          pending: c ?? (l.body ? new Uint8Array(0) : new Uint8Array(await l.arrayBuffer())),
+          firstOfSegment: !0
+        }, c && !l.body) {
+          const p = new Uint8Array(await l.arrayBuffer()), b = new Uint8Array(c.length + p.length);
+          b.set(c), b.set(p, c.length), this.carry.pending = b;
+        }
+        if (r !== this.generation) return;
+      } catch (n) {
+        this.appended.add(i.segment.path), console.warn(
+          "kustos_vision: segment could not be fetched",
+          i.segment.path,
+          n
+        );
+      } finally {
+        this.loading = !1;
+      }
+      if (!this.carry) {
+        r === this.generation && this.pump();
+        return;
+      }
+    }
+    await this.drainCarry(s);
+  }
+  /** Append the carried segment as its bytes arrive, until done or full. */
+  async drainCarry(t) {
+    const e = this.carry;
+    if (!e || !this.buffer) return;
+    const s = this.generation;
+    this.loading = !0;
+    try {
+      for (; ; ) {
+        const i = e.reader === null && e.pending.length > 0;
+        if (e.pending.length >= qe || i) {
+          const r = e.pending.subarray(0, qe);
+          try {
+            await this.appendOnce(r);
+          } catch (n) {
+            if (s !== this.generation) return;
+            if (Zt(n)) {
+              if (await this.evictBehind(t)) continue;
+              return;
+            }
+            console.warn(
+              "kustos_vision: segment could not be appended",
+              e.path,
+              n
+            ), e.reader && e.reader.cancel().catch(() => {
+            }), this.carry = void 0;
+            return;
+          }
+          if (s !== this.generation) return;
+          e.pending = e.pending.subarray(r.length), e.firstOfSegment && (this.accepted += 1, e.firstOfSegment = !1, this.loadingRun = !1, this.applyStartup()), this.nudgePlayback(t);
+          continue;
+        }
+        if (e.reader) {
+          const { value: r, done: n } = await e.reader.read();
+          if (s !== this.generation) return;
+          if (r && r.length > 0) {
+            const a = new Uint8Array(e.pending.length + r.length);
+            a.set(e.pending), a.set(r, e.pending.length), e.pending = a;
+          }
+          n && (e.reader = null);
+          continue;
+        }
+        this.carry = void 0;
+        break;
+      }
+    } finally {
+      this.loading = !1;
+    }
+    s === this.generation && (this.nudgeStalledSeek(), this.pump());
+  }
+  /**
+   * Ask a stalled element to move again.
+   *
+   * Safari in particular stays frozen after running out of data even once
+   * more has been appended; the person then pressed pause and play by hand.
+   * play() on something already playing is a no-op, so asking every time
+   * costs nothing.
+   */
+  nudgePlayback(t) {
+    t && !t.paused && t.play().catch(() => {
+    });
+  }
+  /** Put the element where the run was asked to start, once data exists. */
+  applyStartup() {
+    const t = this.startup;
+    if (!t) return;
+    this.startup = void 0;
+    const e = this.video();
+    e && (t.mediaTime > 0 && (e.currentTime = t.mediaTime), t.resume && e.play().catch(() => {
+    }));
+  }
+  /**
+     * Unstick a seek whose data turned out not to exist.
+  
+     * A seek into the not-yet-fetched part waits for the pump; when the append
+     * lands and the spot is still dry (a recording shorter than the index
+     * believes), the element would wait forever, so it moves to the next
+     * footage instead.
+     */
+  nudgeStalledSeek() {
+    const t = this.video();
+    !t || !t.seeking || this.isBuffered(t, t.currentTime) || this.skipHole();
+  }
+  render() {
+    return o`
+      <video controls playsinline></video>
+      ${this.clockUtc !== void 0 && !this.message && this.gapAt === void 0 ? o`<div class="clock">${nt(this.clockUtc)}</div>` : h}
+      ${this.gapAt !== void 0 ? o`<div class="gap">
+            Um ${new Date(this.gapAt * 1e3).toLocaleTimeString()} liegt keine
+            Aufnahme vor.
+          </div>` : h}
+      ${this.message ? o`<div class="overlay">${this.message}</div>` : h}
+      ${this.loadingRun && !this.message && this.gapAt === void 0 ? o`<div class="overlay">Lade Aufnahme …</div>` : h}
+    `;
+  }
+};
+M.styles = z`
+    :host {
+      display: block;
+      background: #000;
+      position: relative;
+      aspect-ratio: 16 / 9;
+    }
+    video {
+      width: 100%;
+      height: 100%;
+      display: block;
+      object-fit: contain;
+    }
+    .overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #ccc;
+      font-size: 0.9em;
+      text-align: center;
+      padding: 12px;
+      pointer-events: none;
+    }
+    .clock {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      background: rgba(0, 0, 0, 0.55);
+      color: #fff;
+      font-family: ui-monospace, monospace;
+      font-size: 0.8em;
+      padding: 2px 8px;
+      border-radius: 6px;
+      pointer-events: none;
+      z-index: 1;
+    }
+    .gap {
+      position: absolute;
+      inset: 0;
+      background: #000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #888;
+      font-size: 0.9em;
+      text-align: center;
+      padding: 12px;
+    }
+  `;
+L([
+  u({ attribute: !1 })
+], M.prototype, "api", 2);
+L([
+  u({ attribute: !1 })
+], M.prototype, "segments", 2);
+L([
+  u({ type: Number })
+], M.prototype, "seekTo", 2);
+L([
+  u()
+], M.prototype, "segmentUrlBase", 2);
+L([
+  d()
+], M.prototype, "message", 2);
+L([
+  d()
+], M.prototype, "gapAt", 2);
+L([
+  d()
+], M.prototype, "clockUtc", 2);
+L([
+  d()
+], M.prototype, "loadingRun", 2);
+M = L([
+  P("kustos-vision-player")
+], M);
+var Jt = Object.defineProperty, Yt = Object.getOwnPropertyDescriptor, Z = (t, e, s, i) => {
+  for (var r = i > 1 ? void 0 : i ? Yt(e, s) : e, n = t.length - 1, a; n >= 0; n--)
+    (a = t[n]) && (r = (i ? a(e, s, r) : a(r)) || r);
+  return i && r && Jt(e, s, r), r;
+};
+let I = class extends k {
+  constructor() {
+    super(...arguments), this.entityId = "", this.muted = !0, this.mode = "idle", this.message = "", this.nowSeconds = 0, this.visible = !1, this.starting = !1;
+  }
+  connectedCallback() {
+    super.connectedCallback(), this.nowSeconds = Date.now() / 1e3, this.clockTimer = setInterval(() => {
+      this.nowSeconds = Date.now() / 1e3;
+    }, 1e3), this.observer = new IntersectionObserver((t) => {
+      const e = t.some((s) => s.isIntersecting);
+      e !== this.visible && (this.visible = e, e ? this.start() : this.stop());
+    }), this.observer.observe(this);
+  }
+  disconnectedCallback() {
+    super.disconnectedCallback(), this.clockTimer !== void 0 && clearInterval(this.clockTimer), this.clockTimer = void 0, this.observer?.disconnect(), this.observer = void 0, this.stop();
+  }
+  updated(t) {
+    t.has("entityId") && this.visible && (this.stop(), this.start());
+  }
+  get accessToken() {
+    return this.hass?.states?.[this.entityId]?.attributes?.access_token;
+  }
+  async start() {
+    if (!(this.starting || !this.entityId || !this.hass)) {
+      this.starting = !0;
+      try {
+        const e = (await this.hass.callWS({
+          type: "camera/capabilities",
+          entity_id: this.entityId
+        })).frontend_stream_types ?? [];
+        if (e.includes("web_rtc") && await this.startWebRtc() || e.includes("hls") && await this.startHls()) return;
+        this.startMjpeg();
+      } catch (t) {
+        this.fail(t);
+      } finally {
+        this.starting = !1;
+      }
+    }
+  }
+  stop() {
+    this.unsubscribe?.(), this.unsubscribe = void 0, this.peer?.close(), this.peer = void 0;
+    const t = this.renderRoot.querySelector("video");
+    t && (t.srcObject = null, t.removeAttribute("src")), this.mode = "idle";
+  }
+  fail(t) {
+    this.mode = "error", this.message = x(t);
+  }
+  // --------------------------------------------------------------------
+  // WebRTC
+  // --------------------------------------------------------------------
+  async startWebRtc() {
+    try {
+      const t = await this.hass.callWS({
+        type: "camera/webrtc/get_client_config",
+        entity_id: this.entityId
+      }), e = new RTCPeerConnection(t.configuration);
+      this.peer = e, e.addTransceiver("video", { direction: "recvonly" }), e.addTransceiver("audio", { direction: "recvonly" });
+      const s = new MediaStream();
+      e.addEventListener("track", (n) => {
+        s.addTrack(n.track);
+        const a = this.renderRoot.querySelector("video");
+        a && (a.srcObject = s);
+      });
+      const i = await e.createOffer();
+      await e.setLocalDescription(i);
+      let r;
+      return e.addEventListener("icecandidate", (n) => {
+        !n.candidate || !r || this.hass.callWS({
+          type: "camera/webrtc/candidate",
+          entity_id: this.entityId,
+          session_id: r,
+          candidate: n.candidate.toJSON()
+        });
+      }), this.mode = "webrtc", this.unsubscribe = await this.subscribe(
+        {
+          type: "camera/webrtc/offer",
+          entity_id: this.entityId,
+          offer: i.sdp
+        },
+        (n) => {
+          n.type === "session" ? r = n.session_id : n.type === "answer" ? e.setRemoteDescription({
+            type: "answer",
+            sdp: n.answer
+          }) : n.type === "candidate" ? e.addIceCandidate(
+            n.candidate
+          ) : n.type === "error" && this.fail(new Error(String(n.message)));
+        }
+      ), !0;
+    } catch {
+      return this.peer?.close(), this.peer = void 0, !1;
+    }
+  }
+  subscribe(t, e) {
+    return this.hass.connection.subscribeMessage(e, t);
+  }
+  // --------------------------------------------------------------------
+  // HLS and MJPEG
+  // --------------------------------------------------------------------
+  async startHls() {
+    if (!document.createElement("video").canPlayType("application/vnd.apple.mpegurl")) return !1;
+    try {
+      const { url: e } = await this.hass.callWS({
+        type: "camera/stream",
+        entity_id: this.entityId,
+        format: "hls"
+      });
+      this.mode = "hls", await this.updateComplete;
+      const s = this.renderRoot.querySelector("video");
+      return s && (s.src = this.hass.hassUrl(e), s.play().catch(() => {
+      })), !0;
+    } catch {
+      return !1;
+    }
+  }
+  startMjpeg() {
+    this.mode = this.accessToken ? "mjpeg" : "still";
+  }
+  // --------------------------------------------------------------------
+  render() {
+    const t = ["webrtc", "hls", "mjpeg"].includes(this.mode);
+    return o`${this.renderPicture()}
+    ${t ? o`<div class="clock">${nt(this.nowSeconds)}</div>` : h}`;
+  }
+  renderPicture() {
+    const t = this.accessToken;
+    switch (this.mode) {
+      case "webrtc":
+      case "hls":
+        return o`<video autoplay playsinline .muted=${this.muted}></video>`;
+      case "mjpeg":
+        return o`<img
+          alt=""
+          src=${this.hass.hassUrl(
+          `/api/camera_proxy_stream/${this.entityId}?token=${t}`
+        )}
+        />`;
+      case "still":
+        return t ? o`<img
+              alt=""
+              src=${this.hass.hassUrl(
+          `/api/camera_proxy/${this.entityId}?token=${t}`
+        )}
+            />` : o`<div class="overlay">Kein Vorschaubild verfügbar</div>`;
+      case "error":
+        return o`<div class="overlay">${this.message}</div>`;
+      default:
+        return o`<div class="overlay">…</div>${h}`;
+    }
+  }
+};
+I.styles = z`
+    :host {
+      display: block;
+      position: relative;
+      /* The letterbox behind a 16:9 picture, dark in every theme for the
+         same reason the player chrome is: it frames video, not text. */
+      background: #111;
+      aspect-ratio: 16 / 9;
+      overflow: hidden;
+    }
+    video,
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: block;
+    }
+    .overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 8px;
+      /* On the always-dark backdrop above, not on the theme's surface. */
+      color: #ddd;
+      font-size: 0.9em;
+    }
+    .clock {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      background: rgba(0, 0, 0, 0.55);
+      color: #fff;
+      font-family: ui-monospace, monospace;
+      font-size: 0.8em;
+      padding: 2px 8px;
+      border-radius: 6px;
+      pointer-events: none;
+      z-index: 1;
+    }
+  `;
+Z([
+  u({ attribute: !1 })
+], I.prototype, "hass", 2);
+Z([
+  u()
+], I.prototype, "entityId", 2);
+Z([
+  u({ type: Boolean })
+], I.prototype, "muted", 2);
+Z([
+  d()
+], I.prototype, "mode", 2);
+Z([
+  d()
+], I.prototype, "message", 2);
+Z([
+  d()
+], I.prototype, "nowSeconds", 2);
+I = Z([
+  P("kustos-vision-live-stream")
+], I);
+var Xt = Object.defineProperty, Qt = Object.getOwnPropertyDescriptor, J = (t, e, s, i) => {
+  for (var r = i > 1 ? void 0 : i ? Qt(e, s) : e, n = t.length - 1, a; n >= 0; n--)
+    (a = t[n]) && (r = (i ? a(e, s, r) : a(r)) || r);
   return i && r && Xt(e, s, r), r;
 };
 const es = ["ptz_up", "ptz_left", "ptz_right", "ptz_down", "siren_on", "siren_off"], ts = ["light", "siren", "privacy_mode"];
-let U = class extends k {
+let N = class extends k {
   constructor() {
     super(...arguments), this.viewId = "", this.busy = "", this.error = "";
   }
@@ -2492,7 +2492,7 @@ let U = class extends k {
   renderButton(t, e, s) {
     return o`<button
       class="secondary compact"
-      title=${Y(t)}
+      title=${X(t)}
       ?disabled=${this.busy !== ""}
       @click=${() => this.run(t, s)}
     >
@@ -2556,11 +2556,11 @@ let U = class extends k {
     if (!t.length && !e.length) return h;
     const s = [];
     for (const i of es)
-      t.includes(i) && s.push(this.renderButton(i, Rt[i] ?? Y(i)));
+      t.includes(i) && s.push(this.renderButton(i, Nt[i] ?? X(i)));
     for (const i of ts)
       t.includes(i) && s.push(
-        this.renderButton(i, `${Y(i)} an`, !0),
-        this.renderButton(i, `${Y(i)} aus`, !1)
+        this.renderButton(i, `${X(i)} an`, !0),
+        this.renderButton(i, `${X(i)} aus`, !1)
       );
     return o`<div class="controls">
       ${s}${e.map((i) => this.renderCustom(i))}
@@ -2589,9 +2589,9 @@ let U = class extends k {
     `;
   }
 };
-U.styles = [
+N.styles = [
   j,
-  B`
+  z`
       :host {
         display: block;
         /* shared's :host serves full-page views and sets min-height: 100%;
@@ -2675,33 +2675,33 @@ U.styles = [
       }
     `
 ];
-Z([
+J([
   u({ attribute: !1 })
-], U.prototype, "hass", 2);
-Z([
+], N.prototype, "hass", 2);
+J([
   u({ attribute: !1 })
-], U.prototype, "api", 2);
-Z([
+], N.prototype, "api", 2);
+J([
   u({ attribute: !1 })
-], U.prototype, "camera", 2);
-Z([
+], N.prototype, "camera", 2);
+J([
   u()
-], U.prototype, "viewId", 2);
-Z([
+], N.prototype, "viewId", 2);
+J([
   d()
-], U.prototype, "busy", 2);
-Z([
+], N.prototype, "busy", 2);
+J([
   d()
-], U.prototype, "error", 2);
-U = Z([
-  O("kustos-vision-camera-tile")
-], U);
-var ss = Object.defineProperty, is = Object.getOwnPropertyDescriptor, de = (t, e, s, i) => {
-  for (var r = i > 1 ? void 0 : i ? is(e, s) : e, a = t.length - 1, n; a >= 0; a--)
-    (n = t[a]) && (r = (i ? n(e, s, r) : n(r)) || r);
+], N.prototype, "error", 2);
+N = J([
+  P("kustos-vision-camera-tile")
+], N);
+var ss = Object.defineProperty, is = Object.getOwnPropertyDescriptor, ce = (t, e, s, i) => {
+  for (var r = i > 1 ? void 0 : i ? is(e, s) : e, n = t.length - 1, a; n >= 0; n--)
+    (a = t[n]) && (r = (i ? a(e, s, r) : a(r)) || r);
   return i && r && ss(e, s, r), r;
 };
-let G = class extends k {
+let q = class extends k {
   constructor() {
     super(...arguments), this.cameras = [];
   }
@@ -2733,7 +2733,7 @@ let G = class extends k {
     `;
   }
 };
-G.styles = B`
+q.styles = z`
     :host {
       display: block;
       padding: 16px;
@@ -2752,27 +2752,27 @@ G.styles = B`
       line-height: 1.5;
     }
   `;
-de([
+ce([
   u({ attribute: !1 })
-], G.prototype, "hass", 2);
-de([
+], q.prototype, "hass", 2);
+ce([
   u({ attribute: !1 })
-], G.prototype, "api", 2);
-de([
+], q.prototype, "api", 2);
+ce([
   u({ attribute: !1 })
-], G.prototype, "view", 2);
-de([
+], q.prototype, "view", 2);
+ce([
   u({ attribute: !1 })
-], G.prototype, "cameras", 2);
-G = de([
-  O("kustos-vision-live-view")
-], G);
-var rs = Object.defineProperty, as = Object.getOwnPropertyDescriptor, R = (t, e, s, i) => {
-  for (var r = i > 1 ? void 0 : i ? as(e, s) : e, a = t.length - 1, n; a >= 0; a--)
-    (n = t[a]) && (r = (i ? n(e, s, r) : n(r)) || r);
+], q.prototype, "cameras", 2);
+q = ce([
+  P("kustos-vision-live-view")
+], q);
+var rs = Object.defineProperty, ns = Object.getOwnPropertyDescriptor, R = (t, e, s, i) => {
+  for (var r = i > 1 ? void 0 : i ? ns(e, s) : e, n = t.length - 1, a; n >= 0; n--)
+    (a = t[n]) && (r = (i ? a(e, s, r) : a(r)) || r);
   return i && r && rs(e, s, r), r;
 };
-const ns = 120;
+const as = 120;
 let E = class extends k {
   constructor() {
     super(...arguments), this.from = 0, this.to = 0, this.blocks = [], this.segments = [], this.position = 0, this.thumbnailUrlBase = "/api/kustos_vision/thumbnail", this.dragging = !1;
@@ -2807,7 +2807,7 @@ let E = class extends k {
       }).catch(() => {
         this.preview = void 0;
       });
-    }, ns);
+    }, as);
   }
   updated(t) {
     t.has("segments") && (this.clearSettle(), this.hover = void 0, this.preview = void 0);
@@ -2917,7 +2917,7 @@ let E = class extends k {
     `;
   }
 };
-E.styles = B`
+E.styles = z`
     :host {
       display: block;
       user-select: none;
@@ -3067,11 +3067,11 @@ R([
   d()
 ], E.prototype, "preview", 2);
 E = R([
-  O("kustos-vision-timeline")
+  P("kustos-vision-timeline")
 ], E);
 var os = Object.defineProperty, ls = Object.getOwnPropertyDescriptor, _ = (t, e, s, i) => {
-  for (var r = i > 1 ? void 0 : i ? ls(e, s) : e, a = t.length - 1, n; a >= 0; a--)
-    (n = t[a]) && (r = (i ? n(e, s, r) : n(r)) || r);
+  for (var r = i > 1 ? void 0 : i ? ls(e, s) : e, n = t.length - 1, a; n >= 0; n--)
+    (a = t[n]) && (r = (i ? a(e, s, r) : a(r)) || r);
   return i && r && os(e, s, r), r;
 };
 let y = class extends k {
@@ -3256,7 +3256,7 @@ let y = class extends k {
 };
 y.styles = [
   j,
-  B`
+  z`
       /* The tab has to fit on one screen: picker, picture and timeline all
          visible at once, because scrolling to reach the timeline while
          watching the picture defeats the point of having both. So the view
@@ -3359,11 +3359,11 @@ _([
   d()
 ], y.prototype, "error", 2);
 y = _([
-  O("kustos-vision-recordings")
+  P("kustos-vision-recordings")
 ], y);
 var hs = Object.defineProperty, ds = Object.getOwnPropertyDescriptor, w = (t, e, s, i) => {
-  for (var r = i > 1 ? void 0 : i ? ds(e, s) : e, a = t.length - 1, n; a >= 0; a--)
-    (n = t[a]) && (r = (i ? n(e, s, r) : n(r)) || r);
+  for (var r = i > 1 ? void 0 : i ? ds(e, s) : e, n = t.length - 1, a; n >= 0; n--)
+    (a = t[n]) && (r = (i ? a(e, s, r) : a(r)) || r);
   return i && r && hs(e, s, r), r;
 };
 function cs(t) {
@@ -3381,10 +3381,10 @@ let m = class extends k {
     };
   }
   connectedCallback() {
-    super.connectedCallback(), this.camera && (this.slug = this.camera.slug, this.name = this.camera.name, this.streams = this.camera.streams.map((t) => ({ ...t })), this.capabilities = structuredClone(this.camera.capabilities), this.retentionDays = this.camera.retention_days, this.enabled = this.camera.enabled, this.viewSettings = structuredClone(this.camera.view_settings ?? {}), this.controls = structuredClone(this.camera.controls ?? []), this.loadCandidates()), this.baseline = JSON.stringify(this.payload()), Oe(this.unsaved);
+    super.connectedCallback(), this.camera && (this.slug = this.camera.slug, this.name = this.camera.name, this.streams = this.camera.streams.map((t) => ({ ...t })), this.capabilities = structuredClone(this.camera.capabilities), this.retentionDays = this.camera.retention_days, this.enabled = this.camera.enabled, this.viewSettings = structuredClone(this.camera.view_settings ?? {}), this.controls = structuredClone(this.camera.controls ?? []), this.loadCandidates()), this.baseline = JSON.stringify(this.payload()), De(this.unsaved);
   }
   disconnectedCallback() {
-    super.disconnectedCallback(), De(this.unsaved);
+    super.disconnectedCallback(), Oe(this.unsaved);
   }
   /** Fetch the sibling entities of this camera's device, without changing
    *  anything about the camera itself. */
@@ -3501,15 +3501,15 @@ let m = class extends k {
     const i = s.currentTarget, r = i.closest("tr");
     if (!r) return;
     s.preventDefault(), i.setPointerCapture(s.pointerId);
-    const a = this.membersOf(t).map((n) => n.slug);
+    const n = this.membersOf(t).map((a) => a.slug);
     this.dragging = {
       viewId: t.id,
-      slug: a[e],
+      slug: n[e],
       startIndex: e,
       currentIndex: e,
       startY: s.clientY,
       rowHeight: r.getBoundingClientRect().height,
-      order: a
+      order: n
     }, this.requestUpdate();
   }
   onDragMove(t) {
@@ -3577,8 +3577,8 @@ let m = class extends k {
             <input
               placeholder="Zoom rein"
               .value=${t.name}
-              @change=${(a) => this.patchControl(e, {
-      name: a.target.value
+              @change=${(n) => this.patchControl(e, {
+      name: n.target.value
     })}
             />
           </div>
@@ -3588,16 +3588,16 @@ let m = class extends k {
               search
               .options=${[
       { value: "", label: "Bitte wählen …" },
-      ...this.candidates.map((a) => ({
-        value: a.entity_id,
-        label: a.name || a.entity_id
+      ...this.candidates.map((n) => ({
+        value: n.entity_id,
+        label: n.name || n.entity_id
       }))
     ]}
               .value=${r}
-              @value-changed=${(a) => {
-      const n = a.detail.value, [l] = Ge(n);
+              @value-changed=${(n) => {
+      const a = n.detail.value, [l] = Ge(a);
       this.patchControl(e, {
-        binding: { entity_id: n },
+        binding: { entity_id: a },
         ...l ? { kind: l } : {}
       });
     }}
@@ -3606,13 +3606,13 @@ let m = class extends k {
           <div>
             <label>Bedienart</label>
             <kustos-vision-select
-              .options=${i.map((a) => ({
-      value: a,
-      label: Nt[a]
+              .options=${i.map((n) => ({
+      value: n,
+      label: Ut[n]
     }))}
               .value=${t.kind}
-              @value-changed=${(a) => this.patchControl(e, {
-      kind: a.detail.value
+              @value-changed=${(n) => this.patchControl(e, {
+      kind: n.detail.value
     })}
             ></kustos-vision-select>
           </div>
@@ -3620,8 +3620,8 @@ let m = class extends k {
             <label>Kennung</label>
             <input
               .value=${t.key}
-              @change=${(a) => this.patchControl(e, {
-      key: a.target.value
+              @change=${(n) => this.patchControl(e, {
+      key: n.target.value
     })}
             />
           </div>
@@ -3630,7 +3630,7 @@ let m = class extends k {
           <span class="grow"></span>
           <button
             class="danger"
-            @click=${() => this.controls = this.controls.filter((a, n) => n !== e)}
+            @click=${() => this.controls = this.controls.filter((n, a) => a !== e)}
           >
             Entfernen
           </button>
@@ -3639,9 +3639,9 @@ let m = class extends k {
     `;
   }
   renderViewBlock(t) {
-    const e = this.viewSettings[t.id], s = e?.visible ?? !1, i = this.orderedMembers(t), r = e?.capabilities ?? null, a = [
+    const e = this.viewSettings[t.id], s = e?.visible ?? !1, i = this.orderedMembers(t), r = e?.capabilities ?? null, n = [
       ...Object.keys(this.capabilities),
-      ...this.controls.map((n) => n.key)
+      ...this.controls.map((a) => a.key)
     ];
     return o`
       <div class="divided">
@@ -3649,8 +3649,8 @@ let m = class extends k {
           <input
             type="checkbox"
             .checked=${s}
-            @change=${(n) => this.patchView(t.id, {
-      visible: n.target.checked
+            @change=${(a) => this.patchView(t.id, {
+      visible: a.target.checked
     })}
           />
           <strong>${t.name}</strong>
@@ -3666,34 +3666,34 @@ let m = class extends k {
         value: "",
         label: "automatisch (der nicht aufgezeichnete)"
       },
-      ...this.streams.map((n) => ({
-        value: n.key,
-        label: n.key
+      ...this.streams.map((a) => ({
+        value: a.key,
+        label: a.key
       }))
     ]}
                     .value=${e?.stream_key ?? ""}
-                    @value-changed=${(n) => this.patchView(t.id, {
-      stream_key: n.detail.value || null
+                    @value-changed=${(a) => this.patchView(t.id, {
+      stream_key: a.detail.value || null
     })}
                   ></kustos-vision-select>
                 </div>
               </div>
 
               <label>Bedienelemente in dieser Ansicht</label>
-              ${a.length === 0 ? o`<p class="hint">Dieser Kamera ist nichts zugeordnet.</p>` : o`<div class="row">
-                      ${a.map(
-      (n) => o`<label style="margin:0">
+              ${n.length === 0 ? o`<p class="hint">Dieser Kamera ist nichts zugeordnet.</p>` : o`<div class="row">
+                      ${n.map(
+      (a) => o`<label style="margin:0">
                           <input
                             type="checkbox"
-                            .checked=${r === null || r.includes(n)}
+                            .checked=${r === null || r.includes(a)}
                             @change=${(l) => {
-        const c = l.target.checked, p = new Set(r ?? a);
-        c ? p.add(n) : p.delete(n), this.patchView(t.id, {
-          capabilities: a.filter((b) => p.has(b))
+        const c = l.target.checked, p = new Set(r ?? n);
+        c ? p.add(a) : p.delete(a), this.patchView(t.id, {
+          capabilities: n.filter((b) => p.has(b))
         });
       }}
                           />
-                          ${this.controls.find((l) => l.key === n)?.name || Y(n)}
+                          ${this.controls.find((l) => l.key === a)?.name || X(a)}
                         </label>`
     )}
                     </div>
@@ -3719,12 +3719,12 @@ let m = class extends k {
               </p>
               <table>
                 ${i.map(
-      (n, l) => o`
+      (a, l) => o`
                     <tr
-                      class=${this.dragging?.viewId === t.id && this.dragging.slug === n.slug ? "dragging" : ""}
+                      class=${this.dragging?.viewId === t.id && this.dragging.slug === a.slug ? "dragging" : ""}
                     >
-                      <td class=${n.slug === this.slug ? "" : "muted"}>
-                        ${l + 1}. ${n.name}
+                      <td class=${a.slug === this.slug ? "" : "muted"}>
+                        ${l + 1}. ${a.name}
                       </td>
                       <td style="width:1%;white-space:nowrap">
                         ${this.camera ? o`<span
@@ -3906,7 +3906,7 @@ let m = class extends k {
           ${this.capabilityKeys.map(
       (e) => o`
               <tr>
-                <th>${Y(e)}</th>
+                <th>${X(e)}</th>
                 <td>
                   <kustos-vision-select
                     search
@@ -3985,7 +3985,7 @@ let m = class extends k {
           <button
             class="secondary"
             @click=${async () => {
-      await X() && this.dispatchEvent(
+      await Q() && this.dispatchEvent(
         new CustomEvent("cancelled", { bubbles: !0, composed: !0 })
       );
     }}
@@ -3999,7 +3999,7 @@ let m = class extends k {
 };
 m.styles = [
   j,
-  B`
+  z`
       /* The row travelling with the pointer, dimmed like HA's sortables. */
       tr.dragging td {
         opacity: 0.6;
@@ -4058,11 +4058,11 @@ w([
   d()
 ], m.prototype, "error", 2);
 m = w([
-  O("kustos-vision-camera-editor")
+  P("kustos-vision-camera-editor")
 ], m);
 var us = Object.defineProperty, ps = Object.getOwnPropertyDescriptor, $ = (t, e, s, i) => {
-  for (var r = i > 1 ? void 0 : i ? ps(e, s) : e, a = t.length - 1, n; a >= 0; a--)
-    (n = t[a]) && (r = (i ? n(e, s, r) : n(r)) || r);
+  for (var r = i > 1 ? void 0 : i ? ps(e, s) : e, n = t.length - 1, a; n >= 0; n--)
+    (a = t[n]) && (r = (i ? a(e, s, r) : a(r)) || r);
   return i && r && us(e, s, r), r;
 };
 const gs = [
@@ -4082,7 +4082,7 @@ let v = class extends k {
     };
   }
   disconnectedCallback() {
-    super.disconnectedCallback(), De(this.unsaved);
+    super.disconnectedCallback(), Oe(this.unsaved);
   }
   async connectedCallback() {
     if (super.connectedCallback(), this.profile)
@@ -4091,7 +4091,7 @@ let v = class extends k {
       const t = this.camera.capabilities.motion_trigger?.entity_id;
       t && (this.triggers = [t]);
     }
-    this.baseline = JSON.stringify(this.payload()), Oe(this.unsaved);
+    this.baseline = JSON.stringify(this.payload()), De(this.unsaved);
     try {
       this.aiTasks = (await this.api.aiTaskEntities()).ai_task;
     } catch {
@@ -4500,7 +4500,7 @@ ${JSON.stringify(this.lastRun.raw, null, 2)}</pre
           <button
             class="secondary"
             @click=${async () => {
-      await X() && this.dispatchEvent(
+      await Q() && this.dispatchEvent(
         new CustomEvent("cancelled", { bubbles: !0, composed: !0 })
       );
     }}
@@ -4576,11 +4576,11 @@ $([
   d()
 ], v.prototype, "error", 2);
 v = $([
-  O("kustos-vision-vision-editor")
+  P("kustos-vision-vision-editor")
 ], v);
-var bs = Object.defineProperty, ms = Object.getOwnPropertyDescriptor, D = (t, e, s, i) => {
-  for (var r = i > 1 ? void 0 : i ? ms(e, s) : e, a = t.length - 1, n; a >= 0; a--)
-    (n = t[a]) && (r = (i ? n(e, s, r) : n(r)) || r);
+var bs = Object.defineProperty, ms = Object.getOwnPropertyDescriptor, C = (t, e, s, i) => {
+  for (var r = i > 1 ? void 0 : i ? ms(e, s) : e, n = t.length - 1, a; n >= 0; n--)
+    (a = t[n]) && (r = (i ? a(e, s, r) : a(r)) || r);
   return i && r && bs(e, s, r), r;
 };
 const vs = [
@@ -4589,7 +4589,7 @@ const vs = [
   ["storage", "Speicher"],
   ["views", "Ansichten"],
   ["system", "System"]
-], ue = 1e3 * 1e3 * 1e3;
+], pe = 1e3 * 1e3 * 1e3;
 let A = class extends k {
   constructor() {
     super(...arguments), this.section = "cameras", this.adding = !1, this.available = [], this.busy = !1, this.error = "", this.unsavedSections = {
@@ -4601,10 +4601,10 @@ let A = class extends k {
     };
   }
   connectedCallback() {
-    super.connectedCallback(), Oe(this.unsavedSections);
+    super.connectedCallback(), De(this.unsavedSections);
   }
   disconnectedCallback() {
-    super.disconnectedCallback(), De(this.unsavedSections);
+    super.disconnectedCallback(), Oe(this.unsavedSections);
   }
   async refresh() {
     this.dispatchEvent(new CustomEvent("changed", { bubbles: !0, composed: !0 }));
@@ -4647,7 +4647,7 @@ let A = class extends k {
     return this.adding || this.editing ? o`${this.renderSubpageHeader(
       this.editing ? `${this.editing.name} bearbeiten` : "Kamera hinzufügen",
       async () => {
-        await X() && (this.adding = !1, this.editing = void 0);
+        await Q() && (this.adding = !1, this.editing = void 0);
       }
     )}
       <kustos-vision-camera-editor
@@ -4698,7 +4698,7 @@ let A = class extends k {
         <td class="muted">
           ${t.retention_days === null ? "unbegrenzt" : `${t.retention_days} Tage`}
         </td>
-        <td class="muted">${ce(t.state.used_bytes)}</td>
+        <td class="muted">${ue(t.state.used_bytes)}</td>
         <td>${this.renderRecordingState(t, s)}</td>
         <td>
           <div class="row">
@@ -4750,7 +4750,7 @@ let A = class extends k {
     return this.visionFor ? o`${this.renderSubpageHeader(
       `Bilderkennung für ${this.visionFor.name}`,
       async () => {
-        await X() && (this.visionFor = void 0);
+        await Q() && (this.visionFor = void 0);
       }
     )}
       <kustos-vision-vision-editor
@@ -4812,18 +4812,18 @@ let A = class extends k {
   // Storage
   // ------------------------------------------------------------------
   renderStorage() {
-    const { storage: t, totals: e } = this.snapshot, s = t.max_total_bytes === null ? "" : String(t.max_total_bytes / ue);
+    const { storage: t, totals: e } = this.snapshot, s = t.max_total_bytes === null ? "" : String(t.max_total_bytes / pe);
     return o`
       <div class="card">
         <h2>Speicher</h2>
         <table>
           <tr>
             <th>Belegt</th>
-            <td>${ce(e.used_bytes)}</td>
+            <td>${ue(e.used_bytes)}</td>
           </tr>
           <tr>
             <th>Frei am Ort</th>
-            <td>${ce(e.free_bytes)}</td>
+            <td>${ue(e.free_bytes)}</td>
           </tr>
         </table>
 
@@ -4839,7 +4839,7 @@ let A = class extends k {
         </p>
 
         ${e.over_budget_bytes > 0 ? o`<p class="error">
-              ${ce(e.over_budget_bytes)} über dem Budget, und mehr
+              ${ue(e.over_budget_bytes)} über dem Budget, und mehr
               lässt sich nicht löschen. Das Budget ist kleiner als das, was die
               Kameras zwischen zwei Aufräumläufen schreiben.
             </p>` : h}
@@ -4885,8 +4885,8 @@ let A = class extends k {
   storageDirty() {
     const t = this.storageInput("base_path"), e = this.storageInput("segment"), s = this.storageInput("budget");
     if (!t || !e || !s) return !1;
-    const { storage: i } = this.snapshot, r = i.max_total_bytes === null ? null : i.max_total_bytes / ue, a = s.value.trim() === "" ? null : Number(s.value);
-    return t.value.trim() !== i.base_path || Number(e.value) !== i.segment_seconds || a !== r;
+    const { storage: i } = this.snapshot, r = i.max_total_bytes === null ? null : i.max_total_bytes / pe, n = s.value.trim() === "" ? null : Number(s.value);
+    return t.value.trim() !== i.base_path || Number(e.value) !== i.segment_seconds || n !== r;
   }
   resetStorageInputs() {
     const { storage: t } = this.snapshot, e = this.storageInput("base_path");
@@ -4894,7 +4894,7 @@ let A = class extends k {
     const s = this.storageInput("segment");
     s && (s.value = String(t.segment_seconds));
     const i = this.storageInput("budget");
-    i && (i.value = t.max_total_bytes === null ? "" : String(t.max_total_bytes / ue));
+    i && (i.value = t.max_total_bytes === null ? "" : String(t.max_total_bytes / pe));
   }
   async saveStorage() {
     const t = this.renderRoot, e = Number(
@@ -4908,7 +4908,7 @@ Was bereits unter ${this.snapshot.storage.base_path} liegt, bleibt unverändert 
       () => this.api.setStorage({
         base_path: i,
         segment_seconds: e,
-        max_total_bytes: s === "" ? null : Math.round(Number(s) * ue)
+        max_total_bytes: s === "" ? null : Math.round(Number(s) * pe)
       })
     );
   }
@@ -4933,7 +4933,7 @@ Was bereits unter ${this.snapshot.storage.base_path} liegt, bleibt unverändert 
     return e && (this.viewsDraft = void 0), e;
   }
   renderViews() {
-    const t = this.draftViews();
+    const t = this.viewsWithPreview();
     return o`
       <div class="card">
         <h2>Ansichten</h2>
@@ -4966,7 +4966,9 @@ Was bereits unter ${this.snapshot.storage.base_path} liegt, bleibt unverändert 
   }
   renderViewRow(t, e) {
     return o`
-      <div class="divided">
+      <div
+        class="divided view-row ${this.viewDrag?.currentIndex === e ? "dragging" : ""}"
+      >
         <div class="row">
           <div class="grow">
             <label>Name</label>
@@ -4996,23 +4998,28 @@ Was bereits unter ${this.snapshot.storage.base_path} liegt, bleibt unverändert 
           Bedienelementen, wird bei der jeweiligen Kamera festgelegt.
         </p>
         <div class="row" style="margin-top:8px">
-          <button
-            class="secondary"
-            ?disabled=${e === 0}
-            @click=${() => this.moveView(e, -1)}
-          >
-            nach oben
-          </button>
-          <button
-            class="secondary"
-            ?disabled=${e === this.draftViews().length - 1}
-            @click=${() => this.moveView(e, 1)}
-          >
-            nach unten
-          </button>
           <button class="danger" @click=${() => this.removeView(e)}>
             Entfernen
           </button>
+          <span class="grow"></span>
+          <span
+            class="drag-handle"
+            title="Ziehen zum Verschieben"
+            @pointerdown=${(s) => this.onViewDragStart(e, s)}
+            @pointermove=${(s) => this.onViewDragMove(s)}
+            @pointerup=${() => this.onViewDragEnd()}
+            @pointercancel=${() => this.viewDrag = void 0}
+          >
+            <svg
+              viewBox="0 0 24 24"
+              width="20"
+              height="20"
+              fill="currentColor"
+              aria-hidden="true"
+            >
+              <path d="M4 9h16v2H4zM4 13h16v2H4z" />
+            </svg>
+          </span>
         </div>
       </div>
     `;
@@ -5025,12 +5032,40 @@ Was bereits unter ${this.snapshot.storage.base_path} liegt, bleibt unverändert 
       (s, i) => i === t ? { ...s, ...e } : s
     );
   }
-  moveView(t, e) {
-    const s = [...this.draftViews()], [i] = s.splice(t, 1);
-    s.splice(t + e, 0, i), this.viewsDraft = s;
-  }
   removeView(t) {
     this.viewsDraft = this.draftViews().filter((e, s) => s !== t);
+  }
+  /** The list as shown: the draft, rearranged live while a row is dragged. */
+  viewsWithPreview() {
+    const t = [...this.draftViews()], e = this.viewDrag;
+    if (!e) return t;
+    const [s] = t.splice(e.fromIndex, 1);
+    return t.splice(e.currentIndex, 0, s), t;
+  }
+  onViewDragStart(t, e) {
+    if (this.busy) return;
+    const s = e.currentTarget;
+    e.preventDefault(), s.setPointerCapture(e.pointerId), this.viewDrag = { fromIndex: t, currentIndex: t };
+  }
+  onViewDragMove(t) {
+    const e = this.viewDrag;
+    if (!e) return;
+    const s = Array.from(this.renderRoot.querySelectorAll(".view-row"));
+    let i = e.currentIndex;
+    s.forEach((a, l) => {
+      const c = a.getBoundingClientRect();
+      t.clientY >= c.top && t.clientY <= c.bottom && (i = l);
+    });
+    const r = s[0]?.getBoundingClientRect();
+    r && t.clientY < r.top && (i = 0);
+    const n = s[s.length - 1]?.getBoundingClientRect();
+    n && t.clientY > n.bottom && (i = s.length - 1), i !== e.currentIndex && (this.viewDrag = { ...e, currentIndex: i });
+  }
+  onViewDragEnd() {
+    const t = this.viewDrag;
+    if (this.viewDrag = void 0, !t || t.fromIndex === t.currentIndex) return;
+    const e = [...this.draftViews()], [s] = e.splice(t.fromIndex, 1);
+    e.splice(t.currentIndex, 0, s), this.viewsDraft = e;
   }
   addView() {
     const t = this.draftViews(), e = new Set(t.map((i) => i.id));
@@ -5119,7 +5154,7 @@ Was bereits unter ${this.snapshot.storage.base_path} liegt, bleibt unverändert 
                 aria-selected=${this.section === t ? "true" : "false"}
                 class=${this.section === t ? "active" : ""}
                 @click=${async () => {
-        this.section !== t && await X() && (this.section = t, this.adding = !1, this.editing = void 0, this.visionFor = void 0);
+        this.section !== t && await Q() && (this.section = t, this.adding = !1, this.editing = void 0, this.visionFor = void 0);
       }}
               >
                 ${e}
@@ -5133,61 +5168,78 @@ Was bereits unter ${this.snapshot.storage.base_path} liegt, bleibt unverändert 
     `;
   }
 };
-A.styles = j;
-D([
+A.styles = [
+  j,
+  z`
+      /* The row travelling with the pointer, dimmed like HA's sortables. */
+      .view-row.dragging {
+        opacity: 0.6;
+      }
+    `
+];
+C([
   u({ attribute: !1 })
 ], A.prototype, "api", 2);
-D([
+C([
   u({ attribute: !1 })
 ], A.prototype, "snapshot", 2);
-D([
+C([
   u({ attribute: !1 })
 ], A.prototype, "hass", 2);
-D([
+C([
   d()
 ], A.prototype, "section", 2);
-D([
+C([
   d()
 ], A.prototype, "editing", 2);
-D([
+C([
   d()
 ], A.prototype, "adding", 2);
-D([
+C([
   d()
 ], A.prototype, "available", 2);
-D([
+C([
   d()
 ], A.prototype, "visionFor", 2);
-D([
+C([
   d()
 ], A.prototype, "busy", 2);
-D([
+C([
   d()
 ], A.prototype, "error", 2);
-D([
+C([
   d()
 ], A.prototype, "viewsDraft", 2);
-A = D([
-  O("kustos-vision-settings")
+C([
+  d()
+], A.prototype, "viewDrag", 2);
+A = C([
+  P("kustos-vision-settings")
 ], A);
-var fs = Object.defineProperty, ys = Object.getOwnPropertyDescriptor, V = (t, e, s, i) => {
-  for (var r = i > 1 ? void 0 : i ? ys(e, s) : e, a = t.length - 1, n; a >= 0; a--)
-    (n = t[a]) && (r = (i ? n(e, s, r) : n(r)) || r);
+var fs = Object.defineProperty, ys = Object.getOwnPropertyDescriptor, H = (t, e, s, i) => {
+  for (var r = i > 1 ? void 0 : i ? ys(e, s) : e, n = t.length - 1, a; n >= 0; n--)
+    (a = t[n]) && (r = (i ? a(e, s, r) : a(r)) || r);
   return i && r && fs(e, s, r), r;
 };
-const pe = "__recordings", ie = "__settings";
-globalThis.kustosVisionBuild = Pt;
-let N = class extends k {
+const re = "__recordings", W = "__settings";
+globalThis.kustosVisionBuild = Ht;
+let O = class extends k {
   constructor() {
-    super(...arguments), this.narrow = !1, this.active = "", this.error = "", this.reconnecting = !1, this.reconnectError = "", this.onBeforeUnload = (t) => {
-      zt() && t.preventDefault();
+    super(...arguments), this.narrow = !1, this.active = "", this.error = "", this.reconnecting = !1, this.reconnectError = "", this.lastViewId = "", this.onBeforeUnload = (t) => {
+      Rt() && t.preventDefault();
+    }, this.closeViewMenu = () => {
+      this.viewMenu = void 0, window.removeEventListener("pointerdown", this.onMenuOutsidePointer, !0), window.removeEventListener("keydown", this.onMenuKeydown, !0), window.removeEventListener("resize", this.closeViewMenu), window.removeEventListener("scroll", this.closeViewMenu, !0);
+    }, this.onMenuOutsidePointer = (t) => {
+      t.composedPath().includes(this) || this.closeViewMenu();
+    }, this.onMenuKeydown = (t) => {
+      t.key === "Escape" && this.closeViewMenu();
     };
   }
   connectedCallback() {
     super.connectedCallback(), Fe(() => this.unsavedDialog().ask()), window.addEventListener("beforeunload", this.onBeforeUnload), this.load();
   }
   disconnectedCallback() {
-    super.disconnectedCallback(), Fe(void 0), window.removeEventListener("beforeunload", this.onBeforeUnload);
+    super.disconnectedCallback(), Fe(void 0), window.removeEventListener("beforeunload", this.onBeforeUnload), this.closeViewMenu();
   }
   unsavedDialog() {
     return this.renderRoot.querySelector(
@@ -5196,7 +5248,27 @@ let N = class extends k {
   }
   /** Change the tab, unless unsaved work says otherwise. */
   async switchTab(t) {
-    this.active !== t && await X() && (this.active = t);
+    this.active !== t && await Q() && (this.active = t, t !== re && t !== W && (this.lastViewId = t));
+  }
+  /** The views collapse into one tab; clicking it offers the list. */
+  onViewsTabClick(t) {
+    const e = this.snapshot?.views ?? [];
+    if (e.length === 0) return;
+    if (e.length === 1) {
+      this.switchTab(e[0].id);
+      return;
+    }
+    if (this.viewMenu) {
+      this.closeViewMenu();
+      return;
+    }
+    const i = t.currentTarget.getBoundingClientRect(), n = st(i, window.innerHeight, 8);
+    this.viewMenu = {
+      left: n.left,
+      minWidth: n.width,
+      maxHeight: n.maxHeight,
+      ...n.up ? { bottom: window.innerHeight - i.top } : { top: i.bottom }
+    }, window.addEventListener("pointerdown", this.onMenuOutsidePointer, !0), window.addEventListener("keydown", this.onMenuKeydown, !0), window.addEventListener("resize", this.closeViewMenu), window.addEventListener("scroll", this.closeViewMenu, !0);
   }
   updated(t) {
     t.has("hass") && this.hass && !this.api && (this.api = new We(this.hass), this.load());
@@ -5205,7 +5277,7 @@ let N = class extends k {
     if (this.hass) {
       this.api ??= new We(this.hass);
       try {
-        this.snapshot = await this.api.getConfig(), this.error = "", this.active || (this.active = this.snapshot.views[0]?.id ?? ie);
+        this.snapshot = await this.api.getConfig(), this.error = "", this.active || (this.active = this.snapshot.views[0]?.id ?? W, this.active !== W && (this.lastViewId = this.active));
       } catch (t) {
         const e = x(t);
         this.error = e;
@@ -5289,35 +5361,68 @@ let N = class extends k {
     return o`<div class="header">
       <div class="toolbar"><div class="title">Kustos Vision</div></div>
       ${this.snapshot ? this.renderTabs(this.snapshot) : h}
+    </div>
+    ${this.renderViewMenu()}`;
+  }
+  renderViewMenu() {
+    const t = this.viewMenu, e = this.snapshot?.views ?? [];
+    if (!t || e.length === 0) return h;
+    const s = [
+      `left:${t.left}px`,
+      `min-width:${t.minWidth}px`,
+      `max-height:${t.maxHeight}px`,
+      t.top !== void 0 ? `top:${t.top}px` : `bottom:${t.bottom}px`
+    ].join(";");
+    return o`<div class="tab-menu" role="listbox" style=${s}>
+      ${e.map(
+      (i) => o`<div
+          class="item ${i.id === this.active ? "selected" : ""}"
+          role="option"
+          aria-selected=${i.id === this.active ? "true" : "false"}
+          @click=${() => {
+        this.closeViewMenu(), this.switchTab(i.id);
+      }}
+        >
+          ${i.name}
+        </div>`
+    )}
     </div>`;
   }
   renderTabs(t) {
+    const e = t.views, s = e.find((r) => r.id === this.active), i = s ?? e.find((r) => r.id === this.lastViewId) ?? e[0];
     return o`<div class="tabs" role="tablist">
-      ${t.views.map(
-      (e) => o`
-          <button
+      ${i ? o`<button
             role="tab"
-            aria-selected=${e.id === this.active ? "true" : "false"}
-            class=${e.id === this.active ? "active" : ""}
-            @click=${() => void this.switchTab(e.id)}
+            aria-selected=${s ? "true" : "false"}
+            aria-haspopup=${e.length > 1 ? "listbox" : "false"}
+            class=${s ? "active" : ""}
+            @click=${(r) => this.onViewsTabClick(r)}
           >
-            ${e.name}
-          </button>
-        `
-    )}
+            ${i.name}
+            ${e.length > 1 ? o`<svg
+                  class="caret"
+                  viewBox="0 0 24 24"
+                  width="18"
+                  height="18"
+                  fill="currentColor"
+                  aria-hidden="true"
+                >
+                  <path d="M7 10l5 5 5-5z" />
+                </svg>` : h}
+          </button>` : h}
       <button
         role="tab"
-        aria-selected=${this.active === pe ? "true" : "false"}
-        class=${this.active === pe ? "active" : ""}
-        @click=${() => void this.switchTab(pe)}
+        aria-selected=${this.active === re ? "true" : "false"}
+        class=${this.active === re ? "active" : ""}
+        @click=${() => void this.switchTab(re)}
       >
         Aufnahmen
       </button>
       <button
         role="tab"
-        aria-selected=${this.active === ie ? "true" : "false"}
-        class=${this.active === ie ? "active" : ""}
-        @click=${() => void this.switchTab(ie)}
+        aria-selected=${this.active === W ? "true" : "false"}
+        class=${this.active === W ? "active" : ""}
+        @click=${() => void this.switchTab(W)}
       >
         Einstellungen
       </button>
@@ -5343,11 +5448,11 @@ let N = class extends k {
     const t = this.snapshot, e = t.views.find((s) => s.id === this.active);
     return o`
       <div class="body">
-        ${this.active === pe ? o`<kustos-vision-recordings
+        ${this.active === re ? o`<kustos-vision-recordings
               .api=${this.api}
               .cameras=${t.cameras}
               .stampAvailable=${t.build?.stamp_available ?? !1}
-            ></kustos-vision-recordings>` : this.active === ie ? o`<kustos-vision-settings
+            ></kustos-vision-recordings>` : this.active === W ? o`<kustos-vision-settings
               .api=${this.api}
               .hass=${this.hass}
               .snapshot=${t}
@@ -5365,9 +5470,9 @@ let N = class extends k {
     `;
   }
 };
-N.styles = [
+O.styles = [
   j,
-  B`
+  z`
       :host {
         display: flex;
         flex-direction: column;
@@ -5452,6 +5557,37 @@ N.styles = [
         outline: 2px solid currentColor;
         outline-offset: -4px;
       }
+      .tabs button .caret {
+        margin-left: 4px;
+        vertical-align: middle;
+      }
+      /* The view picker under the collapsed views tab, shaped like the
+         dropdown the rest of the panel uses. */
+      .tab-menu {
+        position: fixed;
+        z-index: 100; /* above every layer the panel itself uses */
+        background: var(
+          --ha-card-background,
+          var(--card-background-color, Canvas)
+        );
+        color: var(--primary-text-color, CanvasText);
+        border: 1px solid var(--divider-color, ButtonBorder);
+        border-radius: var(--kv-radius-card);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+        overflow-y: auto;
+        padding: 4px 0;
+      }
+      .tab-menu .item {
+        padding: 10px 16px;
+        cursor: pointer;
+        white-space: nowrap;
+      }
+      .tab-menu .item:hover {
+        background: color-mix(in srgb, currentColor 10%, transparent);
+      }
+      .tab-menu .item.selected {
+        background: color-mix(in srgb, var(--primary-color) 18%, transparent);
+      }
       :host([narrow]) .toolbar {
         padding: 0 24px;
       }
@@ -5531,30 +5667,36 @@ N.styles = [
       }
     `
 ];
-V([
+H([
   u({ attribute: !1 })
-], N.prototype, "hass", 2);
-V([
+], O.prototype, "hass", 2);
+H([
   u({ type: Boolean, reflect: !0 })
-], N.prototype, "narrow", 2);
-V([
+], O.prototype, "narrow", 2);
+H([
   d()
-], N.prototype, "snapshot", 2);
-V([
+], O.prototype, "snapshot", 2);
+H([
   d()
-], N.prototype, "active", 2);
-V([
+], O.prototype, "active", 2);
+H([
   d()
-], N.prototype, "error", 2);
-V([
+], O.prototype, "error", 2);
+H([
   d()
-], N.prototype, "reconnecting", 2);
-V([
+], O.prototype, "reconnecting", 2);
+H([
   d()
-], N.prototype, "reconnectError", 2);
-N = V([
-  O("kustos-vision-panel")
-], N);
+], O.prototype, "reconnectError", 2);
+H([
+  d()
+], O.prototype, "lastViewId", 2);
+H([
+  d()
+], O.prototype, "viewMenu", 2);
+O = H([
+  P("kustos-vision-panel")
+], O);
 export {
-  N as CamwatchPanel
+  O as CamwatchPanel
 };

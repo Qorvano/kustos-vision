@@ -16,19 +16,22 @@ type SettingsInternals = {
   api: CamwatchApi;
   snapshot: Snapshot;
   viewsDraft?: View[];
+  viewDrag?: { fromIndex: number; currentIndex: number };
   patchView(index: number, patch: Partial<View>): void;
   viewsDirty(): boolean;
   commitViews(): Promise<boolean>;
+  onViewDragEnd(): void;
 };
 
-function settings(): { el: SettingsInternals; stored: unknown[][] } {
+function settings(viewCount = 1): { el: SettingsInternals; stored: unknown[][] } {
   const stored: unknown[][] = [];
   const el = new CamwatchSettings() as unknown as SettingsInternals;
-  el.snapshot = {
-    views: [
-      { id: "alle", name: "Alle", icon: "mdi:cctv", columns: 3, cameras: ["a"] },
-    ],
-  } as unknown as Snapshot;
+  const views = [
+    { id: "alle", name: "Alle", icon: "mdi:cctv", columns: 3, cameras: ["a"] },
+    { id: "wand", name: "Wand", icon: "mdi:cctv", columns: 0, cameras: [] },
+    { id: "flur", name: "Flur", icon: "mdi:cctv", columns: 0, cameras: [] },
+  ].slice(0, viewCount);
+  el.snapshot = { views } as unknown as Snapshot;
   el.api = {
     setViews: async (views: unknown[]) => {
       stored.push(views);
@@ -55,6 +58,17 @@ describe("the view list is a draft until it is saved", () => {
     el.patchView(0, { name: "Alle" });
 
     expect(el.viewsDirty()).toBe(false);
+  });
+
+  it("a drag reorders the draft and stores nothing by itself", () => {
+    const { el, stored } = settings(3);
+    el.viewDrag = { fromIndex: 0, currentIndex: 2 };
+
+    el.onViewDragEnd();
+
+    expect(stored).toEqual([]);
+    expect(el.viewsDraft?.map((v) => v.id)).toEqual(["wand", "flur", "alle"]);
+    expect(el.viewsDirty()).toBe(true);
   });
 
   it("saving stores the draft once, without the resolved cameras", async () => {

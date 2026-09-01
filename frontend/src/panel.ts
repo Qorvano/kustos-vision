@@ -11,6 +11,7 @@ import "./version-guard";
 import { LitElement, css, html, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import { CamwatchApi, errorText } from "./api";
+import { placeDrop } from "./components/select";
 import "./components/unsaved-dialog";
 import type { CamwatchUnsavedDialog } from "./components/unsaved-dialog";
 import { guardNavigation, hasUnsavedWork, setUnsavedPrompter } from "./dirty";
@@ -38,6 +39,16 @@ export class CamwatchPanel extends LitElement {
   @state() private error = "";
   @state() private reconnecting = false;
   @state() private reconnectError = "";
+  /** The last view that was on screen, naming the collapsed views tab. */
+  @state() private lastViewId = "";
+  /** The open view picker under the views tab, or nothing. */
+  @state() private viewMenu?: {
+    left: number;
+    minWidth: number;
+    maxHeight: number;
+    top?: number;
+    bottom?: number;
+  };
 
   private api?: CamwatchApi;
 
@@ -127,6 +138,37 @@ export class CamwatchPanel extends LitElement {
       .tabs button:focus-visible {
         outline: 2px solid currentColor;
         outline-offset: -4px;
+      }
+      .tabs button .caret {
+        margin-left: 4px;
+        vertical-align: middle;
+      }
+      /* The view picker under the collapsed views tab, shaped like the
+         dropdown the rest of the panel uses. */
+      .tab-menu {
+        position: fixed;
+        z-index: 100; /* above every layer the panel itself uses */
+        background: var(
+          --ha-card-background,
+          var(--card-background-color, Canvas)
+        );
+        color: var(--primary-text-color, CanvasText);
+        border: 1px solid var(--divider-color, ButtonBorder);
+        border-radius: var(--kv-radius-card);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+        overflow-y: auto;
+        padding: 4px 0;
+      }
+      .tab-menu .item {
+        padding: 10px 16px;
+        cursor: pointer;
+        white-space: nowrap;
+      }
+      .tab-menu .item:hover {
+        background: color-mix(in srgb, currentColor 10%, transparent);
+      }
+      .tab-menu .item.selected {
+        background: color-mix(in srgb, var(--primary-color) 18%, transparent);
       }
       :host([narrow]) .toolbar {
         padding: 0 24px;
@@ -221,6 +263,7 @@ export class CamwatchPanel extends LitElement {
     super.disconnectedCallback();
     setUnsavedPrompter(undefined);
     window.removeEventListener("beforeunload", this.onBeforeUnload);
+    this.closeViewMenu();
   }
 
   private onBeforeUnload = (event: BeforeUnloadEvent): void => {
@@ -236,8 +279,58 @@ export class CamwatchPanel extends LitElement {
   /** Change the tab, unless unsaved work says otherwise. */
   private async switchTab(id: string): Promise<void> {
     if (this.active === id) return;
-    if (await guardNavigation()) this.active = id;
+    if (await guardNavigation()) {
+      this.active = id;
+      if (id !== RECORDINGS_TAB && id !== SETTINGS_TAB) this.lastViewId = id;
+    }
   }
+
+  /** The views collapse into one tab; clicking it offers the list. */
+  private onViewsTabClick(event: MouseEvent): void {
+    const views = this.snapshot?.views ?? [];
+    if (views.length === 0) return;
+    if (views.length === 1) {
+      void this.switchTab(views[0].id);
+      return;
+    }
+    if (this.viewMenu) {
+      this.closeViewMenu();
+      return;
+    }
+    const tab = event.currentTarget as HTMLElement;
+    const rect = tab.getBoundingClientRect();
+    /* Breathing room to the viewport edge, so the list never touches it. */
+    const EDGE_MARGIN = 8;
+    const placed = placeDrop(rect, window.innerHeight, EDGE_MARGIN);
+    this.viewMenu = {
+      left: placed.left,
+      minWidth: placed.width,
+      maxHeight: placed.maxHeight,
+      ...(placed.up
+        ? { bottom: window.innerHeight - rect.top }
+        : { top: rect.bottom }),
+    };
+    window.addEventListener("pointerdown", this.onMenuOutsidePointer, true);
+    window.addEventListener("keydown", this.onMenuKeydown, true);
+    window.addEventListener("resize", this.closeViewMenu);
+    window.addEventListener("scroll", this.closeViewMenu, true);
+  }
+
+  private closeViewMenu = (): void => {
+    this.viewMenu = undefined;
+    window.removeEventListener("pointerdown", this.onMenuOutsidePointer, true);
+    window.removeEventListener("keydown", this.onMenuKeydown, true);
+    window.removeEventListener("resize", this.closeViewMenu);
+    window.removeEventListener("scroll", this.closeViewMenu, true);
+  };
+
+  private onMenuOutsidePointer = (event: Event): void => {
+    if (!event.composedPath().includes(this)) this.closeViewMenu();
+  };
+
+  private onMenuKeydown = (event: KeyboardEvent): void => {
+    if (event.key === "Escape") this.closeViewMenu();
+  };
 
   override updated(changed: Map<string, unknown>): void {
     if (changed.has("hass") && this.hass && !this.api) {
@@ -256,6 +349,7 @@ export class CamwatchPanel extends LitElement {
       // which is exactly where a fresh installation needs to go.
       if (!this.active) {
         this.active = this.snapshot.views[0]?.id ?? SETTINGS_TAB;
+        if (this.active !== SETTINGS_TAB) this.lastViewId = this.active;
       }
     } catch (err) {
       const message = errorText(err);
@@ -358,23 +452,68 @@ export class CamwatchPanel extends LitElement {
     return html`<div class="header">
       <div class="toolbar"><div class="title">Kustos Vision</div></div>
       ${this.snapshot ? this.renderTabs(this.snapshot) : nothing}
+    </div>
+    ${this.renderViewMenu()}`;
+  }
+
+  private renderViewMenu() {
+    const menu = this.viewMenu;
+    const views = this.snapshot?.views ?? [];
+    if (!menu || views.length === 0) return nothing;
+    const style = [
+      `left:${menu.left}px`,
+      `min-width:${menu.minWidth}px`,
+      `max-height:${menu.maxHeight}px`,
+      menu.top !== undefined ? `top:${menu.top}px` : `bottom:${menu.bottom}px`,
+    ].join(";");
+    return html`<div class="tab-menu" role="listbox" style=${style}>
+      ${views.map(
+        (v) => html`<div
+          class="item ${v.id === this.active ? "selected" : ""}"
+          role="option"
+          aria-selected=${v.id === this.active ? "true" : "false"}
+          @click=${() => {
+            this.closeViewMenu();
+            void this.switchTab(v.id);
+          }}
+        >
+          ${v.name}
+        </div>`,
+      )}
     </div>`;
   }
 
   private renderTabs(snapshot: Snapshot) {
+    const views = snapshot.views;
+    const activeView = views.find((v) => v.id === this.active);
+    // The one views tab wears the name of the view it stands for, whether
+    // that view is on screen right now or was merely the last one.
+    const shownView =
+      activeView ?? views.find((v) => v.id === this.lastViewId) ?? views[0];
     return html`<div class="tabs" role="tablist">
-      ${snapshot.views.map(
-        (v) => html`
-          <button
+      ${shownView
+        ? html`<button
             role="tab"
-            aria-selected=${v.id === this.active ? "true" : "false"}
-            class=${v.id === this.active ? "active" : ""}
-            @click=${() => void this.switchTab(v.id)}
+            aria-selected=${activeView ? "true" : "false"}
+            aria-haspopup=${views.length > 1 ? "listbox" : "false"}
+            class=${activeView ? "active" : ""}
+            @click=${(e: MouseEvent) => this.onViewsTabClick(e)}
           >
-            ${v.name}
-          </button>
-        `,
-      )}
+            ${shownView.name}
+            ${views.length > 1
+              ? html`<svg
+                  class="caret"
+                  viewBox="0 0 24 24"
+                  width="18"
+                  height="18"
+                  fill="currentColor"
+                  aria-hidden="true"
+                >
+                  <path d="M7 10l5 5 5-5z" />
+                </svg>`
+              : nothing}
+          </button>`
+        : nothing}
       <button
         role="tab"
         aria-selected=${this.active === RECORDINGS_TAB ? "true" : "false"}
