@@ -52,12 +52,17 @@ export class CamwatchLiveStream extends LitElement {
   /** The loupe: how far in, and where the picture's origin sits. */
   @state() private zoom = { scale: 1, x: 0, y: 0 };
 
-  private drag?: {
-    pointerId: number;
-    startX: number;
-    startY: number;
-    originX: number;
-    originY: number;
+  /** The fingers or the mouse button currently on the picture. */
+  private pointers = new Map<number, { x: number; y: number }>();
+  /** What the loupe looked like when the current gesture began. */
+  private gesture?: {
+    scale: number;
+    x: number;
+    y: number;
+    midX: number;
+    midY: number;
+    /** Distance between two fingers at the start; nothing for one. */
+    span: number | null;
   };
 
   private clockTimer?: ReturnType<typeof setInterval>;
@@ -83,6 +88,8 @@ export class CamwatchLiveStream extends LitElement {
       aspect-ratio: auto;
       width: 100%;
       height: 100%;
+      /* The loupe's fingers, not the browser's gestures. */
+      touch-action: none;
     }
     .stage {
       position: absolute;
@@ -243,30 +250,67 @@ export class CamwatchLiveStream extends LitElement {
     this.zoom = { scale: 1, x: 0, y: 0 };
   };
 
+  /** Where the fingers meet and how far apart they are, element-local. */
+  private pointerAnchor(): { midX: number; midY: number; span: number | null } {
+    const rect = this.getBoundingClientRect();
+    const points = [...this.pointers.values()];
+    const midX = points.reduce((s, p) => s + p.x, 0) / points.length - rect.left;
+    const midY = points.reduce((s, p) => s + p.y, 0) / points.length - rect.top;
+    const span =
+      points.length >= 2
+        ? Math.hypot(points[0].x - points[1].x, points[0].y - points[1].y)
+        : null;
+    return { midX, midY, span };
+  }
+
+  /** Every added or lifted finger starts the gesture over from the current
+      zoom, which is what lets a pinch hand over to a one-finger pan. */
+  private rebaseGesture(): void {
+    if (this.pointers.size === 0) {
+      this.gesture = undefined;
+      return;
+    }
+    this.gesture = { ...this.zoom, ...this.pointerAnchor() };
+  }
+
   private onPointerDown = (event: PointerEvent): void => {
-    if (!this.fullscreen || this.zoom.scale === 1) return;
+    if (!this.fullscreen) return;
+    // One finger moves an already magnified picture; a second one, or the
+    // wheel, is what magnifies. An unzoomed single tap stays untouched so
+    // a double tap can still reach the reset.
+    if (this.pointers.size === 0 && this.zoom.scale === 1 && event.pointerType === "mouse") {
+      return;
+    }
     this.setPointerCapture(event.pointerId);
-    this.drag = {
-      pointerId: event.pointerId,
-      startX: event.clientX,
-      startY: event.clientY,
-      originX: this.zoom.x,
-      originY: this.zoom.y,
-    };
+    this.pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    this.rebaseGesture();
   };
 
   private onPointerMove = (event: PointerEvent): void => {
-    const drag = this.drag;
-    if (!drag || event.pointerId !== drag.pointerId) return;
+    if (!this.pointers.has(event.pointerId)) return;
+    this.pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    const base = this.gesture;
+    if (!base) return;
+    const now = this.pointerAnchor();
+    let scale = base.scale;
+    if (base.span !== null && now.span !== null && base.span > 0) {
+      scale = Math.min(MAX_ZOOM, Math.max(1, base.scale * (now.span / base.span)));
+    } else if (base.scale === 1) {
+      // A single finger on an unmagnified picture has nothing to move.
+      return;
+    }
+    // The picture point that sat between the fingers stays between them.
+    const ratio = scale / base.scale;
     this.zoom = this.clampedZoom(
-      this.zoom.scale,
-      drag.originX + (event.clientX - drag.startX),
-      drag.originY + (event.clientY - drag.startY),
+      scale,
+      now.midX - (base.midX - base.x) * ratio,
+      now.midY - (base.midY - base.y) * ratio,
     );
   };
 
   private onPointerUp = (event: PointerEvent): void => {
-    if (this.drag?.pointerId === event.pointerId) this.drag = undefined;
+    if (!this.pointers.delete(event.pointerId)) return;
+    this.rebaseGesture();
   };
 
   override updated(changed: Map<string, unknown>): void {
@@ -458,8 +502,8 @@ export class CamwatchLiveStream extends LitElement {
       : nothing}
     ${this.fullscreen && scale === 1
       ? html`<div class="zoomhint">
-          Mausrad: Lupe · Ziehen: verschieben · Doppelklick: zurücksetzen ·
-          Esc: verlassen
+          Mausrad oder zwei Finger: Lupe · Ziehen: verschieben ·
+          Doppeltipp: zurücksetzen · Esc: verlassen
         </div>`
       : nothing}`;
   }
