@@ -611,7 +611,7 @@ export class CamwatchSettings extends LitElement {
           <button class="danger" @click=${() => this.removeView(index)}>
             Entfernen
           </button>
-          <span class="grow"></span>
+          <span class="spacer"></span>
           <span
             class="drag-handle"
             title="Ziehen zum Verschieben"

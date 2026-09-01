@@ -23,6 +23,7 @@ export const shared = css`
     color: var(--primary-text-color);
     background: var(--primary-background-color);
     min-height: 100%;
+    overflow-wrap: break-word;
   }
   .card {
     background: var(--ha-card-background, var(--card-background-color, Canvas));
@@ -298,6 +299,74 @@ export const shared = css`
     flex: 1;
     min-width: 160px;
   }
+  /* The empty half of a row: it pushes, it never claims room of its own.
+     .grow used to do this too, and its 160px floor was what sent a delete
+     button and a drag grip onto separate lines on a phone. */
+  .spacer {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+  /* Machine text - entity ids, ffmpeg errors - gives way rather than push:
+     "anywhere" also lowers the min-content size, which is what stops one
+     unbreakable token forcing the whole page to scroll sideways. */
+  .id {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  /* A form row that turns into a column when the room runs out. Bare divs
+     are fine as children here: a grid track has a width of its own, while
+     a flex child shrinks to whatever its label happens to be. auto-fit
+     still splits a wide card in half for two fields, exactly as .row did. */
+  .fields {
+    display: grid;
+    gap: 0 12px;
+    grid-template-columns: repeat(
+      auto-fit,
+      minmax(min(100%, var(--kv-field-min, 220px)), 1fr)
+    );
+    align-items: start;
+  }
+  .fields > * {
+    min-width: 0;
+  }
+  /* A table that stops being a table when the room runs out. The wrapper is
+     the yardstick, not the window: the panel is only as wide as Home
+     Assistant's sidebar leaves it, and the settings cap themselves anyway.
+
+     THE ONLY PLACE container-type MAY APPEAR. Inline-size containment makes
+     this element the containing block for fixed descendants and a stacking
+     context of its own, which would strand a dropdown popover inside the
+     table - tables that carry a dropdown are laid out as .fields instead. */
+  .table-stack {
+    container-type: inline-size;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+  @container (max-width: 520px) {
+    .table-stack table,
+    .table-stack tr,
+    .table-stack td {
+      display: block;
+      width: auto;
+    }
+    .table-stack tr.head {
+      display: none;
+    }
+    .table-stack tr {
+      padding: 10px 0;
+      border-bottom: 1px solid var(--divider-color, ButtonBorder);
+    }
+    .table-stack td {
+      border: none;
+      padding: 2px 0;
+    }
+    /* The column heading, carried into the row it belongs to. */
+    .table-stack td[data-label]::before {
+      content: attr(data-label) ": ";
+      color: var(--secondary-text-color);
+      font-size: 0.85em;
+    }
+  }
   .muted {
     color: var(--secondary-text-color);
   }
@@ -409,13 +478,16 @@ export const shared = css`
      variant; the panel's header tabs are the coloured one. */
   .subtabs {
     display: flex;
-    overflow-x: auto;
-    scrollbar-width: none;
+    /* Two short lines beat one line with three sections hidden behind a
+       scrollbar nobody can see. On a wide page they still fit on one. */
+    flex-wrap: wrap;
     border-bottom: 1px solid var(--divider-color, ButtonBorder);
     margin-bottom: 16px;
   }
-  .subtabs::-webkit-scrollbar {
-    display: none;
+  @media (max-width: 600px) {
+    .subtabs button {
+      padding: 0 12px;
+    }
   }
   .subtabs button {
     background: none;
@@ -448,9 +520,39 @@ export const shared = css`
     padding: 6px 8px;
     border-bottom: 1px solid var(--divider-color, ButtonBorder);
     font-weight: normal;
+    overflow-wrap: anywhere;
   }
   th {
     color: var(--secondary-text-color);
     font-size: 0.85em;
+  }
+  .error,
+  .muted,
+  pre {
+    overflow-wrap: anywhere;
+  }
+  /* A finger is not a mouse pointer. Sized by what is touching the screen,
+     not by how wide the window is: a mouse in a narrow window keeps the
+     dense layout it has always had, so the desktop stays untouched. */
+  @media (pointer: coarse) {
+    button {
+      min-height: 44px;
+    }
+    button.compact {
+      min-height: 36px;
+      padding: 8px 12px;
+    }
+    .select-field {
+      min-height: 44px;
+    }
+    :host([compact]) .select-field {
+      min-height: 36px;
+    }
+    .drag-handle {
+      padding: 10px;
+    }
+    .subtabs button {
+      height: 48px;
+    }
   }
 `;

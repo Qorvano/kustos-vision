@@ -388,7 +388,7 @@ export class CamwatchVisionEditor extends LitElement {
                 Letzte Antwort: <strong>${String(this.lastRun.values[observation.key])}</strong>
               </span>`
             : nothing}
-          <span class="grow"></span>
+          <span class="spacer"></span>
           <button
             class="danger"
             @click=${() =>
@@ -468,7 +468,7 @@ export class CamwatchVisionEditor extends LitElement {
             </p>`
           : this.triggers.map(
               (trigger) => html`<div class="row divided">
-                <span class="grow">${this.entityLabel(trigger)}</span>
+                <span class="grow id">${this.entityLabel(trigger)}</span>
                 <button
                   class="danger"
                   @click=${() =>

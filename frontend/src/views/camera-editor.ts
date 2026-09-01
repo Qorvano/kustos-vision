@@ -483,7 +483,7 @@ export class CamwatchCameraEditor extends LitElement {
           </div>
         </div>
         <div class="row" style="margin-top:8px">
-          <span class="grow"></span>
+          <span class="spacer"></span>
           <button
             class="danger"
             @click=${() =>
@@ -610,7 +610,7 @@ export class CamwatchCameraEditor extends LitElement {
                       <span class=${member.slug === this.slug ? "" : "muted"}>
                         ${index + 1}. ${member.name}
                       </span>
-                      <span class="grow"></span>
+                      <span class="spacer"></span>
                       ${this.camera
                         ? html`<span
                             class="drag-handle"
