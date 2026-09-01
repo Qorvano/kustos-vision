@@ -1,5 +1,20 @@
 // Playing a run of segments as one continuous recording.
 //
+declare global {
+  interface Window {
+    /** Apple's mobile MediaSource (iOS 17.1+): the only flavour an iPhone
+        or the companion app's web view offers, API-compatible for
+        everything this player uses. */
+    ManagedMediaSource?: typeof MediaSource;
+  }
+}
+
+/** The MediaSource flavour this browser offers, exported for tests. */
+export function mediaSourceClass(): typeof MediaSource | undefined {
+  if (typeof window === "undefined") return undefined;
+  return window.MediaSource ?? window.ManagedMediaSource;
+}
+
 // Built on MediaSource Extensions rather than on a player library, because
 // bundling someone else's would be the one thing this integration is not
 // supposed to do. The segments are fragmented MP4 (that is why the recorder
@@ -344,6 +359,10 @@ export class CamwatchPlayer extends LitElement {
     }
   }
 
+  /** Whether the source wants data right now; always true for standard
+      MediaSource, steered by start/endstreaming for the managed one. */
+  private streamingWanted = true;
+
   private video(): HTMLVideoElement | null {
     return this.renderRoot.querySelector("video");
   }
@@ -552,6 +571,9 @@ export class CamwatchPlayer extends LitElement {
     this.carry = undefined;
     this.startup = undefined;
     this.loading = false;
+    // A stale endstreaming from a torn-down managed source must not stall
+    // the next run before it even speaks.
+    this.streamingWanted = true;
   }
 
   private async load(
@@ -572,7 +594,8 @@ export class CamwatchPlayer extends LitElement {
       this.message = "Für diesen Zeitraum ist nichts aufgezeichnet.";
       return;
     }
-    if (!("MediaSource" in window)) {
+    const MediaSourceClass = mediaSourceClass();
+    if (!MediaSourceClass) {
       this.message = "Dieser Browser unterstützt die Wiedergabe nicht.";
       return;
     }
@@ -625,9 +648,9 @@ export class CamwatchPlayer extends LitElement {
     const videoOnly = `video/mp4; codecs="${codec}"`;
     const withAudio = `video/mp4; codecs="${codec}, ${AUDIO_CODEC}"`;
     const wanted = this.withAudio ? withAudio : videoOnly;
-    const supported = MediaSource.isTypeSupported(wanted)
+    const supported = MediaSourceClass.isTypeSupported(wanted)
       ? wanted
-      : MediaSource.isTypeSupported(videoOnly)
+      : MediaSourceClass.isTypeSupported(videoOnly)
         ? videoOnly
         : null;
     if (!supported) {
@@ -635,7 +658,7 @@ export class CamwatchPlayer extends LitElement {
       return;
     }
 
-    const media = new MediaSource();
+    const media = new MediaSourceClass();
     this.media = media;
     this.objectUrl = URL.createObjectURL(media);
 
@@ -643,6 +666,21 @@ export class CamwatchPlayer extends LitElement {
     const video = this.video();
     if (!video) return;
     this.wire(video);
+    if (!window.MediaSource) {
+      // The managed variant refuses to open while the picture could still
+      // be handed to AirPlay; disabling remote playback is its documented
+      // prerequisite, not a preference.
+      video.disableRemotePlayback = true;
+      // Its whole point is telling the page when fetching is worth the
+      // radio; honouring that is what keeps the phone's battery out of it.
+      media.addEventListener("startstreaming", () => {
+        this.streamingWanted = true;
+        void this.pump();
+      });
+      media.addEventListener("endstreaming", () => {
+        this.streamingWanted = false;
+      });
+    }
     video.src = this.objectUrl;
 
     media.addEventListener(
@@ -825,6 +863,9 @@ export class CamwatchPlayer extends LitElement {
     const video = this.video();
 
     if (!this.carry) {
+      // Data already fetched is always drained; only NEW fetches wait while
+      // a managed source says the radio is not worth waking.
+      if (!this.streamingWanted) return;
       const next = this.placed.find((p) => !this.appended.has(p.segment.path));
       if (!next) {
         if (this.accepted === 0) {

@@ -5,6 +5,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   hasAudioTrack,
+  mediaSourceClass,
   mediaTimeFor,
   placeRun,
   readVideoCodec,
@@ -767,5 +768,39 @@ describe("seeking by fragments", () => {
 
   it("fragment maps are cached per path", () => {
     expect(read("api.ts")).toContain("fragmentMaps");
+  });
+});
+
+
+// Regression: the iPhone and the companion app's web view have no standard
+// MediaSource at all - only Apple's ManagedMediaSource (iOS 17.1+). The
+// player must take whichever the browser offers, or the recordings tab
+// answers every phone with "Wiedergabe nicht unterstützt".
+describe("the player takes whichever MediaSource the browser offers", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("prefers the standard class and falls back to the managed one", () => {
+    class Standard {}
+    class Managed {}
+    vi.stubGlobal("window", {
+      MediaSource: Standard,
+      ManagedMediaSource: Managed,
+    });
+    expect(mediaSourceClass()).toBe(Standard);
+
+    vi.stubGlobal("window", { ManagedMediaSource: Managed });
+    expect(mediaSourceClass()).toBe(Managed);
+
+    vi.stubGlobal("window", {});
+    expect(mediaSourceClass()).toBeUndefined();
+  });
+
+  it("never reaches for the standard class directly", () => {
+    const source = readFileSync(
+      new URL("../src/components/player.ts", import.meta.url),
+      "utf8",
+    );
+    expect(source).not.toContain("new MediaSource()");
+    expect(source).not.toMatch(/\bMediaSource\.isTypeSupported/);
   });
 });
