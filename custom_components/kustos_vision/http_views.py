@@ -22,9 +22,10 @@ from aiohttp import web
 from homeassistant.components.http import HomeAssistantView
 from homeassistant.core import HomeAssistant
 
-from .const import DATA_STAMP_AVAILABLE, DOMAIN
+from .const import DATA_STAMP_AVAILABLE, DOMAIN, LOCAL_STATE_DIR
+from .core.capture import frames_dir, is_frame_name
 from .core.index import SegmentIndex
-from .core.paths import parse_day_dir, parse_segment_name
+from .core.paths import is_valid_slug, parse_day_dir, parse_segment_name
 from .export import STAMP_DEFAULT_QUALITY, STAMP_QUALITY_CRF, stream_export
 
 _LOGGER = logging.getLogger(__name__)
@@ -32,6 +33,12 @@ _LOGGER = logging.getLogger(__name__)
 SEGMENT_URL = f"/api/{DOMAIN}/segment"
 THUMBNAIL_URL = f"/api/{DOMAIN}/thumbnail"
 EXPORT_URL = f"/api/{DOMAIN}/export"
+VISION_FRAME_URL = f"/api/{DOMAIN}/vision-frame"
+
+# Ring slots are REUSED: the same name holds a different run's picture after
+# twenty analyses. no-cache still permits FileResponse's ETag/Last-Modified
+# revalidation, so an unchanged slot costs one cheap 304, not a re-download.
+FRAME_CACHE_CONTROL = "private, no-cache"
 
 # The longest range one export may cover: a range far beyond a day is no
 # longer a unit anyone picked deliberately, and joining a week of a main
@@ -220,8 +227,46 @@ class ExportView(CamwatchFileView):
         return response
 
 
+class VisionFrameView(HomeAssistantView):
+    """The exact frame one analysis was answered from.
+
+    Its own view rather than a branch of the segment views: those authorise a
+    path by asking the index whether kustos_vision recorded it, and a frame is
+    not a recording. Here the shape check IS the authorisation - a valid slug
+    plus a ring-slot name can only ever address a file this integration wrote
+    below its own state directory.
+    """
+
+    url = VISION_FRAME_URL + "/{camera}/{name}"
+    name = f"api:{DOMAIN}:vision-frame"
+    requires_auth = True
+
+    def __init__(self, hass: HomeAssistant) -> None:
+        self.hass = hass
+
+    async def get(
+        self, request: web.Request, camera: str, name: str
+    ) -> web.StreamResponse:
+        if not is_valid_slug(camera) or not is_frame_name(name):
+            return web.Response(status=404)
+        path = (
+            frames_dir(Path(self.hass.config.path(LOCAL_STATE_DIR)), camera)
+            / name
+        )
+        if not await self.hass.async_add_executor_job(path.is_file):
+            return web.Response(status=404)
+        return web.FileResponse(
+            path,
+            headers={
+                "Content-Type": "image/jpeg",
+                "Cache-Control": FRAME_CACHE_CONTROL,
+            },
+        )
+
+
 def async_register_views(hass: HomeAssistant) -> None:
     """Register the file endpoints, once per Home Assistant run."""
     hass.http.register_view(SegmentView(hass))
     hass.http.register_view(ThumbnailView(hass))
     hass.http.register_view(ExportView(hass))
+    hass.http.register_view(VisionFrameView(hass))

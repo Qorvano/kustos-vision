@@ -1,13 +1,13 @@
-const Ie = "kustos-vision-reloaded";
+const He = "kustos-vision-reloaded";
 if (customElements.get("kustos-vision-panel") !== void 0) {
   let t = 0;
   try {
-    t = Number(sessionStorage.getItem(Ie) ?? 0);
+    t = Number(sessionStorage.getItem(He) ?? 0);
   } catch {
   }
   if (Date.now() - t > 3e4) {
     try {
-      sessionStorage.setItem(Ie, String(Date.now()));
+      sessionStorage.setItem(He, String(Date.now()));
     } catch {
     }
     location.reload();
@@ -37,7 +37,7 @@ let pt = class {
     return this.cssText;
   }
 };
-const Ct = (t) => new pt(typeof t == "string" ? t : t + "", void 0, ze), H = (t, ...e) => {
+const Ct = (t) => new pt(typeof t == "string" ? t : t + "", void 0, ze), M = (t, ...e) => {
   const s = t.length === 1 ? t[0] : e.reduce((i, r, n) => i + ((a) => {
     if (a._$cssResult$ === !0) return a.cssText;
     if (typeof a == "number") return a;
@@ -50,7 +50,7 @@ const Ct = (t) => new pt(typeof t == "string" ? t : t + "", void 0, ze), H = (t,
     const i = document.createElement("style"), r = we.litNonce;
     r !== void 0 && i.setAttribute("nonce", r), i.textContent = s.cssText, t.appendChild(i);
   }
-}, Ne = De ? (t) => t : (t) => t instanceof CSSStyleSheet ? ((e) => {
+}, Ue = De ? (t) => t : (t) => t instanceof CSSStyleSheet ? ((e) => {
   let s = "";
   for (const i of e.cssRules) s += i.cssText;
   return Ct(s);
@@ -60,7 +60,7 @@ const Ct = (t) => new pt(typeof t == "string" ? t : t + "", void 0, ze), H = (t,
  * Copyright 2017 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
  */
-const { is: Dt, defineProperty: zt, getOwnPropertyDescriptor: Ot, getOwnPropertyNames: Pt, getOwnPropertySymbols: Mt, getPrototypeOf: Bt } = Object, ke = globalThis, Ue = ke.trustedTypes, Rt = Ue ? Ue.emptyScript : "", Lt = ke.reactiveElementPolyfillSupport, ce = (t, e) => t, ye = { toAttribute(t, e) {
+const { is: Dt, defineProperty: zt, getOwnPropertyDescriptor: Ot, getOwnPropertyNames: Pt, getOwnPropertySymbols: Mt, getPrototypeOf: Bt } = Object, ke = globalThis, Ne = ke.trustedTypes, Rt = Ne ? Ne.emptyScript : "", Lt = ke.reactiveElementPolyfillSupport, ce = (t, e) => t, ye = { toAttribute(t, e) {
   switch (e) {
     case Boolean:
       t = t ? Rt : null;
@@ -144,8 +144,8 @@ let se = class extends HTMLElement {
     const s = [];
     if (Array.isArray(e)) {
       const i = new Set(e.flat(1 / 0).reverse());
-      for (const r of i) s.unshift(Ne(r));
-    } else e !== void 0 && s.push(Ne(e));
+      for (const r of i) s.unshift(Ue(r));
+    } else e !== void 0 && s.push(Ue(e));
     return s;
   }
   static _$Eu(e, s) {
@@ -277,50 +277,50 @@ se.elementStyles = [], se.shadowRootOptions = { mode: "open" }, se[ce("elementPr
  * Copyright 2017 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
  */
-const Pe = globalThis, je = (t) => t, $e = Pe.trustedTypes, We = $e ? $e.createPolicy("lit-html", { createHTML: (t) => t }) : void 0, gt = "$lit$", j = `lit$${Math.random().toFixed(9).slice(2)}$`, mt = "?" + j, Ht = `<${mt}>`, ee = document, pe = () => ee.createComment(""), ge = (t) => t === null || typeof t != "object" && typeof t != "function", Me = Array.isArray, It = (t) => Me(t) || typeof t?.[Symbol.iterator] == "function", Ae = `[ 	
+const Pe = globalThis, je = (t) => t, $e = Pe.trustedTypes, We = $e ? $e.createPolicy("lit-html", { createHTML: (t) => t }) : void 0, mt = "$lit$", j = `lit$${Math.random().toFixed(9).slice(2)}$`, gt = "?" + j, It = `<${gt}>`, ee = document, pe = () => ee.createComment(""), me = (t) => t === null || typeof t != "object" && typeof t != "function", Me = Array.isArray, Ht = (t) => Me(t) || typeof t?.[Symbol.iterator] == "function", Ae = `[ 	
 \f\r]`, oe = /<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g, Ke = /-->/g, qe = />/g, Z = RegExp(`>|${Ae}(?:([^\\s"'>=/]+)(${Ae}*=${Ae}*(?:[^ 	
 \f\r"'\`<>=]|("|')|))|$)`, "g"), Ge = /'/g, Ze = /"/g, vt = /^(?:script|style|textarea|title)$/i, Vt = (t) => (e, ...s) => ({ _$litType$: t, strings: e, values: s }), o = Vt(1), te = Symbol.for("lit-noChange"), c = Symbol.for("lit-nothing"), Je = /* @__PURE__ */ new WeakMap(), Q = ee.createTreeWalker(ee, 129);
 function bt(t, e) {
   if (!Me(t) || !t.hasOwnProperty("raw")) throw Error("invalid template strings array");
   return We !== void 0 ? We.createHTML(e) : e;
 }
-const Nt = (t, e) => {
+const Ut = (t, e) => {
   const s = t.length - 1, i = [];
   let r, n = e === 2 ? "<svg>" : e === 3 ? "<math>" : "", a = oe;
   for (let l = 0; l < s; l++) {
     const h = t[l];
-    let g, b, p = -1, v = 0;
-    for (; v < h.length && (a.lastIndex = v, b = a.exec(h), b !== null); ) v = a.lastIndex, a === oe ? b[1] === "!--" ? a = Ke : b[1] !== void 0 ? a = qe : b[2] !== void 0 ? (vt.test(b[2]) && (r = RegExp("</" + b[2], "g")), a = Z) : b[3] !== void 0 && (a = Z) : a === Z ? b[0] === ">" ? (a = r ?? oe, p = -1) : b[1] === void 0 ? p = -2 : (p = a.lastIndex - b[2].length, g = b[1], a = b[3] === void 0 ? Z : b[3] === '"' ? Ze : Ge) : a === Ze || a === Ge ? a = Z : a === Ke || a === qe ? a = oe : (a = Z, r = void 0);
-    const m = a === Z && t[l + 1].startsWith("/>") ? " " : "";
-    n += a === oe ? h + Ht : p >= 0 ? (i.push(g), h.slice(0, p) + gt + h.slice(p) + j + m) : h + j + (p === -2 ? l : m);
+    let m, b, p = -1, v = 0;
+    for (; v < h.length && (a.lastIndex = v, b = a.exec(h), b !== null); ) v = a.lastIndex, a === oe ? b[1] === "!--" ? a = Ke : b[1] !== void 0 ? a = qe : b[2] !== void 0 ? (vt.test(b[2]) && (r = RegExp("</" + b[2], "g")), a = Z) : b[3] !== void 0 && (a = Z) : a === Z ? b[0] === ">" ? (a = r ?? oe, p = -1) : b[1] === void 0 ? p = -2 : (p = a.lastIndex - b[2].length, m = b[1], a = b[3] === void 0 ? Z : b[3] === '"' ? Ze : Ge) : a === Ze || a === Ge ? a = Z : a === Ke || a === qe ? a = oe : (a = Z, r = void 0);
+    const g = a === Z && t[l + 1].startsWith("/>") ? " " : "";
+    n += a === oe ? h + It : p >= 0 ? (i.push(m), h.slice(0, p) + mt + h.slice(p) + j + g) : h + j + (p === -2 ? l : g);
   }
   return [bt(t, n + (t[s] || "<?>") + (e === 2 ? "</svg>" : e === 3 ? "</math>" : "")), i];
 };
-class me {
+class ge {
   constructor({ strings: e, _$litType$: s }, i) {
     let r;
     this.parts = [];
     let n = 0, a = 0;
-    const l = e.length - 1, h = this.parts, [g, b] = Nt(e, s);
-    if (this.el = me.createElement(g, i), Q.currentNode = this.el.content, s === 2 || s === 3) {
+    const l = e.length - 1, h = this.parts, [m, b] = Ut(e, s);
+    if (this.el = ge.createElement(m, i), Q.currentNode = this.el.content, s === 2 || s === 3) {
       const p = this.el.content.firstChild;
       p.replaceWith(...p.childNodes);
     }
     for (; (r = Q.nextNode()) !== null && h.length < l; ) {
       if (r.nodeType === 1) {
-        if (r.hasAttributes()) for (const p of r.getAttributeNames()) if (p.endsWith(gt)) {
-          const v = b[a++], m = r.getAttribute(p).split(j), w = /([.?@])?(.*)/.exec(v);
-          h.push({ type: 1, index: n, name: w[2], strings: m, ctor: w[1] === "." ? Ft : w[1] === "?" ? jt : w[1] === "@" ? Wt : _e }), r.removeAttribute(p);
+        if (r.hasAttributes()) for (const p of r.getAttributeNames()) if (p.endsWith(mt)) {
+          const v = b[a++], g = r.getAttribute(p).split(j), w = /([.?@])?(.*)/.exec(v);
+          h.push({ type: 1, index: n, name: w[2], strings: g, ctor: w[1] === "." ? Ft : w[1] === "?" ? jt : w[1] === "@" ? Wt : _e }), r.removeAttribute(p);
         } else p.startsWith(j) && (h.push({ type: 6, index: n }), r.removeAttribute(p));
         if (vt.test(r.tagName)) {
           const p = r.textContent.split(j), v = p.length - 1;
           if (v > 0) {
             r.textContent = $e ? $e.emptyScript : "";
-            for (let m = 0; m < v; m++) r.append(p[m], pe()), Q.nextNode(), h.push({ type: 2, index: ++n });
+            for (let g = 0; g < v; g++) r.append(p[g], pe()), Q.nextNode(), h.push({ type: 2, index: ++n });
             r.append(p[v], pe());
           }
         }
-      } else if (r.nodeType === 8) if (r.data === mt) h.push({ type: 2, index: n });
+      } else if (r.nodeType === 8) if (r.data === gt) h.push({ type: 2, index: n });
       else {
         let p = -1;
         for (; (p = r.data.indexOf(j, p + 1)) !== -1; ) h.push({ type: 7, index: n }), p += j.length - 1;
@@ -336,10 +336,10 @@ class me {
 function re(t, e, s = t, i) {
   if (e === te) return e;
   let r = i !== void 0 ? s._$Co?.[i] : s._$Cl;
-  const n = ge(e) ? void 0 : e._$litDirective$;
+  const n = me(e) ? void 0 : e._$litDirective$;
   return r?.constructor !== n && (r?._$AO?.(!1), n === void 0 ? r = void 0 : (r = new n(t), r._$AT(t, s, i)), i !== void 0 ? (s._$Co ??= [])[i] = r : s._$Cl = r), r !== void 0 && (e = re(t, r._$AS(t, e.values), r, i)), e;
 }
-class Ut {
+class Nt {
   constructor(e, s) {
     this._$AV = [], this._$AN = void 0, this._$AD = e, this._$AM = s;
   }
@@ -355,8 +355,8 @@ class Ut {
     let n = Q.nextNode(), a = 0, l = 0, h = i[0];
     for (; h !== void 0; ) {
       if (a === h.index) {
-        let g;
-        h.type === 2 ? g = new ne(n, n.nextSibling, this, e) : h.type === 1 ? g = new h.ctor(n, h.name, h.strings, this, e) : h.type === 6 && (g = new Kt(n, this, e)), this._$AV.push(g), h = i[++l];
+        let m;
+        h.type === 2 ? m = new ne(n, n.nextSibling, this, e) : h.type === 1 ? m = new h.ctor(n, h.name, h.strings, this, e) : h.type === 6 && (m = new Kt(n, this, e)), this._$AV.push(m), h = i[++l];
       }
       a !== h?.index && (n = Q.nextNode(), a++);
     }
@@ -386,7 +386,7 @@ class ne {
     return this._$AB;
   }
   _$AI(e, s = this) {
-    e = re(this, e, s), ge(e) ? e === c || e == null || e === "" ? (this._$AH !== c && this._$AR(), this._$AH = c) : e !== this._$AH && e !== te && this._(e) : e._$litType$ !== void 0 ? this.$(e) : e.nodeType !== void 0 ? this.T(e) : It(e) ? this.k(e) : this._(e);
+    e = re(this, e, s), me(e) ? e === c || e == null || e === "" ? (this._$AH !== c && this._$AR(), this._$AH = c) : e !== this._$AH && e !== te && this._(e) : e._$litType$ !== void 0 ? this.$(e) : e.nodeType !== void 0 ? this.T(e) : Ht(e) ? this.k(e) : this._(e);
   }
   O(e) {
     return this._$AA.parentNode.insertBefore(e, this._$AB);
@@ -395,19 +395,19 @@ class ne {
     this._$AH !== e && (this._$AR(), this._$AH = this.O(e));
   }
   _(e) {
-    this._$AH !== c && ge(this._$AH) ? this._$AA.nextSibling.data = e : this.T(ee.createTextNode(e)), this._$AH = e;
+    this._$AH !== c && me(this._$AH) ? this._$AA.nextSibling.data = e : this.T(ee.createTextNode(e)), this._$AH = e;
   }
   $(e) {
-    const { values: s, _$litType$: i } = e, r = typeof i == "number" ? this._$AC(e) : (i.el === void 0 && (i.el = me.createElement(bt(i.h, i.h[0]), this.options)), i);
+    const { values: s, _$litType$: i } = e, r = typeof i == "number" ? this._$AC(e) : (i.el === void 0 && (i.el = ge.createElement(bt(i.h, i.h[0]), this.options)), i);
     if (this._$AH?._$AD === r) this._$AH.p(s);
     else {
-      const n = new Ut(r, this), a = n.u(this.options);
+      const n = new Nt(r, this), a = n.u(this.options);
       n.p(s), this.T(a), this._$AH = n;
     }
   }
   _$AC(e) {
     let s = Je.get(e.strings);
-    return s === void 0 && Je.set(e.strings, s = new me(e)), s;
+    return s === void 0 && Je.set(e.strings, s = new ge(e)), s;
   }
   k(e) {
     Me(this._$AH) || (this._$AH = [], this._$AR());
@@ -439,11 +439,11 @@ class _e {
   _$AI(e, s = this, i, r) {
     const n = this.strings;
     let a = !1;
-    if (n === void 0) e = re(this, e, s, 0), a = !ge(e) || e !== this._$AH && e !== te, a && (this._$AH = e);
+    if (n === void 0) e = re(this, e, s, 0), a = !me(e) || e !== this._$AH && e !== te, a && (this._$AH = e);
     else {
       const l = e;
-      let h, g;
-      for (e = n[0], h = 0; h < n.length - 1; h++) g = re(this, l[i + h], s, h), g === te && (g = this._$AH[h]), a ||= !ge(g) || g !== this._$AH[h], g === c ? e = c : e !== c && (e += (g ?? "") + n[h + 1]), this._$AH[h] = g;
+      let h, m;
+      for (e = n[0], h = 0; h < n.length - 1; h++) m = re(this, l[i + h], s, h), m === te && (m = this._$AH[h]), a ||= !me(m) || m !== this._$AH[h], m === c ? e = c : e !== c && (e += (m ?? "") + n[h + 1]), this._$AH[h] = m;
     }
     a && !r && this.j(e);
   }
@@ -492,7 +492,7 @@ class Kt {
   }
 }
 const qt = { I: ne }, Gt = Pe.litHtmlPolyfillSupport;
-Gt?.(me, ne), (Pe.litHtmlVersions ??= []).push("3.3.3");
+Gt?.(ge, ne), (Pe.litHtmlVersions ??= []).push("3.3.3");
 const Zt = (t, e, s) => {
   const i = s?.renderBefore ?? e;
   let r = i._$litPart$;
@@ -539,7 +539,7 @@ Jt?.({ LitElement: C });
  * Copyright 2017 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
  */
-const M = (t) => (e, s) => {
+const B = (t) => (e, s) => {
   s !== void 0 ? s.addInitializer(() => {
     customElements.define(t, e);
   }) : customElements.define(t, e);
@@ -779,7 +779,7 @@ function be(t) {
     s /= 1e3, i += 1;
   return `${s.toFixed(s < 10 && i > 0 ? 1 : 0)} ${e[i]}`;
 }
-const K = H`
+const K = M`
   :host {
     /* The geometry the panel repeats, named once. Each maps onto Home
        Assistant's own variable where the theme system has one, so a theme
@@ -1328,7 +1328,7 @@ const K = H`
     }
   }
 `;
-var es = Object.defineProperty, ts = Object.getOwnPropertyDescriptor, U = (t, e, s, i) => {
+var es = Object.defineProperty, ts = Object.getOwnPropertyDescriptor, N = (t, e, s, i) => {
   for (var r = i > 1 ? void 0 : i ? ts(e, s) : e, n = t.length - 1, a; n >= 0; n--)
     (a = t[n]) && (r = (i ? a(e, s, r) : a(r)) || r);
   return i && r && es(e, s, r), r;
@@ -1349,13 +1349,13 @@ function wt(t, e, s, i = is) {
   const r = e.height - t.bottom - s, n = t.top - s, a = n > r, l = Math.max(e.width - 2 * s, 0), h = Math.min(
     Math.max(t.width, Math.min(i, l)),
     l
-  ), g = Math.min(
+  ), m = Math.min(
     Math.max(t.left, s),
     Math.max(e.width - h - s, s)
   );
-  return { up: a, maxHeight: Math.max(a ? n : r, 0), left: g, width: h };
+  return { up: a, maxHeight: Math.max(a ? n : r, 0), left: m, width: h };
 }
-let R = class extends C {
+let L = class extends C {
   constructor() {
     super(...arguments), this.options = [], this.value = "", this.search = !1, this.disabled = !1, this.open = !1, this.query = "", this.highlighted = -1, this.openWidth = 0, this.repositionQueued = !1, this.onOutsidePointer = (t) => {
       t.composedPath().includes(this) || this.close();
@@ -1511,9 +1511,9 @@ let R = class extends C {
     `;
   }
 };
-R.styles = [
+L.styles = [
   K,
-  H`
+  M`
       :host {
         display: block;
         width: 100%;
@@ -1579,33 +1579,33 @@ R.styles = [
       }
     `
 ];
-U([
+N([
   u({ attribute: !1 })
-], R.prototype, "options", 2);
-U([
+], L.prototype, "options", 2);
+N([
   u()
-], R.prototype, "value", 2);
-U([
+], L.prototype, "value", 2);
+N([
   u({ type: Boolean })
-], R.prototype, "search", 2);
-U([
+], L.prototype, "search", 2);
+N([
   u({ type: Boolean })
-], R.prototype, "disabled", 2);
-U([
+], L.prototype, "disabled", 2);
+N([
   d()
-], R.prototype, "open", 2);
-U([
+], L.prototype, "open", 2);
+N([
   d()
-], R.prototype, "query", 2);
-U([
+], L.prototype, "query", 2);
+N([
   d()
-], R.prototype, "highlighted", 2);
-U([
+], L.prototype, "highlighted", 2);
+N([
   d()
-], R.prototype, "drop", 2);
-R = U([
-  M("kustos-vision-select")
-], R);
+], L.prototype, "drop", 2);
+L = N([
+  B("kustos-vision-select")
+], L);
 var rs = Object.defineProperty, ns = Object.getOwnPropertyDescriptor, yt = (t, e, s, i) => {
   for (var r = i > 1 ? void 0 : i ? ns(e, s) : e, n = t.length - 1, a; n >= 0; n--)
     (a = t[n]) && (r = (i ? a(e, s, r) : a(r)) || r);
@@ -1659,7 +1659,7 @@ let xe = class extends C {
 };
 xe.styles = [
   K,
-  H`
+  M`
       :host {
         min-height: 0;
         background: none;
@@ -1710,7 +1710,7 @@ yt([
   d()
 ], xe.prototype, "open", 2);
 xe = yt([
-  M("kustos-vision-unsaved-dialog")
+  B("kustos-vision-unsaved-dialog")
 ], xe);
 const ve = [];
 function Re(t) {
@@ -1798,7 +1798,7 @@ function ps() {
   if (!(typeof window > "u"))
     return window.MediaSource ?? window.ManagedMediaSource;
 }
-const gs = 2, tt = 1024 * 1024, st = 3, it = 8, ms = "mp4a.40.2";
+const ms = 2, tt = 1024 * 1024, st = 3, it = 8, gs = "mp4a.40.2";
 function vs(t, e, s) {
   const i = [...t].sort((l, h) => l.start - h.start), r = i.filter(
     (l) => l.start <= e && e < l.start + l.duration
@@ -1866,7 +1866,7 @@ function xt(t) {
   })}`;
 }
 const ys = (t) => t instanceof DOMException && t.name === "QuotaExceededError";
-let L = class extends C {
+let I = class extends C {
   constructor() {
     super(...arguments), this.segments = [], this.seekTo = 0, this.segmentUrlBase = "/api/kustos_vision/segment", this.message = "", this.loadingRun = !1, this.withAudio = !0, this.placed = [], this.appended = /* @__PURE__ */ new Set(), this.accepted = 0, this.loading = !1, this.generation = 0, this.wired = !1, this.recoveries = 0, this.streamingWanted = !0;
   }
@@ -2039,27 +2039,27 @@ let L = class extends C {
       this.message = "Diese Aufnahme ist nicht H.264. Die Wiedergabe im Panel unterstützt derzeit nur H.264; die Datei selbst ist unbeschädigt und lässt sich herunterladen.";
       return;
     }
-    const g = `video/mp4; codecs="${h}"`, b = `video/mp4; codecs="${h}, ${ms}"`, p = this.withAudio ? b : g, v = a.isTypeSupported(p) ? p : a.isTypeSupported(g) ? g : null;
+    const m = `video/mp4; codecs="${h}"`, b = `video/mp4; codecs="${h}, ${gs}"`, p = this.withAudio ? b : m, v = a.isTypeSupported(p) ? p : a.isTypeSupported(m) ? m : null;
     if (!v) {
       this.message = `Dieser Browser kann ${h} nicht abspielen.`;
       return;
     }
-    const m = new a();
-    this.media = m, this.objectUrl = URL.createObjectURL(m), await this.updateComplete;
+    const g = new a();
+    this.media = g, this.objectUrl = URL.createObjectURL(g), await this.updateComplete;
     const w = this.video();
-    w && (this.wire(w), window.MediaSource || (w.disableRemotePlayback = !0, m.addEventListener("startstreaming", () => {
+    w && (this.wire(w), window.MediaSource || (w.disableRemotePlayback = !0, g.addEventListener("startstreaming", () => {
       this.streamingWanted = !0, this.pump();
-    }), m.addEventListener("endstreaming", () => {
+    }), g.addEventListener("endstreaming", () => {
       this.streamingWanted = !1;
-    })), w.src = this.objectUrl, m.addEventListener(
+    })), w.src = this.objectUrl, g.addEventListener(
       "sourceopen",
       () => {
         if (n === this.generation)
           try {
-            const S = m.addSourceBuffer(v);
+            const S = g.addSourceBuffer(v);
             S.mode = "segments", this.buffer = S, S.addEventListener("updateend", () => void this.pump());
             const G = this.placed[this.placed.length - 1];
-            G && (m.duration = G.mediaStart + G.segment.duration), this.pump();
+            G && (g.duration = G.mediaStart + G.segment.duration), this.pump();
           } catch (S) {
             this.message = E(S);
           }
@@ -2178,7 +2178,7 @@ let L = class extends C {
         }
         return;
       }
-      if (s && this.appended.size > 0 && (s.buffered.length > 0 ? s.buffered.end(s.buffered.length - 1) : 0) - s.currentTime > gs * (this.placed[0]?.segment.duration ?? 0))
+      if (s && this.appended.size > 0 && (s.buffered.length > 0 ? s.buffered.end(s.buffered.length - 1) : 0) - s.currentTime > ms * (this.placed[0]?.segment.duration ?? 0))
         return;
       const r = this.generation;
       this.loading = !0;
@@ -2203,8 +2203,8 @@ let L = class extends C {
           pending: h ?? (l.body ? new Uint8Array(0) : new Uint8Array(await l.arrayBuffer())),
           firstOfSegment: !0
         }, h && !l.body) {
-          const g = new Uint8Array(await l.arrayBuffer()), b = new Uint8Array(h.length + g.length);
-          b.set(h), b.set(g, h.length), this.carry.pending = b;
+          const m = new Uint8Array(await l.arrayBuffer()), b = new Uint8Array(h.length + m.length);
+          b.set(h), b.set(m, h.length), this.carry.pending = b;
         }
         if (r !== this.generation) return;
       } catch (n) {
@@ -2318,7 +2318,7 @@ let L = class extends C {
     `;
   }
 };
-L.styles = H`
+I.styles = M`
     :host {
       display: block;
       background: #000;
@@ -2371,31 +2371,31 @@ L.styles = H`
   `;
 F([
   u({ attribute: !1 })
-], L.prototype, "api", 2);
+], I.prototype, "api", 2);
 F([
   u({ attribute: !1 })
-], L.prototype, "segments", 2);
+], I.prototype, "segments", 2);
 F([
   u({ type: Number })
-], L.prototype, "seekTo", 2);
+], I.prototype, "seekTo", 2);
 F([
   u()
-], L.prototype, "segmentUrlBase", 2);
+], I.prototype, "segmentUrlBase", 2);
 F([
   d()
-], L.prototype, "message", 2);
+], I.prototype, "message", 2);
 F([
   d()
-], L.prototype, "gapAt", 2);
+], I.prototype, "gapAt", 2);
 F([
   d()
-], L.prototype, "clockUtc", 2);
+], I.prototype, "clockUtc", 2);
 F([
   d()
-], L.prototype, "loadingRun", 2);
-L = F([
-  M("kustos-vision-player")
-], L);
+], I.prototype, "loadingRun", 2);
+I = F([
+  B("kustos-vision-player")
+], I);
 var $s = Object.defineProperty, xs = Object.getOwnPropertyDescriptor, V = (t, e, s, i) => {
   for (var r = i > 1 ? void 0 : i ? xs(e, s) : e, n = t.length - 1, a; n >= 0; n--)
     (a = t[n]) && (r = (i ? a(e, s, r) : a(r)) || r);
@@ -2413,11 +2413,11 @@ let O = class extends C {
       t.preventDefault();
       const { scale: e, x: s, y: i } = this.zoom, r = t.deltaY < 0 ? nt : 1 / nt, n = Math.min(rt, Math.max(1, e * r));
       if (n === e) return;
-      const a = this.getBoundingClientRect(), l = t.clientX - a.left, h = t.clientY - a.top, g = n / e;
+      const a = this.getBoundingClientRect(), l = t.clientX - a.left, h = t.clientY - a.top, m = n / e;
       this.zoom = this.clampedZoom(
         n,
-        l - (l - s) * g,
-        h - (h - i) * g
+        l - (l - s) * m,
+        h - (h - i) * m
       );
     }, this.onDoubleClick = () => {
       this.expanded && (this.zoom = { scale: 1, x: 0, y: 0 });
@@ -2705,7 +2705,7 @@ let O = class extends C {
     }
   }
 };
-O.styles = H`
+O.styles = M`
     :host {
       display: block;
       position: relative;
@@ -2878,7 +2878,7 @@ V([
   d()
 ], O.prototype, "zoom", 2);
 O = V([
-  M("kustos-vision-live-stream")
+  B("kustos-vision-live-stream")
 ], O);
 var ks = Object.defineProperty, _s = Object.getOwnPropertyDescriptor, q = (t, e, s, i) => {
   for (var r = i > 1 ? void 0 : i ? _s(e, s) : e, n = t.length - 1, a; n >= 0; n--)
@@ -2886,7 +2886,7 @@ var ks = Object.defineProperty, _s = Object.getOwnPropertyDescriptor, q = (t, e,
   return i && r && ks(e, s, r), r;
 };
 const As = ["ptz_up", "ptz_left", "ptz_right", "ptz_down", "siren_on", "siren_off"], Ss = ["light", "siren", "privacy_mode"];
-let I = class extends C {
+let H = class extends C {
   constructor() {
     super(...arguments), this.viewId = "", this.narrow = !1, this.busy = "", this.error = "";
   }
@@ -3041,9 +3041,9 @@ let I = class extends C {
     `;
   }
 };
-I.styles = [
+H.styles = [
   K,
-  H`
+  M`
       :host {
         display: block;
         /* shared's :host serves full-page views and sets min-height: 100%;
@@ -3145,28 +3145,28 @@ I.styles = [
 ];
 q([
   u({ attribute: !1 })
-], I.prototype, "hass", 2);
+], H.prototype, "hass", 2);
 q([
   u({ attribute: !1 })
-], I.prototype, "api", 2);
+], H.prototype, "api", 2);
 q([
   u({ attribute: !1 })
-], I.prototype, "camera", 2);
+], H.prototype, "camera", 2);
 q([
   u()
-], I.prototype, "viewId", 2);
+], H.prototype, "viewId", 2);
 q([
   u({ type: Boolean })
-], I.prototype, "narrow", 2);
+], H.prototype, "narrow", 2);
 q([
   d()
-], I.prototype, "busy", 2);
+], H.prototype, "busy", 2);
 q([
   d()
-], I.prototype, "error", 2);
-I = q([
-  M("kustos-vision-camera-tile")
-], I);
+], H.prototype, "error", 2);
+H = q([
+  B("kustos-vision-camera-tile")
+], H);
 var Es = Object.defineProperty, Cs = Object.getOwnPropertyDescriptor, ae = (t, e, s, i) => {
   for (var r = i > 1 ? void 0 : i ? Cs(e, s) : e, n = t.length - 1, a; n >= 0; n--)
     (a = t[n]) && (r = (i ? a(e, s, r) : a(r)) || r);
@@ -3205,7 +3205,7 @@ let W = class extends C {
     `;
   }
 };
-W.styles = H`
+W.styles = M`
     :host {
       display: block;
       /* A phone has no 16px to spare on each side; a monitor does. */
@@ -3270,9 +3270,9 @@ ae([
   u({ type: Boolean })
 ], W.prototype, "narrow", 2);
 W = ae([
-  M("kustos-vision-live-view")
+  B("kustos-vision-live-view")
 ], W);
-var Ts = Object.defineProperty, Ds = Object.getOwnPropertyDescriptor, B = (t, e, s, i) => {
+var Ts = Object.defineProperty, Ds = Object.getOwnPropertyDescriptor, R = (t, e, s, i) => {
   for (var r = i > 1 ? void 0 : i ? Ds(e, s) : e, n = t.length - 1, a; n >= 0; n--)
     (a = t[n]) && (r = (i ? a(e, s, r) : a(r)) || r);
   return i && r && Ts(e, s, r), r;
@@ -3458,7 +3458,7 @@ let D = class extends C {
     `;
   }
 };
-D.styles = H`
+D.styles = M`
     :host {
       display: block;
       user-select: none;
@@ -3578,41 +3578,41 @@ D.styles = H`
       font-size: 0.85em;
     }
   `;
-B([
+R([
   u({ type: Number })
 ], D.prototype, "from", 2);
-B([
+R([
   u({ type: Number })
 ], D.prototype, "to", 2);
-B([
+R([
   u({ attribute: !1 })
 ], D.prototype, "blocks", 2);
-B([
+R([
   u({ attribute: !1 })
 ], D.prototype, "segments", 2);
-B([
+R([
   u({ type: Number })
 ], D.prototype, "position", 2);
-B([
+R([
   u()
 ], D.prototype, "thumbnailUrlBase", 2);
-B([
+R([
   u({ attribute: !1 })
 ], D.prototype, "api", 2);
-B([
+R([
   d()
 ], D.prototype, "hover", 2);
-B([
+R([
   d()
 ], D.prototype, "dragging", 2);
-B([
+R([
   d()
 ], D.prototype, "preview", 2);
-B([
+R([
   d()
 ], D.prototype, "barWidth", 2);
-D = B([
-  M("kustos-vision-timeline")
+D = R([
+  B("kustos-vision-timeline")
 ], D);
 var Bs = Object.defineProperty, Rs = Object.getOwnPropertyDescriptor, y = (t, e, s, i) => {
   for (var r = i > 1 ? void 0 : i ? Rs(e, s) : e, n = t.length - 1, a; n >= 0; n--)
@@ -3954,7 +3954,7 @@ let f = class extends C {
 };
 f.styles = [
   K,
-  H`
+  M`
       /* The tab has to fit on one screen: picker, picture and timeline all
          visible at once, because scrolling to reach the timeline while
          watching the picture defeats the point of having both. So the view
@@ -4129,15 +4129,15 @@ y([
   d()
 ], f.prototype, "rangeToTime", 2);
 f = y([
-  M("kustos-vision-recordings")
+  B("kustos-vision-recordings")
 ], f);
 /**
  * @license
  * Copyright 2017 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
  */
-const Ls = { CHILD: 2 }, Hs = (t) => (...e) => ({ _$litDirective$: t, values: e });
-let Is = class {
+const Ls = { CHILD: 2 }, Is = (t) => (...e) => ({ _$litDirective$: t, values: e });
+let Hs = class {
   constructor(e) {
   }
   get _$AU() {
@@ -4172,13 +4172,13 @@ const { I: Vs } = qt, lt = (t) => t, ht = () => document.createComment(""), he =
     if (n !== r || l) {
       let h = s._$AA;
       for (; h !== n; ) {
-        const g = lt(h).nextSibling;
-        lt(i).insertBefore(h, r), h = g;
+        const m = lt(h).nextSibling;
+        lt(i).insertBefore(h, r), h = m;
       }
     }
   }
   return s;
-}, J = (t, e, s = t) => (t._$AI(e, s), t), Ns = {}, Us = (t, e = Ns) => t._$AH = e, Fs = (t) => t._$AH, Ce = (t) => {
+}, J = (t, e, s = t) => (t._$AI(e, s), t), Us = {}, Ns = (t, e = Us) => t._$AH = e, Fs = (t) => t._$AH, Ce = (t) => {
   t._$AR(), t._$AA.remove();
 };
 /**
@@ -4190,7 +4190,7 @@ const dt = (t, e, s) => {
   const i = /* @__PURE__ */ new Map();
   for (let r = e; r <= s; r++) i.set(t[r], r);
   return i;
-}, kt = Hs(class extends Is {
+}, kt = Is(class extends Hs {
   constructor(t) {
     if (super(t), t.type !== Ls.CHILD) throw Error("repeat() can only be used in text expressions");
   }
@@ -4209,31 +4209,31 @@ const dt = (t, e, s) => {
     const r = Fs(t), { values: n, keys: a } = this.dt(e, s, i);
     if (!Array.isArray(r)) return this.ut = a, n;
     const l = this.ut ??= [], h = [];
-    let g, b, p = 0, v = r.length - 1, m = 0, w = n.length - 1;
-    for (; p <= v && m <= w; ) if (r[p] === null) p++;
+    let m, b, p = 0, v = r.length - 1, g = 0, w = n.length - 1;
+    for (; p <= v && g <= w; ) if (r[p] === null) p++;
     else if (r[v] === null) v--;
-    else if (l[p] === a[m]) h[m] = J(r[p], n[m]), p++, m++;
+    else if (l[p] === a[g]) h[g] = J(r[p], n[g]), p++, g++;
     else if (l[v] === a[w]) h[w] = J(r[v], n[w]), v--, w--;
     else if (l[p] === a[w]) h[w] = J(r[p], n[w]), he(t, h[w + 1], r[p]), p++, w--;
-    else if (l[v] === a[m]) h[m] = J(r[v], n[m]), he(t, r[p], r[v]), v--, m++;
-    else if (g === void 0 && (g = dt(a, m, w), b = dt(l, p, v)), g.has(l[p])) if (g.has(l[v])) {
-      const S = b.get(a[m]), G = S !== void 0 ? r[S] : null;
+    else if (l[v] === a[g]) h[g] = J(r[v], n[g]), he(t, r[p], r[v]), v--, g++;
+    else if (m === void 0 && (m = dt(a, g, w), b = dt(l, p, v)), m.has(l[p])) if (m.has(l[v])) {
+      const S = b.get(a[g]), G = S !== void 0 ? r[S] : null;
       if (G === null) {
-        const He = he(t, r[p]);
-        J(He, n[m]), h[m] = He;
-      } else h[m] = J(G, n[m]), he(t, r[p], G), r[S] = null;
-      m++;
+        const Ie = he(t, r[p]);
+        J(Ie, n[g]), h[g] = Ie;
+      } else h[g] = J(G, n[g]), he(t, r[p], G), r[S] = null;
+      g++;
     } else Ce(r[v]), v--;
     else Ce(r[p]), p++;
-    for (; m <= w; ) {
+    for (; g <= w; ) {
       const S = he(t, h[w + 1]);
-      J(S, n[m]), h[m++] = S;
+      J(S, n[g]), h[g++] = S;
     }
     for (; p <= v; ) {
       const S = r[p++];
       S !== null && Ce(S);
     }
-    return this.ut = a, Us(t, h), te;
+    return this.ut = a, Ns(t, h), te;
   }
 });
 function _t(t, e, s) {
@@ -4289,7 +4289,7 @@ class Et {
     }
   }
 }
-var Ws = Object.defineProperty, Ks = Object.getOwnPropertyDescriptor, _ = (t, e, s, i) => {
+var Ws = Object.defineProperty, Ks = Object.getOwnPropertyDescriptor, A = (t, e, s, i) => {
   for (var r = i > 1 ? void 0 : i ? Ks(e, s) : e, n = t.length - 1, a; n >= 0; n--)
     (a = t[n]) && (r = (i ? a(e, s, r) : a(r)) || r);
   return i && r && Ws(e, s, r), r;
@@ -4298,7 +4298,7 @@ function qs(t) {
   const e = t.toLowerCase().replace(/ä/g, "ae").replace(/ö/g, "oe").replace(/ü/g, "ue").replace(/ß/g, "ss").replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
   return /^[a-z0-9]/.test(e) ? e : `kamera_${e}`;
 }
-let $ = class extends C {
+let x = class extends C {
   constructor() {
     super(...arguments), this.capabilityKeys = [], this.available = [], this.views = [], this.allCameras = [], this.slug = "", this.name = "", this.streams = [], this.capabilities = {}, this.retentionDays = null, this.enabled = !0, this.viewSettings = {}, this.controls = [], this.candidates = [], this.busy = !1, this.error = "", this.memberFlip = new Et(), this.baseline = "", this.unsaved = {
       isDirty: () => JSON.stringify(this.payload()) !== this.baseline,
@@ -4623,9 +4623,9 @@ let $ = class extends C {
                             type="checkbox"
                             .checked=${r === null || r.includes(a)}
                             @change=${(l) => {
-        const h = l.target.checked, g = new Set(r ?? n);
-        h ? g.add(a) : g.delete(a), this.patchView(t.id, {
-          capabilities: n.filter((b) => g.has(b))
+        const h = l.target.checked, m = new Set(r ?? n);
+        h ? m.add(a) : m.delete(a), this.patchView(t.id, {
+          capabilities: n.filter((b) => m.has(b))
         });
       }}
                           />
@@ -4934,9 +4934,9 @@ let $ = class extends C {
     `;
   }
 };
-$.styles = [
+x.styles = [
   K,
-  H`
+  M`
       .member-row {
         display: flex;
         align-items: center;
@@ -4952,61 +4952,61 @@ $.styles = [
       }
     `
 ];
-_([
+A([
   u({ attribute: !1 })
-], $.prototype, "api", 2);
-_([
+], x.prototype, "api", 2);
+A([
   u({ attribute: !1 })
-], $.prototype, "camera", 2);
-_([
+], x.prototype, "camera", 2);
+A([
   u({ attribute: !1 })
-], $.prototype, "capabilityKeys", 2);
-_([
+], x.prototype, "capabilityKeys", 2);
+A([
   u({ attribute: !1 })
-], $.prototype, "available", 2);
-_([
+], x.prototype, "available", 2);
+A([
   u({ attribute: !1 })
-], $.prototype, "views", 2);
-_([
+], x.prototype, "views", 2);
+A([
   u({ attribute: !1 })
-], $.prototype, "allCameras", 2);
-_([
+], x.prototype, "allCameras", 2);
+A([
   d()
-], $.prototype, "slug", 2);
-_([
+], x.prototype, "slug", 2);
+A([
   d()
-], $.prototype, "name", 2);
-_([
+], x.prototype, "name", 2);
+A([
   d()
-], $.prototype, "streams", 2);
-_([
+], x.prototype, "streams", 2);
+A([
   d()
-], $.prototype, "capabilities", 2);
-_([
+], x.prototype, "capabilities", 2);
+A([
   d()
-], $.prototype, "retentionDays", 2);
-_([
+], x.prototype, "retentionDays", 2);
+A([
   d()
-], $.prototype, "enabled", 2);
-_([
+], x.prototype, "enabled", 2);
+A([
   d()
-], $.prototype, "viewSettings", 2);
-_([
+], x.prototype, "viewSettings", 2);
+A([
   d()
-], $.prototype, "controls", 2);
-_([
+], x.prototype, "controls", 2);
+A([
   d()
-], $.prototype, "candidates", 2);
-_([
+], x.prototype, "candidates", 2);
+A([
   d()
-], $.prototype, "busy", 2);
-_([
+], x.prototype, "busy", 2);
+A([
   d()
-], $.prototype, "error", 2);
-$ = _([
-  M("kustos-vision-camera-editor")
-], $);
-var Gs = Object.defineProperty, Zs = Object.getOwnPropertyDescriptor, A = (t, e, s, i) => {
+], x.prototype, "error", 2);
+x = A([
+  B("kustos-vision-camera-editor")
+], x);
+var Gs = Object.defineProperty, Zs = Object.getOwnPropertyDescriptor, _ = (t, e, s, i) => {
   for (var r = i > 1 ? void 0 : i ? Zs(e, s) : e, n = t.length - 1, a; n >= 0; n--)
     (a = t[n]) && (r = (i ? a(e, s, r) : a(r)) || r);
   return i && r && Gs(e, s, r), r;
@@ -5016,10 +5016,10 @@ const Js = [
   ["text", "Text"],
   ["number", "Anzahl"],
   ["select", "Auswahl"]
-];
-let x = class extends C {
+], Ys = "/api/kustos_vision/vision-frame";
+let $ = class extends C {
   constructor() {
-    super(...arguments), this.backend = { kind: "openai" }, this.observations = [], this.triggers = [], this.addingTrigger = !1, this.context = "", this.cooldown = 60, this.budget = 100, this.enabled = !0, this.aiTasks = [], this.history = [], this.busy = !1, this.error = "", this.baseline = "", this.unsaved = {
+    super(...arguments), this.backend = { kind: "openai" }, this.observations = [], this.triggers = [], this.addingTrigger = !1, this.context = "", this.cooldown = 60, this.budget = 100, this.enabled = !0, this.aiTasks = [], this.history = [], this.frameUrls = /* @__PURE__ */ new Map(), this.busy = !1, this.error = "", this.baseline = "", this.unsaved = {
       isDirty: () => JSON.stringify(this.payload()) !== this.baseline,
       save: () => this.save(),
       // Nothing to restore: leaving unmounts the editor and its drafts.
@@ -5059,9 +5059,21 @@ let x = class extends C {
   }
   async loadHistory() {
     try {
-      this.history = (await this.api.visionHistory(this.camera.slug)).history;
+      const t = (await this.api.visionHistory(this.camera.slug)).history, e = /* @__PURE__ */ new Map();
+      for (const s of t)
+        if (s.frame)
+          try {
+            e.set(
+              s.at,
+              await this.api.signedUrl(
+                `${Ys}/${this.camera.slug}/${s.frame}`
+              )
+            );
+          } catch {
+          }
+      this.history = t, this.frameUrls = e;
     } catch {
-      this.history = [];
+      this.history = [], this.frameUrls = /* @__PURE__ */ new Map();
     }
   }
   /** Every entity the instance has, worded for people, searchable by id. */
@@ -5296,6 +5308,7 @@ let x = class extends C {
       <div class="table-stack">
         <table>
           <tr class="head">
+            <th>Bild</th>
             <th>Zeitpunkt</th>
             <th>Auslöser</th>
             <th>Antwort</th>
@@ -5304,6 +5317,16 @@ let x = class extends C {
           ${this.history.slice(0, 8).map(
       (t) => o`
               <tr>
+                <td class="framecell" data-label="Bild">
+                  ${this.frameUrls.has(t.at) ? o`<img
+                          src=${this.frameUrls.get(t.at)}
+                          alt="Analysiertes Bild"
+                        />${t.frame_source === "still" ? o`<span
+                              class="stale"
+                              title="Kein aktueller Stream-Frame verfügbar; die Kamera-Integration lieferte ein zwischengespeichertes Standbild, das älter sein kann als der Auslöser."
+                              >Standbild</span
+                            >` : c}` : o`<span class="muted">-</span>`}
+                </td>
                 <td class="muted">${new Date(t.at).toLocaleString()}</td>
                 <td class="muted" data-label="Auslöser">${t.trigger}</td>
                 <td class=${t.error ? "error" : ""} data-label="Antwort">
@@ -5473,67 +5496,86 @@ ${JSON.stringify(this.lastRun.raw, null, 2)}</pre
     `;
   }
 };
-x.styles = K;
-A([
+$.styles = [
+  K,
+  M`
+      /* The analysed frame beside each history row. A fixed height keeps the
+         table from jumping while thumbnails load. */
+      .framecell img {
+        display: block;
+        height: 48px;
+        border-radius: 4px;
+      }
+      .framecell .stale {
+        display: block;
+        font-size: 0.75em;
+        color: var(--secondary-text-color);
+      }
+    `
+];
+_([
   u({ attribute: !1 })
-], x.prototype, "api", 2);
-A([
+], $.prototype, "api", 2);
+_([
   u({ attribute: !1 })
-], x.prototype, "camera", 2);
-A([
+], $.prototype, "camera", 2);
+_([
   u({ attribute: !1 })
-], x.prototype, "profile", 2);
-A([
+], $.prototype, "profile", 2);
+_([
   u({ attribute: !1 })
-], x.prototype, "hass", 2);
-A([
+], $.prototype, "hass", 2);
+_([
   d()
-], x.prototype, "backend", 2);
-A([
+], $.prototype, "backend", 2);
+_([
   d()
-], x.prototype, "observations", 2);
-A([
+], $.prototype, "observations", 2);
+_([
   d()
-], x.prototype, "triggers", 2);
-A([
+], $.prototype, "triggers", 2);
+_([
   d()
-], x.prototype, "addingTrigger", 2);
-A([
+], $.prototype, "addingTrigger", 2);
+_([
   d()
-], x.prototype, "context", 2);
-A([
+], $.prototype, "context", 2);
+_([
   d()
-], x.prototype, "cooldown", 2);
-A([
+], $.prototype, "cooldown", 2);
+_([
   d()
-], x.prototype, "budget", 2);
-A([
+], $.prototype, "budget", 2);
+_([
   d()
-], x.prototype, "enabled", 2);
-A([
+], $.prototype, "enabled", 2);
+_([
   d()
-], x.prototype, "aiTasks", 2);
-A([
+], $.prototype, "aiTasks", 2);
+_([
   d()
-], x.prototype, "history", 2);
-A([
+], $.prototype, "history", 2);
+_([
   d()
-], x.prototype, "lastRun", 2);
-A([
+], $.prototype, "frameUrls", 2);
+_([
   d()
-], x.prototype, "busy", 2);
-A([
+], $.prototype, "lastRun", 2);
+_([
   d()
-], x.prototype, "error", 2);
-x = A([
-  M("kustos-vision-vision-editor")
-], x);
-var Ys = Object.defineProperty, Xs = Object.getOwnPropertyDescriptor, z = (t, e, s, i) => {
-  for (var r = i > 1 ? void 0 : i ? Xs(e, s) : e, n = t.length - 1, a; n >= 0; n--)
+], $.prototype, "busy", 2);
+_([
+  d()
+], $.prototype, "error", 2);
+$ = _([
+  B("kustos-vision-vision-editor")
+], $);
+var Xs = Object.defineProperty, Qs = Object.getOwnPropertyDescriptor, z = (t, e, s, i) => {
+  for (var r = i > 1 ? void 0 : i ? Qs(e, s) : e, n = t.length - 1, a; n >= 0; n--)
     (a = t[n]) && (r = (i ? a(e, s, r) : a(r)) || r);
-  return i && r && Ys(e, s, r), r;
+  return i && r && Xs(e, s, r), r;
 };
-const Qs = [
+const ei = [
   ["cameras", "Kameras"],
   ["vision", "Bilderkennung"],
   ["storage", "Speicher"],
@@ -6125,7 +6167,7 @@ Was bereits unter ${this.snapshot.storage.base_path} liegt, bleibt unverändert 
     return o`
       <div style="padding:16px">
         <div class="subtabs" role="tablist">
-          ${Qs.map(
+          ${ei.map(
       ([t, e]) => o`
               <button
                 role="tab"
@@ -6184,12 +6226,12 @@ z([
   d()
 ], T.prototype, "viewDrag", 2);
 T = z([
-  M("kustos-vision-settings")
+  B("kustos-vision-settings")
 ], T);
-var ei = Object.defineProperty, ti = Object.getOwnPropertyDescriptor, N = (t, e, s, i) => {
-  for (var r = i > 1 ? void 0 : i ? ti(e, s) : e, n = t.length - 1, a; n >= 0; n--)
+var ti = Object.defineProperty, si = Object.getOwnPropertyDescriptor, U = (t, e, s, i) => {
+  for (var r = i > 1 ? void 0 : i ? si(e, s) : e, n = t.length - 1, a; n >= 0; n--)
     (a = t[n]) && (r = (i ? a(e, s, r) : a(r)) || r);
-  return i && r && ei(e, s, r), r;
+  return i && r && ti(e, s, r), r;
 };
 const de = "__recordings", Y = "__settings";
 globalThis.kustosVisionBuild = os;
@@ -6451,7 +6493,7 @@ let P = class extends C {
 };
 P.styles = [
   K,
-  H`
+  M`
       :host {
         display: flex;
         flex-direction: column;
@@ -6646,35 +6688,35 @@ P.styles = [
       }
     `
 ];
-N([
+U([
   u({ attribute: !1 })
 ], P.prototype, "hass", 2);
-N([
+U([
   u({ type: Boolean, reflect: !0 })
 ], P.prototype, "narrow", 2);
-N([
+U([
   d()
 ], P.prototype, "snapshot", 2);
-N([
+U([
   d()
 ], P.prototype, "active", 2);
-N([
+U([
   d()
 ], P.prototype, "error", 2);
-N([
+U([
   d()
 ], P.prototype, "reconnecting", 2);
-N([
+U([
   d()
 ], P.prototype, "reconnectError", 2);
-N([
+U([
   d()
 ], P.prototype, "lastViewId", 2);
-N([
+U([
   d()
 ], P.prototype, "viewMenu", 2);
-P = N([
-  M("kustos-vision-panel")
+P = U([
+  B("kustos-vision-panel")
 ], P);
 export {
   P as CamwatchPanel

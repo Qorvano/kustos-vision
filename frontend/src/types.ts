@@ -125,6 +125,12 @@ export interface AnalysisRun {
   raw: unknown;
   duration: number | null;
   error: string | null;
+  /** Ring-slot file name of the exact frame the model saw, when one was kept.
+   *  Optional: histories recorded by an older backend do not carry it. */
+  frame?: string | null;
+  /** "stream" = decoded at trigger time; "still" = the camera integration's
+   *  cached snapshot, which may be minutes older than the trigger. */
+  frame_source?: string | null;
 }
 
 export interface AiTaskEntity {

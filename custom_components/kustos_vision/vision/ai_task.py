@@ -17,7 +17,7 @@ from homeassistant.core import HomeAssistant
 
 from ..core.config import CameraConfig, VisionProfile
 from ..core.observations import to_ai_task_structure
-from . import VisionError, build_prompt
+from . import VisionError, VisionRequest, build_prompt
 
 TASK_NAME = "kustos_vision vision"
 
@@ -45,8 +45,15 @@ async def async_run(
     camera: CameraConfig,
     profile: VisionProfile,
     camera_entity_id: str,
+    request: VisionRequest | None = None,
 ) -> tuple[Any, float]:
-    """Ask the configured AI Task entity, returning its answer and how long."""
+    """Ask the configured AI Task entity, returning its answer and how long.
+
+    The captured frame in ``request`` is not used yet: AI Task attachments
+    travel as media-source identifiers, and serving our own files that way
+    needs a media source platform (planned). Until then this backend keeps
+    fetching its own snapshot, with the staleness that brings.
+    """
     started = time.monotonic()
     try:
         result = await ai_task.async_generate_data(

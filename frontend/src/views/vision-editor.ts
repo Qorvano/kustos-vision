@@ -5,7 +5,7 @@
 // work, and the panel is built around making that easy to try and to correct:
 // analyse now, see the raw answer, adjust the wording.
 
-import { LitElement, html, nothing } from "lit";
+import { LitElement, css, html, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import { errorText, type CamwatchApi } from "../api";
 import "../components/select";
@@ -34,6 +34,9 @@ const TYPES: [ObservationType, string][] = [
   ["select", "Auswahl"],
 ];
 
+/** Where the analysed frames are served; the path carries slug + slot name. */
+const FRAME_URL_BASE = "/api/kustos_vision/vision-frame";
+
 @customElement("kustos-vision-vision-editor")
 export class CamwatchVisionEditor extends LitElement {
   @property({ attribute: false }) api!: CamwatchApi;
@@ -52,11 +55,28 @@ export class CamwatchVisionEditor extends LitElement {
 
   @state() private aiTasks: AiTaskEntity[] = [];
   @state() private history: AnalysisRun[] = [];
+  @state() private frameUrls = new Map<string, string>();
   @state() private lastRun?: { values: Record<string, unknown>; raw: unknown };
   @state() private busy = false;
   @state() private error = "";
 
-  static override styles = shared;
+  static override styles = [
+    shared,
+    css`
+      /* The analysed frame beside each history row. A fixed height keeps the
+         table from jumping while thumbnails load. */
+      .framecell img {
+        display: block;
+        height: 48px;
+        border-radius: 4px;
+      }
+      .framecell .stale {
+        display: block;
+        font-size: 0.75em;
+        color: var(--secondary-text-color);
+      }
+    `,
+  ];
 
   /** The saved state this editor started from, for spotting unsaved work. */
   private baseline = "";
@@ -117,9 +137,29 @@ export class CamwatchVisionEditor extends LitElement {
 
   private async loadHistory(): Promise<void> {
     try {
-      this.history = (await this.api.visionHistory(this.camera.slug)).history;
+      const history = (await this.api.visionHistory(this.camera.slug)).history;
+      // Signed up front so rendering stays synchronous. The endpoint serves
+      // with no-cache: a ring slot is reused after twenty runs, and the
+      // revalidation is what keeps a stale picture out of a fresh row.
+      const urls = new Map<string, string>();
+      for (const run of history) {
+        if (!run.frame) continue;
+        try {
+          urls.set(
+            run.at,
+            await this.api.signedUrl(
+              `${FRAME_URL_BASE}/${this.camera.slug}/${run.frame}`,
+            ),
+          );
+        } catch {
+          // The row simply shows no picture.
+        }
+      }
+      this.history = history;
+      this.frameUrls = urls;
     } catch {
       this.history = [];
+      this.frameUrls = new Map();
     }
   }
 
@@ -412,6 +452,7 @@ export class CamwatchVisionEditor extends LitElement {
       <div class="table-stack">
         <table>
           <tr class="head">
+            <th>Bild</th>
             <th>Zeitpunkt</th>
             <th>Auslöser</th>
             <th>Antwort</th>
@@ -420,6 +461,20 @@ export class CamwatchVisionEditor extends LitElement {
           ${this.history.slice(0, 8).map(
             (run) => html`
               <tr>
+                <td class="framecell" data-label="Bild">
+                  ${this.frameUrls.has(run.at)
+                    ? html`<img
+                          src=${this.frameUrls.get(run.at)!}
+                          alt="Analysiertes Bild"
+                        />${run.frame_source === "still"
+                          ? html`<span
+                              class="stale"
+                              title="Kein aktueller Stream-Frame verfügbar; die Kamera-Integration lieferte ein zwischengespeichertes Standbild, das älter sein kann als der Auslöser."
+                              >Standbild</span
+                            >`
+                          : nothing}`
+                    : html`<span class="muted">-</span>`}
+                </td>
                 <td class="muted">${new Date(run.at).toLocaleString()}</td>
                 <td class="muted" data-label="Auslöser">${run.trigger}</td>
                 <td class=${run.error ? "error" : ""} data-label="Antwort">

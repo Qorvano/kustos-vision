@@ -20,9 +20,11 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import shutil
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import date, datetime
+from pathlib import Path
 from typing import Any
 
 from homeassistant.const import STATE_ON
@@ -30,8 +32,17 @@ from homeassistant.core import Event, EventStateChangedData, HomeAssistant, call
 from homeassistant.helpers.event import async_track_state_change_event
 from homeassistant.util import dt as dt_util
 
+from .capture import async_capture_frame
+from .const import LOCAL_STATE_DIR
+from .core.capture import (
+    FRAME_DIR_NAME,
+    CapturedFrame,
+    frame_name,
+    frame_slot,
+    frames_dir,
+)
 from .core.config import CamwatchConfig, VisionProfile
-from .vision import VisionError, VisionResult, async_analyse
+from .vision import VisionError, VisionRequest, VisionResult, async_analyse
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -51,6 +62,10 @@ class VisionState:
     analyses_today: int = 0
     budget_day: date | None = None
     history: list[dict[str, Any]] = field(default_factory=list)
+    frame_counter: int = 0
+    """How many frames this camera's ring has been given, ever. The slot a
+    frame lands in is this modulo the ring size; in-memory on purpose, so a
+    restart (which also empties the history) simply starts over at slot 0."""
 
     def count_for(self, today: date) -> int:
         """Analyses used today, resetting when the local day rolls over."""
@@ -89,6 +104,15 @@ class VisionRunner:
             self._unsubscribe()
             self._unsubscribe = None
 
+        # A camera whose profile is gone takes its in-memory state and its
+        # frame ring with it. This callback is the natural home: it is the one
+        # place that sees the whole configuration on every change.
+        active = {profile.camera_slug for profile in config.vision}
+        for slug in [s for s in self._states if s not in active]:
+            del self._states[slug]
+            self._locks.pop(slug, None)
+        self._hass.async_create_task(self._async_prune_frame_dirs(active))
+
         watched: dict[str, list[str]] = {}
         for profile in config.vision:
             if not profile.enabled or not profile.active_observations:
@@ -123,6 +147,19 @@ class VisionRunner:
         if self._unsubscribe is not None:
             self._unsubscribe()
             self._unsubscribe = None
+
+    async def _async_prune_frame_dirs(self, active: set[str]) -> None:
+        """Delete the frame rings of cameras that no longer have a profile."""
+        root = Path(self._hass.config.path(LOCAL_STATE_DIR)) / FRAME_DIR_NAME
+
+        def _prune() -> None:
+            if not root.is_dir():
+                return
+            for child in root.iterdir():
+                if child.is_dir() and child.name not in active:
+                    shutil.rmtree(child, ignore_errors=True)
+
+        await self._hass.async_add_executor_job(_prune)
 
     async def _async_analyse_quietly(self, camera_slug: str, trigger: str) -> None:
         """Run a triggered analysis without letting it escape as a bare task.
@@ -213,15 +250,31 @@ class VisionRunner:
             state.budget_day = today
             state.analyses_today = state.count_for(today) + 1
             self._coordinator.async_update_listeners()
+            frame: CapturedFrame | None = None
             try:
+                # The picture is taken here and nowhere earlier. The distance
+                # between the grab and the request is what "current" means;
+                # everything before this point is bookkeeping that must not
+                # sit between the two. Inside the lock costs nothing - a
+                # second trigger returns early on lock.locked() and never
+                # waits - and it removes the one case where a frame could age
+                # while a queued run held it.
+                frame = await self._async_capture(camera_slug, state, entity_id)
                 result = await async_analyse(
-                    self._hass, camera, profile, entity_id
+                    self._hass,
+                    camera,
+                    profile,
+                    entity_id,
+                    request=VisionRequest(frame=frame),
                 )
             except VisionError as err:
                 state.last_error = str(err)
                 state.last_run = dt_util.utcnow()
                 _LOGGER.warning("kustos_vision: analysing %s failed: %s", camera_slug, err)
-                self._record(state, reason, None, str(err))
+                # The frame, if one was taken, stays in the record: for a
+                # model failure it is the evidence of what was being asked
+                # about when things went wrong.
+                self._record(state, reason, None, str(err), frame=frame)
                 return None
             finally:
                 state.running = False
@@ -229,9 +282,24 @@ class VisionRunner:
             state.last_error = None
             state.last_run = dt_util.utcnow()
             state.values.update(result.values)
-            self._record(state, reason, result, None)
+            self._record(state, reason, result, None, frame=frame)
             self._coordinator.async_update_listeners()
             return result
+
+    async def _async_capture(
+        self, camera_slug: str, state: VisionState, entity_id: str
+    ) -> CapturedFrame:
+        """Take the frame for one analysis and file it in the ring."""
+        slot = frame_slot(state.frame_counter, HISTORY_LENGTH)
+        target = self._frames_dir(camera_slug) / frame_name(slot)
+        frame = await async_capture_frame(self._hass, entity_id, target)
+        state.frame_counter += 1
+        return frame
+
+    def _frames_dir(self, camera_slug: str) -> Path:
+        return frames_dir(
+            Path(self._hass.config.path(LOCAL_STATE_DIR)), camera_slug
+        )
 
     def _camera_entity(self, camera_slug: str) -> str | None:
         """Which entity to take the snapshot from.
@@ -251,6 +319,7 @@ class VisionRunner:
         reason: str,
         result: VisionResult | None,
         error: str | None,
+        frame: CapturedFrame | None = None,
     ) -> None:
         """Keep the last few analyses, for improving a prompt with evidence."""
         state.history.insert(
@@ -263,6 +332,10 @@ class VisionRunner:
                 "raw": result.raw if result else None,
                 "duration": round(result.duration_s, 2) if result else None,
                 "error": error,
+                # The exact picture the model saw, and how honest it is: a
+                # "still" frame may be minutes older than the trigger.
+                "frame": frame.path.name if frame and frame.path else None,
+                "frame_source": str(frame.source) if frame else None,
             },
         )
         del state.history[HISTORY_LENGTH:]

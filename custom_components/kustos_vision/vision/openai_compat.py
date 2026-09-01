@@ -21,7 +21,7 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from ..core.config import CameraConfig, VisionProfile
 from ..core.observations import to_json_schema
-from . import VisionError, build_prompt
+from . import VisionError, VisionRequest, build_prompt
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -62,12 +62,17 @@ async def async_run(
     camera: CameraConfig,
     profile: VisionProfile,
     camera_entity_id: str,
+    request: VisionRequest | None = None,
 ) -> tuple[Any, float]:
     """Send one picture and return the parsed answer and how long it took."""
     backend = profile.backend
     started = time.monotonic()
 
-    content, mime = await _snapshot(hass, camera_entity_id)
+    if request is not None and request.frame is not None:
+        # The frame the runner captured at trigger time - the whole point.
+        content, mime = request.frame.content, request.frame.content_type
+    else:
+        content, mime = await _snapshot(hass, camera_entity_id)
     data_uri = f"data:{mime};base64,{base64.b64encode(content).decode('ascii')}"
 
     payload: dict[str, Any] = {

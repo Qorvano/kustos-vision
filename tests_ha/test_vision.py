@@ -22,10 +22,30 @@ from custom_components.kustos_vision.const import (
     STORAGE_KEY_CONFIG,
     STORAGE_VERSION_CONFIG,
 )
+from custom_components.kustos_vision.core.capture import CapturedFrame, FrameSource
 from custom_components.kustos_vision.vision import VisionResult
 
 TRIGGER = "binary_sensor.beispiel_motion"
 CONDITION = "input_boolean.scharf"
+
+
+FRAME_BYTES = b"\xff\xd8\xff-jpeg-bytes"
+
+
+def fake_frame(path=None) -> CapturedFrame:
+    """A captured frame that never touched a camera."""
+    return CapturedFrame(
+        content=FRAME_BYTES,
+        content_type="image/jpeg",
+        taken_at=dt_util.utcnow(),
+        source=FrameSource.STREAM,
+        path=path,
+    )
+
+
+async def fake_capture(hass_, entity_id, target=None) -> CapturedFrame:
+    """Stand-in for async_capture_frame, honouring the ring target."""
+    return fake_frame(path=target)
 
 
 def profile(**overrides) -> dict:
@@ -94,8 +114,10 @@ def analysed() -> list[dict]:
 def vision_env(analysed: list[dict]):
     """Answer analyses without talking to a model."""
 
-    async def _analyse(hass, camera, prof, entity_id):
-        analysed.append({"camera": camera.slug, "entity_id": entity_id})
+    async def _analyse(hass, camera, prof, entity_id, request=None):
+        analysed.append(
+            {"camera": camera.slug, "entity_id": entity_id, "request": request}
+        )
         return VisionResult(
             values={"paket": True, "wer": "Postbote"},
             raw={"paket": True, "wer": "Postbote"},
@@ -110,6 +132,10 @@ def vision_env(analysed: list[dict]):
         patch(
             "custom_components.kustos_vision.maintenance.get_ffmpeg_manager",
             MagicMock(return_value=MagicMock(binary="/usr/bin/ffmpeg")),
+        ),
+        patch(
+            "custom_components.kustos_vision.vision_runner.async_capture_frame",
+            AsyncMock(side_effect=fake_capture),
         ),
         patch(
             "custom_components.kustos_vision.vision_runner.async_analyse",
@@ -368,7 +394,7 @@ async def test_a_long_answer_is_shortened_for_the_state(
     full text has to live in an attribute."""
     long_answer = "x" * 400
 
-    async def _analyse(hass_, camera, prof, entity_id):
+    async def _analyse(hass_, camera, prof, entity_id, request=None):
         return VisionResult(values={"wer": long_answer}, raw={}, duration_s=0.1)
 
     base = tmp_path / "recordings"
@@ -393,6 +419,10 @@ async def test_a_long_answer_is_shortened_for_the_state(
         patch(
             "custom_components.kustos_vision.maintenance.get_ffmpeg_manager",
             MagicMock(return_value=MagicMock(binary="/usr/bin/ffmpeg")),
+        ),
+        patch(
+            "custom_components.kustos_vision.vision_runner.async_capture_frame",
+            AsyncMock(side_effect=fake_capture),
         ),
         patch(
             "custom_components.kustos_vision.vision_runner.async_analyse",
@@ -578,3 +608,177 @@ async def test_an_explicit_name_is_used_for_the_entity(
 
     await hass.config_entries.async_unload(entry.entry_id)
     await hass.async_block_till_done()
+
+
+# ----------------------------------------------------------------------
+# The trigger-time frame
+# ----------------------------------------------------------------------
+
+
+async def test_the_backend_receives_the_frame_taken_at_trigger_time(
+    hass: HomeAssistant, setup_vision, analysed
+) -> None:
+    """Regression: the model was answered from a still the camera integration
+    had cached minutes earlier, while the trigger said "now" - a yellow-bin
+    question stayed true on night footage nobody could inspect. The runner now
+    captures first, and the backend gets exactly those bytes."""
+    await setup_vision()
+    await fire(hass)
+    assert analysed
+    request = analysed[0]["request"]
+    assert request is not None and request.frame is not None
+    assert request.frame.content == FRAME_BYTES
+    assert str(request.frame.source) == "stream"
+
+
+async def test_the_history_names_the_frame_and_its_source(
+    hass: HomeAssistant, setup_vision
+) -> None:
+    entry = await setup_vision()
+    runner = entry.runtime_data.vision
+    await runner.async_analyse("beispiel", force=True)
+    run = runner.state_for("beispiel").history[0]
+    assert run["frame"] == "frame_00.jpg"
+    assert run["frame_source"] == "stream"
+
+
+async def test_consecutive_runs_walk_the_ring(
+    hass: HomeAssistant, setup_vision
+) -> None:
+    """Each run gets its own slot; the history and the files stay in step."""
+    entry = await setup_vision()
+    runner = entry.runtime_data.vision
+    await runner.async_analyse("beispiel", force=True)
+    await runner.async_analyse("beispiel", force=True)
+    names = [run["frame"] for run in runner.state_for("beispiel").history]
+    assert names == ["frame_01.jpg", "frame_00.jpg"]
+
+
+async def test_capture_falls_back_to_the_entity_still_without_a_stream(
+    hass: HomeAssistant, tmp_path: Path
+) -> None:
+    """A camera without a stream URL still gets analysed - from its still,
+    and the frame is honest about that."""
+    from custom_components.kustos_vision.capture import async_capture_frame
+
+    image = MagicMock(content=b"still-bytes", content_type="image/jpeg")
+    target = tmp_path / "frames" / "cam" / "frame_00.jpg"
+    with (
+        patch(
+            "custom_components.kustos_vision.capture.async_get_stream_source",
+            AsyncMock(return_value=None),
+        ),
+        patch(
+            "custom_components.kustos_vision.capture.async_get_image",
+            AsyncMock(return_value=image),
+        ),
+    ):
+        frame = await async_capture_frame(hass, "camera.cam", target)
+    assert str(frame.source) == "still"
+    assert frame.content == b"still-bytes"
+    assert target.read_bytes() == b"still-bytes"
+
+
+async def test_capture_falls_back_when_ffmpeg_cannot_start(
+    hass: HomeAssistant, tmp_path: Path
+) -> None:
+    from custom_components.kustos_vision.capture import async_capture_frame
+
+    image = MagicMock(content=b"still-bytes", content_type="image/jpeg")
+    with (
+        patch(
+            "custom_components.kustos_vision.capture.async_get_stream_source",
+            AsyncMock(return_value="rtsp://cam.invalid/stream"),
+        ),
+        patch(
+            "custom_components.kustos_vision.capture.get_ffmpeg_manager",
+            MagicMock(
+                return_value=MagicMock(binary=str(tmp_path / "no-such-ffmpeg"))
+            ),
+        ),
+        patch(
+            "custom_components.kustos_vision.capture.async_get_image",
+            AsyncMock(return_value=image),
+        ),
+    ):
+        frame = await async_capture_frame(
+            hass, "camera.cam", tmp_path / "f" / "frame_00.jpg"
+        )
+    assert str(frame.source) == "still"
+
+
+async def test_capture_raises_when_nothing_can_produce_a_picture(
+    hass: HomeAssistant, tmp_path: Path
+) -> None:
+    """No stream and no still: the run must fail loudly rather than be
+    answered from a picture nobody can identify afterwards."""
+    from custom_components.kustos_vision.capture import async_capture_frame
+    from custom_components.kustos_vision.vision import VisionError
+
+    with (
+        patch(
+            "custom_components.kustos_vision.capture.async_get_stream_source",
+            AsyncMock(return_value=None),
+        ),
+        patch(
+            "custom_components.kustos_vision.capture.async_get_image",
+            AsyncMock(side_effect=Exception("kaputt")),
+        ),
+        pytest.raises(VisionError),
+    ):
+        await async_capture_frame(hass, "camera.cam", None)
+
+
+async def test_the_ring_is_sized_to_the_history(
+    hass: HomeAssistant,
+) -> None:
+    """One slot per remembered run. Asserted here instead of a second
+    constant, so the two cannot drift apart silently."""
+    from custom_components.kustos_vision.core.capture import (
+        frame_name,
+        frame_slot,
+        is_frame_name,
+    )
+    from custom_components.kustos_vision.vision_runner import HISTORY_LENGTH
+
+    slots = {frame_slot(counter, HISTORY_LENGTH) for counter in range(HISTORY_LENGTH)}
+    assert len(slots) == HISTORY_LENGTH
+    assert all(is_frame_name(frame_name(slot)) for slot in slots)
+
+
+async def test_the_frame_view_serves_the_analysed_frame(
+    hass: HomeAssistant, hass_client, setup_vision
+) -> None:
+    await setup_vision()
+    frames = Path(hass.config.path("kustos_vision")) / "frames" / "beispiel"
+    frames.mkdir(parents=True, exist_ok=True)
+    (frames / "frame_00.jpg").write_bytes(b"jpeg-bytes")
+    client = await hass_client()
+    response = await client.get(f"/api/{DOMAIN}/vision-frame/beispiel/frame_00.jpg")
+    assert response.status == 200
+    assert await response.read() == b"jpeg-bytes"
+    # Ring slots are reused, so a cached copy could be another run's picture;
+    # no-cache forces the revalidation that keeps each row honest.
+    assert "no-cache" in response.headers["Cache-Control"]
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "beispiel/frame_0.jpg",
+        "beispiel/frame_100.jpg",
+        "beispiel/index.db",
+        "Beispiel/frame_00.jpg",
+        "beispiel/frame_00.png",
+    ],
+)
+async def test_the_frame_view_refuses_what_the_ring_never_wrote(
+    hass: HomeAssistant, hass_client, setup_vision, path: str
+) -> None:
+    """The shape check is the authorisation: only a valid slug plus a ring
+    slot name can address a file, so nothing else below the state directory
+    is reachable."""
+    await setup_vision()
+    client = await hass_client()
+    response = await client.get(f"/api/{DOMAIN}/vision-frame/{path}")
+    assert response.status == 404

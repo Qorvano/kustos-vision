@@ -24,6 +24,7 @@ from typing import Any
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 
+from ..core.capture import CapturedFrame
 from ..core.config import CameraConfig, VisionBackendKind, VisionProfile
 from ..core.observations import coerce_answers
 
@@ -32,6 +33,20 @@ _LOGGER = logging.getLogger(__name__)
 
 class VisionError(HomeAssistantError):
     """The analysis could not be carried out."""
+
+
+@dataclass(frozen=True, slots=True)
+class VisionRequest:
+    """Everything one analysis sends beyond the profile itself.
+
+    Optional as a whole: with no request the call behaves exactly as it did
+    before this existed - the backend fetches its own still and asks only the
+    user's questions - which is what keeps the change additive.
+    """
+
+    frame: CapturedFrame | None = None
+    """The frame taken at trigger time. When None, the backend falls back to
+    asking the camera entity for a still, with all the staleness that brings."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -89,6 +104,7 @@ async def async_analyse(
     camera: CameraConfig,
     profile: VisionProfile,
     camera_entity_id: str,
+    request: VisionRequest | None = None,
 ) -> VisionResult:
     """Run one analysis through whichever backend the profile names."""
     if not profile.active_observations:
@@ -99,7 +115,7 @@ async def async_analyse(
     else:
         from .openai_compat import async_run as run
 
-    raw, duration = await run(hass, camera, profile, camera_entity_id)
+    raw, duration = await run(hass, camera, profile, camera_entity_id, request=request)
 
     if not isinstance(raw, dict):
         raise VisionError(
