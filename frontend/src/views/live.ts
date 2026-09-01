@@ -12,18 +12,49 @@ export class CamwatchLiveView extends LitElement {
   @property({ attribute: false }) api!: CamwatchApi;
   @property({ attribute: false }) view!: View;
   @property({ attribute: false }) cameras: Camera[] = [];
+  @property({ type: Boolean }) narrow = false;
 
   static override styles = css`
     :host {
       display: block;
-      padding: 16px;
+      /* A phone has no 16px to spare on each side; a monitor does. */
+      padding: min(16px, 3vw);
     }
     .grid {
       display: grid;
-      gap: 16px;
-      /* Zero columns means "fit as many as the width allows", which is what a
-         wall display and a phone both want. */
-      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      --kv-gap: min(16px, 3vw);
+      /* The count the view asked for, or a number that simply means "as
+         many as fit". */
+      --kv-cols: var(--kv-cols-config, 24);
+      /* Below this a tile is a thumbnail: the controls under the picture
+         start clipping and the name no longer fits beside the dot. The
+         view-less default keeps the old 320px, so a wall display is laid
+         out exactly as before. */
+      --kv-tile-floor: 320px;
+      gap: var(--kv-gap);
+      /* The configured count is a ceiling, not an order: the track floor
+         drops a column rather than shrink a picture to 99px. On a monitor
+         the two agree and the wall looks exactly as it was configured. */
+      grid-template-columns: repeat(
+        auto-fill,
+        minmax(
+          max(
+            var(--kv-tile-floor),
+            (100% - (var(--kv-cols) - 1) * var(--kv-gap)) / var(--kv-cols)
+          ),
+          1fr
+        )
+      );
+    }
+    .grid > * {
+      min-width: 0;
+    }
+    /* A phone lying on its side: the screen is short, so two pictures side
+       by side are the most that still shows anything. */
+    @media (orientation: landscape) and (max-height: 500px) {
+      .grid {
+        --kv-cols: min(2, var(--kv-cols-config, 24));
+      }
     }
     .empty {
       color: var(--secondary-text-color);
@@ -49,9 +80,12 @@ export class CamwatchLiveView extends LitElement {
       </div>`;
     }
 
+    // The configured count travels as a custom property so the stylesheet
+    // can treat it as a ceiling; with a count set, the tile floor relaxes
+    // so the person's choice wins wherever it is physically viable.
     const style =
       this.view.columns > 0
-        ? `grid-template-columns: repeat(${this.view.columns}, 1fr)`
+        ? `--kv-cols-config:${this.view.columns};--kv-tile-floor:240px`
         : "";
 
     return html`
@@ -63,6 +97,7 @@ export class CamwatchLiveView extends LitElement {
               .api=${this.api}
               .camera=${camera}
               .viewId=${this.view.id}
+              ?narrow=${this.narrow}
             ></kustos-vision-camera-tile>
           `,
         )}

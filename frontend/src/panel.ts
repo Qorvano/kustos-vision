@@ -578,6 +578,7 @@ export class CamwatchPanel extends LitElement {
                 .api=${this.api}
                 .view=${view}
                 .cameras=${snapshot.cameras}
+                ?narrow=${this.narrow}
               ></kustos-vision-live-view>`
             : html`<div class="notice">
                 Noch keine Ansicht angelegt.<br />

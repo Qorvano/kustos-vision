@@ -23,6 +23,7 @@ export class CamwatchCameraTile extends LitElement {
   @property({ attribute: false }) api!: CamwatchApi;
   @property({ attribute: false }) camera!: Camera;
   @property() viewId = "";
+  @property({ type: Boolean }) narrow = false;
 
   @state() private busy = "";
   @state() private error = "";
@@ -111,6 +112,22 @@ export class CamwatchCameraTile extends LitElement {
         padding: 0 12px 10px;
         font-size: 0.85em;
       }
+      /* The shared expander, worn as the tile's own bottom edge. */
+      details.expander {
+        margin: 0;
+        border: none;
+        border-top: 1px solid var(--divider-color, ButtonBorder);
+        border-radius: 0;
+      }
+      details.expander > summary {
+        padding: 10px 12px;
+        font-weight: normal;
+        font-size: 0.9em;
+        color: var(--secondary-text-color);
+      }
+      details.expander > .expander-body {
+        padding: 0;
+      }
     `,
   ];
 
@@ -157,6 +174,7 @@ export class CamwatchCameraTile extends LitElement {
     return html`<button
       class="secondary compact"
       title=${capabilityLabel(capability)}
+      aria-label=${capabilityLabel(capability)}
       ?disabled=${this.busy !== ""}
       @click=${() => this.run(capability, value)}
     >
@@ -247,9 +265,18 @@ export class CamwatchCameraTile extends LitElement {
         this.renderButton(key, `${capabilityLabel(key)} aus`, false),
       );
     }
-    return html`<div class="controls">
+    const count = buttons.length + custom.length;
+    const body = html`<div class="controls">
       ${buttons}${custom.map((control) => this.renderCustom(control))}
     </div>`;
+    // On a phone the picture is the point. A wall of buttons under every
+    // tile pushes the next camera off the screen, so anything beyond a
+    // handful folds away - closed, and saying how much is in there.
+    if (!this.narrow || count <= 3) return body;
+    return html`<details class="expander">
+      <summary>Bedienung (${count})</summary>
+      <div class="expander-body">${body}</div>
+    </details>`;
   }
 
   override render() {
@@ -257,29 +284,37 @@ export class CamwatchCameraTile extends LitElement {
     const state = this.camera.state;
     const streams = state.streams.filter((s) => s.running).length;
 
+    // The dot's colour is a glance; the words are for everyone else - a
+    // tooltip never appears on a touch screen.
+    const statusWord = state.recording
+      ? ""
+      : !state.wants_recording
+        ? "keine Aufzeichnung"
+        : state.paused
+          ? "pausiert"
+          : "Aufzeichnung steht";
+
     return html`
       <header>
         <span
           class="dot ${state.recording ? "recording" : ""} ${
             state.wants_recording ? "" : "idle"
           }"
+          aria-hidden="true"
           title=${
             state.recording
               ? `${streams} Stream(s) werden aufgezeichnet`
-              : !state.wants_recording
-                ? "Für diese Kamera ist keine Aufzeichnung eingerichtet"
-                : state.paused
-                  ? "Aufzeichnung pausiert"
-                  : "Aufzeichnung läuft nicht"
+              : statusWord
           }
         ></span>
         <span>${this.camera.name}</span>
         <span class="spacer"></span>
-        ${state.paused ? html`<span class="meta">pausiert</span>` : nothing}
+        ${statusWord ? html`<span class="meta">${statusWord}</span>` : nothing}
         ${entity
           ? html`<button
               class="secondary compact"
-              title="Vollbild (mit Lupe per Mausrad)"
+              title="Vollbild (mit Lupe)"
+              aria-label="Vollbild"
               @click=${this.openFullscreen}
             >
               <svg
