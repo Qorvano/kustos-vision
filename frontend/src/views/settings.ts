@@ -456,16 +456,51 @@ export class CamwatchSettings extends LitElement {
     this.error = "";
     try {
       const { asset_id } = await this.api.uploadReference(file);
-      const person = this.draftPersons()[index];
-      if (person.references.length >= MAX_PHOTOS_PER_PERSON) return;
-      this.patchPerson(index, {
-        references: [...person.references, { asset_id }],
-      });
+      await this.addPersonPhoto(index, asset_id);
     } catch (err) {
       this.error = errorText(err);
     } finally {
       this.busy = false;
     }
+  }
+
+  /** Attach an uploaded photo. For a person that exists, this persists on
+   *  the spot - adding a photo is an explicit action like a drag&drop
+   *  reorder, and photos that only lived in the draft were exactly what a
+   *  discarded draft silently lost. A person not saved yet keeps the photo
+   *  in the draft and it is stored with the creation. */
+  private async addPersonPhoto(index: number, assetId: string): Promise<void> {
+    const person = this.draftPersons()[index];
+    if (person.references.length >= MAX_PHOTOS_PER_PERSON) return;
+    const references = [...person.references, { asset_id: assetId }];
+    if (person.id) await this.persistPersonPhotos(person.id, references);
+    this.patchPerson(index, { references });
+  }
+
+  private async removePersonPhoto(index: number, refIndex: number): Promise<void> {
+    const person = this.draftPersons()[index];
+    const references = person.references.filter((_, i) => i !== refIndex);
+    if (person.id) await this.persistPersonPhotos(person.id, references);
+    this.patchPerson(index, { references });
+  }
+
+  /** Store ONLY the photo change: name and switch travel from the saved
+   *  state, so a photo must not quietly persist unsaved edits sitting in
+   *  the draft beside it. */
+  private async persistPersonPhotos(
+    personId: string,
+    references: ReferenceImage[],
+  ): Promise<boolean> {
+    const saved = this.snapshot.persons?.people.find((p) => p.id === personId);
+    if (!saved) return false;
+    return this.run(() =>
+      this.api.setPerson({
+        person_id: personId,
+        name: saved.name,
+        enabled: saved.enabled ?? true,
+        references,
+      }),
+    );
   }
 
   /** A displayable URL for a stored photo, signed lazily on first use. */
@@ -551,12 +586,7 @@ export class CamwatchSettings extends LitElement {
               <button
                 class="danger compact"
                 ?disabled=${this.busy}
-                @click=${() =>
-                  this.patchPerson(index, {
-                    references: person.references.filter(
-                      (_, i) => i !== refIndex,
-                    ),
-                  })}
+                @click=${() => this.removePersonPhoto(index, refIndex)}
               >
                 Foto entfernen
               </button>
