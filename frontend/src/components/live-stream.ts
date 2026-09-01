@@ -124,6 +124,27 @@ export class CamwatchLiveStream extends LitElement {
       bottom: 8px;
       left: 8px;
     }
+    .exit {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      z-index: 2;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 40px;
+      height: 40px;
+      padding: 0;
+      border: none;
+      border-radius: 50%;
+      background: rgba(0, 0, 0, 0.55);
+      color: #fff;
+      cursor: pointer;
+    }
+    /* The clock makes room for the exit button while it is on screen. */
+    :host(:fullscreen) .clock {
+      right: 56px;
+    }
     .overlay {
       position: absolute;
       inset: 0;
@@ -171,6 +192,9 @@ export class CamwatchLiveStream extends LitElement {
     });
     this.observer.observe(this);
     this.addEventListener("fullscreenchange", this.onFullscreenChange);
+    // Belt to the element listener's braces: some engines deliver the
+    // change only at the document level for elements inside shadow roots.
+    document.addEventListener("fullscreenchange", this.onFullscreenChange);
     // passive:false, because zooming has to keep the wheel from scrolling.
     this.addEventListener("wheel", this.onWheel, { passive: false });
     this.addEventListener("dblclick", this.onDoubleClick);
@@ -187,6 +211,7 @@ export class CamwatchLiveStream extends LitElement {
     this.observer?.disconnect();
     this.observer = undefined;
     this.removeEventListener("fullscreenchange", this.onFullscreenChange);
+    document.removeEventListener("fullscreenchange", this.onFullscreenChange);
     this.removeEventListener("wheel", this.onWheel);
     this.removeEventListener("dblclick", this.onDoubleClick);
     this.removeEventListener("pointerdown", this.onPointerDown);
@@ -200,9 +225,26 @@ export class CamwatchLiveStream extends LitElement {
   // Fullscreen and the loupe
   // --------------------------------------------------------------------
 
+  /**
+   * Whether this very element fills the screen.
+   *
+   * document.fullscreenElement is retargeted at shadow boundaries and
+   * answers with the outermost host, never with an element nested in
+   * shadow roots like this one; the containing root's view is the one
+   * that names this element itself.
+   */
+  private isFullscreen(): boolean {
+    const root = this.getRootNode();
+    const element =
+      root instanceof ShadowRoot
+        ? root.fullscreenElement
+        : document.fullscreenElement;
+    return element === this;
+  }
+
   /** Fill the screen with this picture, or step back out of it. */
   async toggleFullscreen(): Promise<void> {
-    if (document.fullscreenElement === this) {
+    if (this.isFullscreen()) {
       await document.exitFullscreen();
     } else {
       await this.requestFullscreen();
@@ -210,7 +252,7 @@ export class CamwatchLiveStream extends LitElement {
   }
 
   private onFullscreenChange = (): void => {
-    this.fullscreen = document.fullscreenElement === this;
+    this.fullscreen = this.isFullscreen();
     // The loupe belongs to the fullscreen viewing; back in the wall of
     // tiles a magnified crop would masquerade as the whole picture.
     if (!this.fullscreen) this.zoom = { scale: 1, x: 0, y: 0 };
@@ -275,6 +317,10 @@ export class CamwatchLiveStream extends LitElement {
 
   private onPointerDown = (event: PointerEvent): void => {
     if (!this.fullscreen) return;
+    // A tap on the exit button is a click, not a gesture; capturing its
+    // pointer here would swallow the click before the button sees it.
+    const origin = event.composedPath()[0];
+    if (origin instanceof HTMLElement && origin.closest(".exit")) return;
     // One finger moves an already magnified picture; a second one, or the
     // wheel, is what magnifies. An unzoomed single tap stays untouched so
     // a double tap can still reach the reset.
@@ -497,6 +543,25 @@ export class CamwatchLiveStream extends LitElement {
       ${this.renderPicture()}
     </div>
     ${live ? html`<div class="clock">${clockText(this.nowSeconds)}</div>` : nothing}
+    ${this.fullscreen
+      ? html`<button
+          class="exit"
+          title="Vollbild verlassen"
+          @click=${() => void this.toggleFullscreen()}
+        >
+          <svg
+            viewBox="0 0 24 24"
+            width="22"
+            height="22"
+            fill="currentColor"
+            aria-hidden="true"
+          >
+            <path
+              d="M14,14H19V16H16V19H14V14M5,14H10V19H8V16H5V14M8,5H10V10H5V8H8V5M19,8V10H14V5H16V8H19Z"
+            />
+          </svg>
+        </button>`
+      : nothing}
     ${scale > 1
       ? html`<div class="zoombadge">${scale.toFixed(1)}×</div>`
       : nothing}
