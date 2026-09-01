@@ -330,6 +330,10 @@ export class CamwatchPlayer extends LitElement {
   override updated(changed: Map<string, unknown>): void {
     if (changed.has("segments")) {
       this.recoveries = 0;
+      // A new segment set is a context switch: another day, camera or
+      // stream. Playing on across it kept the old picture moving while the
+      // cursor lost its footing; the switch now starts paused at the start.
+      this.video()?.pause();
       void this.load();
     } else if (changed.has("seekTo")) {
       // Deliberately without any further condition. This used to require a
@@ -351,8 +355,10 @@ export class CamwatchPlayer extends LitElement {
     video.addEventListener("timeupdate", () => {
       void this.pump();
       // The timeline above follows the playback through this; without it the
-      // red cursor only ever moved when somebody clicked.
-      if (this.placed.length > 0 && !video.seeking) {
+      // red cursor only ever moved when somebody clicked. Not while paused:
+      // a tick queued before a pause still gets delivered afterwards, and
+      // during a context switch it carried the old run's clock.
+      if (this.placed.length > 0 && !video.seeking && !video.paused) {
         const time = utcFor(this.placed, video.currentTime);
         this.clockUtc = time;
         this.dispatchEvent(

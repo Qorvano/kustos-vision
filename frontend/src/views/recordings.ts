@@ -13,6 +13,17 @@ import "../components/timeline";
    it is disabled instead of letting the request bounce. */
 const MAX_EXPORT_HOURS = 25;
 
+/* The stamped export's quality ladder, mirroring STAMP_QUALITY_CRF on the
+   Python side. The size shares were measured on daylight HD footage against
+   its raw join; encoding time is the same on every step, about as long as
+   the material itself. */
+const STAMP_QUALITIES = [
+  { value: "high", label: "Beste Qualität", share: "etwa 120 %" },
+  { value: "balanced", label: "Ausgewogen", share: "etwa 90 %" },
+  { value: "compact", label: "Kompakt", share: "etwa 65 %" },
+  { value: "small", label: "Klein", share: "etwa 45 %" },
+];
+
 /** The local calendar day after the given one, as YYYY-MM-DD. */
 function nextDay(day: string): string {
   const date = new Date(`${day}T00:00:00`);
@@ -42,6 +53,8 @@ export class CamwatchRecordings extends LitElement {
   @state() private downloading = false;
   /** Burn the recording clock into the download, at transcoding cost. */
   @state() private stampExport = false;
+  /** The stamped export's size/quality step; the backend's default. */
+  @state() private stampQuality = "balanced";
   @state() private error = "";
   /** The minute-precise range export: date and time held separately. The
       date goes through the panel's own dropdown because the native calendar
@@ -229,7 +242,10 @@ export class CamwatchRecordings extends LitElement {
       to: String(to),
     });
     if (this.stream) params.set("stream", this.stream);
-    if (this.stampExport && this.stampAvailable) params.set("stamp", "1");
+    if (this.stampExport && this.stampAvailable) {
+      params.set("stamp", "1");
+      params.set("quality", this.stampQuality);
+    }
     return `/api/kustos_vision/export?${params.toString()}`;
   }
 
@@ -342,7 +358,12 @@ export class CamwatchRecordings extends LitElement {
             // While a finger drags the cursor, the running video keeps
             // reporting its own clock; letting that through made the cursor
             // flick back and forth between the two several times a second.
-            if (!this.scrubbing) this.position = e.detail.time;
+            if (this.scrubbing) return;
+            // A tick from a run being torn down carries the old day's
+            // clock and would strand the cursor outside the timeline.
+            const [from, to] = this.bounds;
+            if (e.detail.time < from || e.detail.time > to) return;
+            this.position = e.detail.time;
           }}
         ></kustos-vision-player>
 
@@ -447,12 +468,35 @@ export class CamwatchRecordings extends LitElement {
                 />
                 Zeitstempel einbrennen
               </label>
+              ${this.stampExport && this.stampAvailable
+                ? html`<div class="picker">
+                    <label>Qualität</label>
+                    <kustos-vision-select
+                      compact
+                      .options=${STAMP_QUALITIES.map(({ value, label }) => ({
+                        value,
+                        label,
+                      }))}
+                      .value=${this.stampQuality}
+                      @value-changed=${(e: CustomEvent<{ value: string }>) =>
+                        (this.stampQuality = e.detail.value)}
+                    ></kustos-vision-select>
+                  </div>`
+                : nothing}
             </div>
             <p class="hint">
               ${this.segments.length === 0
                 ? "Für den gewählten Tag ist nichts aufgezeichnet."
                 : this.stampExport && this.stampAvailable
-                  ? "Das Video wird neu kodiert und die Aufnahmezeit ins Bild geschrieben; das dauert etwa so lange wie das Material selbst." +
+                  ? `Das Video wird neu kodiert und die Aufnahmezeit ins Bild geschrieben; das dauert etwa so lange wie das Material selbst. Erwartete Größe bei „${
+                      STAMP_QUALITIES.find(
+                        (q) => q.value === this.stampQuality,
+                      )?.label ?? this.stampQuality
+                    }": ${
+                      STAMP_QUALITIES.find(
+                        (q) => q.value === this.stampQuality,
+                      )?.share ?? "?"
+                    } des Roh-Downloads (gemessen an HD-Tagmaterial).` +
                     (this.stream === "" && this.streamKeys.length > 1
                       ? " Eingebrannt wird der Stream mit dem meisten Material; in der Auswahl lässt sich ein bestimmter wählen."
                       : "")

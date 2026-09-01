@@ -817,3 +817,37 @@ def test_the_stamped_bitrate_is_capped_near_the_source() -> None:
     assert args[args.index("-maxrate") + 1] == "4000000"
     assert args[args.index("-bufsize") + 1] == "8000000"
     assert args[args.index("-preset") + 1] == "veryfast"
+
+
+def test_the_quality_step_picks_its_crf() -> None:
+    """The panel's ladder and the encoder must stay in step: each step maps
+    to exactly one CRF, chosen for its measured size share."""
+    from pathlib import Path
+
+    from custom_components.kustos_vision.export import (
+        STAMP_QUALITY_CRF,
+        stamp_concat_args,
+    )
+
+    args = stamp_concat_args(
+        [(Path("/a.mp4"), 1.0)], 720, False, crf=STAMP_QUALITY_CRF["small"]
+    )
+    assert args[args.index("-crf") + 1] == "32"
+
+
+async def test_export_refuses_an_unknown_quality(
+    hass: HomeAssistant, hass_client, recorded
+) -> None:
+    _, _, _, start = recorded
+    client = await hass_client()
+    response = await client.get(
+        f"/api/{DOMAIN}/export",
+        params={
+            "camera": "beispiel",
+            "from": start,
+            "to": start + 60,
+            "stamp": "1",
+            "quality": "riesig",
+        },
+    )
+    assert response.status == 400

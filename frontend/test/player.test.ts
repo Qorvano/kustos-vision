@@ -633,8 +633,18 @@ describe("scrubbing", () => {
     // Regression: while dragging, the running video kept reporting its own
     // clock and the cursor flicked between the two several times a second.
     const source = read("views/recordings.ts");
-    expect(source).toMatch(/if \(!this\.scrubbing\) this\.position/);
+    expect(source).toMatch(/if \(this\.scrubbing\) return;/);
     expect(source).toContain("@scrubend=");
+  });
+
+  it("a stale playback report cannot strand the cursor off the day", () => {
+    // Regression: a tick from the run being torn down during a day switch
+    // carried the old day's clock, and the cursor vanished until the next
+    // click into the timeline.
+    const source = read("views/recordings.ts");
+    expect(source).toMatch(
+      /if \(e\.detail\.time < from \|\| e\.detail\.time > to\) return;/,
+    );
   });
 
   it("a cancelled drag lifts the suppression again", () => {

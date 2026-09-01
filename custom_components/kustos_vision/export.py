@@ -60,9 +60,20 @@ STAMP_FONT = Path(__file__).parent / "fonts" / "DejaVuSansMono.ttf"
 # size class and still runs about as fast as the material plays on a Pi 5.
 STAMP_PRESET = "veryfast"
 
-# x264's default quality point: visually transparent for surveillance footage
-# while keeping the bitrate bounded.
-STAMP_CRF = "23"
+# The size lever of the stamped export. Measured on daylight 2880x1620
+# footage against its raw join: CRF 23 came out around 120% of the raw size,
+# 26 around 90%, 29 around 65% and 32 around 45%, all at practically the
+# same encoding time - the preset, by contrast, barely moves the size at
+# all. The person picks the trade-off in the panel; "balanced" is the
+# default because a timestamp is not worth a file above the raw one.
+STAMP_QUALITY_CRF = {
+    "high": "23",
+    "balanced": "26",
+    "compact": "29",
+    "small": "32",
+}
+STAMP_DEFAULT_QUALITY = "balanced"
+STAMP_CRF = STAMP_QUALITY_CRF[STAMP_DEFAULT_QUALITY]
 
 # The stamped copy carries no picture information the source did not, so its
 # bitrate is capped near the source's own average. Half again as much leaves
@@ -123,6 +134,7 @@ def stamp_concat_args(
     with_audio: bool,
     font: Path = STAMP_FONT,
     maxrate_bps: int | None = None,
+    crf: str = STAMP_CRF,
 ) -> list[str]:
     """The ffmpeg arguments that join segments and burn the clock in.
 
@@ -178,7 +190,7 @@ def stamp_concat_args(
         "-preset",
         STAMP_PRESET,
         "-crf",
-        STAMP_CRF,
+        crf,
         *rate_cap,
         "-movflags",
         "+frag_keyframe+empty_moov+default_base_moof",
@@ -331,6 +343,7 @@ async def stream_export(
     base: Path,
     stamp: bool = False,
     clip: tuple[float, float] | None = None,
+    stamp_crf: str = STAMP_CRF,
 ) -> AsyncIterator[bytes]:
     """Join segments and yield the resulting MP4 as it is produced.
 
@@ -404,7 +417,11 @@ async def stream_export(
                     else None
                 )
                 args = stamp_concat_args(
-                    inputs, size[1], with_audio, maxrate_bps=source_rate
+                    inputs,
+                    size[1],
+                    with_audio,
+                    maxrate_bps=source_rate,
+                    crf=stamp_crf,
                 )
                 if clip is not None and duration > 0:
                     args = clipped_args(args, lead, duration)

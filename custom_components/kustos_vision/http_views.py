@@ -25,7 +25,7 @@ from homeassistant.core import HomeAssistant
 from .const import DATA_STAMP_AVAILABLE, DOMAIN
 from .core.index import SegmentIndex
 from .core.paths import parse_day_dir, parse_segment_name
-from .export import stream_export
+from .export import STAMP_DEFAULT_QUALITY, STAMP_QUALITY_CRF, stream_export
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -189,6 +189,12 @@ class ExportView(CamwatchFileView):
                 text="Das mitgelieferte ffmpeg kann keinen Text zeichnen "
                 "(drawtext fehlt); nur der Roh-Export ist verfügbar.",
             )
+        quality = request.query.get("quality", STAMP_DEFAULT_QUALITY)
+        if quality not in STAMP_QUALITY_CRF:
+            return web.Response(
+                status=400,
+                text=f"quality must be one of {', '.join(sorted(STAMP_QUALITY_CRF))}",
+            )
 
         began = datetime.fromtimestamp(start, tz=UTC).astimezone()
         suffix = "_zeitstempel" if stamp else ""
@@ -202,7 +208,12 @@ class ExportView(CamwatchFileView):
         )
         await response.prepare(request)
         async for chunk in stream_export(
-            self.hass, segments, base, stamp=stamp, clip=(start, end)
+            self.hass,
+            segments,
+            base,
+            stamp=stamp,
+            clip=(start, end),
+            stamp_crf=STAMP_QUALITY_CRF[quality],
         ):
             await response.write(chunk)
         await response.write_eof()
