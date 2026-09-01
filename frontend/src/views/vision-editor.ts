@@ -8,6 +8,8 @@
 import { LitElement, css, html, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import { errorText, type CamwatchApi } from "../api";
+import "../components/annotate-dialog";
+import type { CamwatchAnnotateDialog } from "../components/annotate-dialog";
 import "../components/select";
 import {
   guardNavigation,
@@ -301,6 +303,37 @@ export class CamwatchVisionEditor extends LitElement {
     }
   }
 
+  /** Open the drawing tool on the ORIGINAL picture; store the regions and
+   *  upload the burned copy the model will actually see. */
+  private async annotateReference(index: number, refIndex: number): Promise<void> {
+    const reference = this.observations[index].references?.[refIndex];
+    const dialog = this.renderRoot.querySelector<CamwatchAnnotateDialog>(
+      "kustos-vision-annotate-dialog",
+    );
+    if (!reference || !dialog) return;
+    this.error = "";
+    try {
+      const src = await this.api.referenceUrl(reference.asset_id);
+      const result = await dialog.edit(src, reference.regions ?? []);
+      if (result === null) return;
+      if (result.burned && result.regions.length > 0) {
+        const { asset_id } = await this.api.uploadReference(result.burned);
+        this.patchReference(index, refIndex, {
+          regions: result.regions,
+          burned_asset_id: asset_id,
+        });
+      } else {
+        // Everything erased: the original travels again.
+        this.patchReference(index, refIndex, {
+          regions: [],
+          burned_asset_id: "",
+        });
+      }
+    } catch (err) {
+      this.error = errorText(err);
+    }
+  }
+
   private async save(): Promise<boolean> {
     this.busy = true;
     this.error = "";
@@ -587,6 +620,15 @@ export class CamwatchVisionEditor extends LitElement {
                   />
                 </div>
                 <button
+                  class="secondary compact"
+                  ?disabled=${this.busy}
+                  @click=${() => this.annotateReference(index, refIndex)}
+                >
+                  ${(reference.regions?.length ?? 0) > 0
+                    ? `Beschriften (${reference.regions!.length})`
+                    : "Beschriften"}
+                </button>
+                <button
                   class="danger compact"
                   ?disabled=${this.busy}
                   @click=${() => this.removeReference(index, refIndex)}
@@ -865,6 +907,7 @@ ${JSON.stringify(this.lastRun.raw, null, 2)}</pre
             : nothing}
         </div>
       </div>
+      <kustos-vision-annotate-dialog></kustos-vision-annotate-dialog>
     `;
   }
 }
