@@ -1786,7 +1786,7 @@ async function re() {
       s.discard();
   return !0;
 }
-const Ce = "0.8.1", fs = "kustos-vision-built:0.8.1", bs = {
+const Ce = "0.8.2", fs = "kustos-vision-built:0.8.2", bs = {
   ptz_up: "Schwenken hoch",
   ptz_down: "Schwenken runter",
   ptz_left: "Schwenken links",
