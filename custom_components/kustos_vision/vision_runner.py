@@ -380,6 +380,7 @@ class VisionRunner:
                     content=content,
                     content_type=content_type,
                     preamble=picture.preamble,
+                    asset_id=picture.asset_id,
                 )
             )
         return tuple(loaded)

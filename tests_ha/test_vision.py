@@ -1142,3 +1142,64 @@ async def test_a_second_person_under_the_same_name_is_refused(
         reply = await client.receive_json()
     assert not reply["success"]
     assert reply["error"]["code"] == "invalid_config"
+
+
+# ----------------------------------------------------------------------
+# The media source
+# ----------------------------------------------------------------------
+
+
+async def test_the_media_source_resolves_frames_and_references(
+    hass: HomeAssistant, setup_vision
+) -> None:
+    """AI Task attachments resolve through media_source and need a local
+    path; this is what gives that backend the trigger-time frame."""
+    from homeassistant.components import media_source
+    from homeassistant.setup import async_setup_component
+
+    await setup_vision()
+    assert await async_setup_component(hass, "media_source", {})
+
+    frames = Path(hass.config.path("kustos_vision")) / "frames" / "beispiel"
+    frames.mkdir(parents=True, exist_ok=True)
+    (frames / "frame_00.jpg").write_bytes(b"jpeg")
+    references = Path(hass.config.path("kustos_vision")) / "references"
+    references.mkdir(parents=True, exist_ok=True)
+    (references / ("b" * 32 + ".png")).write_bytes(b"png")
+
+    frame = await media_source.async_resolve_media(
+        hass, "media-source://kustos_vision/frame/beispiel/frame_00.jpg", None
+    )
+    assert frame.path == frames / "frame_00.jpg"
+    assert frame.mime_type == "image/jpeg"
+
+    reference = await media_source.async_resolve_media(
+        hass, "media-source://kustos_vision/reference/" + "b" * 32, None
+    )
+    assert reference.path == references / ("b" * 32 + ".png")
+    assert reference.mime_type == "image/png"
+
+
+@pytest.mark.parametrize(
+    "identifier",
+    [
+        "frame/beispiel/index.db",
+        "frame/../frames/beispiel/frame_00.jpg",
+        "reference/../../secrets.yaml",
+        "reference/zzz",
+        "somewhere/else",
+    ],
+)
+async def test_the_media_source_refuses_what_the_views_would_refuse(
+    hass: HomeAssistant, setup_vision, identifier: str
+) -> None:
+    from homeassistant.components import media_source
+    from homeassistant.exceptions import HomeAssistantError
+    from homeassistant.setup import async_setup_component
+
+    await setup_vision()
+    assert await async_setup_component(hass, "media_source", {})
+    with pytest.raises(HomeAssistantError):
+        await media_source.async_resolve_media(
+            hass, f"media-source://kustos_vision/{identifier}", None
+        )

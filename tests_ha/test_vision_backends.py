@@ -331,3 +331,77 @@ async def test_without_references_the_message_shape_is_unchanged(
 
     kinds = [p["type"] for p in captured["payload"]["messages"][0]["content"]]
     assert kinds == ["text", "image_url"]
+
+
+# ----------------------------------------------------------------------
+# AI Task attachments
+# ----------------------------------------------------------------------
+
+
+def _request_with_frame_and_reference():
+    from pathlib import Path
+
+    from custom_components.kustos_vision.core.capture import (
+        CapturedFrame,
+        FrameSource,
+    )
+    from custom_components.kustos_vision.vision import (
+        ReferencePicture,
+        VisionRequest,
+    )
+    from homeassistant.util import dt as dt_util
+
+    return VisionRequest(
+        frame=CapturedFrame(
+            content=b"frame",
+            content_type="image/jpeg",
+            taken_at=dt_util.utcnow(),
+            source=FrameSource.STREAM,
+            path=Path("/config/kustos_vision/frames/beispiel/frame_03.jpg"),
+        ),
+        references=(
+            ReferencePicture(
+                content=b"ref",
+                content_type="image/png",
+                preamble="Reference picture 1. Der Hinterhof.",
+                asset_id="a" * 32,
+            ),
+        ),
+    )
+
+
+def test_ai_task_attaches_the_kept_frame_and_the_references() -> None:
+    """Parity with the OpenAI path: the trigger-time frame first, references
+    after, and - since attachments cannot interleave text - the instructions
+    say what each numbered attachment is."""
+    from custom_components.kustos_vision.vision.ai_task import (
+        _attachments_and_instructions,
+    )
+
+    attachments, instructions = _attachments_and_instructions(
+        CAMERA, PROFILE, "camera.vg", _request_with_frame_and_reference()
+    )
+    assert attachments[0]["media_content_id"] == (
+        "media-source://kustos_vision/frame/beispiel/frame_03.jpg"
+    )
+    assert attachments[1]["media_content_id"] == (
+        "media-source://kustos_vision/reference/" + "a" * 32
+    )
+    assert "Attachment 1 is the current camera frame" in instructions
+    assert "Attachment 2: Reference picture 1." in instructions
+
+
+def test_ai_task_falls_back_to_the_camera_attachment_without_a_frame() -> None:
+    from custom_components.kustos_vision.vision.ai_task import (
+        _attachments_and_instructions,
+    )
+
+    attachments, _ = _attachments_and_instructions(
+        CAMERA, PROFILE, "camera.vg", None
+    )
+    assert attachments == [
+        {
+            "media_content_id": "media-source://camera/camera.vg",
+            "media_content_type": "image/jpeg",
+        }
+    ]

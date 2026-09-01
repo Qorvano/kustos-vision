@@ -101,12 +101,33 @@ Triggers are the camera's own motion or person detection, which costs Home
 Assistant nothing. Three limits apply per camera and none is optional: a
 cooldown so a burst of motion is one analysis, a daily budget so a
 misconfigured trigger cannot run away overnight, and one analysis at a time so
-a slow model cannot queue up behind itself. A condition entity can gate the
-whole thing, which is how "only while the alarm is armed" is expressed without
-writing an automation.
+a slow model cannot queue up behind itself.
 
-The panel keeps the last analyses with the raw answer next to them. Improving a
-question is otherwise guesswork.
+The frame is taken at the moment the analysis starts, decoded from the
+camera's own stream with ffmpeg. Asking the camera entity for a still is only
+the fallback, because camera integrations may serve stills cached minutes
+earlier, and an analysis answered from such a picture is wrong about time in
+a way nothing downstream can detect. The exact frame every run was answered
+from is kept (a fixed ring per camera under the local state directory) and
+shown beside the run in the panel's history, with the raw answer next to it.
+Improving a question is otherwise guesswork.
+
+A question can carry up to two **reference pictures**: stored photos the
+model gets to compare against, such as a shot of the backyard with every bin
+in place. Boxes with labels can be drawn onto a reference in the panel; the
+labels are burned into the copy the model sees while the original stays
+editable. References always travel after the current frame and are introduced
+as explicitly not being evidence, so a truncating runner or a drifting model
+degrades toward the evidence. A button takes the current camera frame as a
+new reference through the same capture pipeline.
+
+**Persons**: people configured with a name and up to two reference photos get
+a presence `binary_sensor` on the hub device. Cameras opt in per profile with
+a single switch. A match turns the sensor on; not being matched in one frame
+never turns it off - someone turning round is not a departure - only the
+configurable off-delay after the last sighting does. Presence deliberately
+does not survive a restart: after one, "not seen since the restart" is the
+honest answer.
 
 The `kustos_vision.analyze` service runs an analysis on demand and returns the
 answers, for trying a question out and for automations that know about a moment

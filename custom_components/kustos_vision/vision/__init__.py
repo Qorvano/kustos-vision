@@ -52,6 +52,11 @@ class ReferencePicture:
     """Told to the model right before the picture: what it shows, and that it
     is not evidence of anything being there now."""
 
+    asset_id: str = ""
+    """The stored asset behind these bytes. The OpenAI path inlines the bytes
+    and ignores this; the AI Task path attaches by media-source identifier
+    and needs it."""
+
 
 @dataclass(frozen=True, slots=True)
 class VisionRequest:
