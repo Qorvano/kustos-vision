@@ -225,8 +225,24 @@ async def async_draw_marks(
 
     Never raises: the marked picture is decoration on top of a finished
     analysis, and a drawing failure must not turn a good result into an
-    error - the image entity simply serves the plain frame then.
+    error - the image entity simply serves the plain frame then. A failure
+    WITH labels is retried without them: boxes beat nothing, and the reason
+    is in the log either way.
     """
+    if await _async_run_draw(hass, source, target, marks, with_labels):
+        return True
+    if with_labels:
+        return await _async_run_draw(hass, source, target, marks, False)
+    return False
+
+
+async def _async_run_draw(
+    hass: HomeAssistant,
+    source: Path,
+    target: Path,
+    marks: tuple[Mark, ...],
+    with_labels: bool,
+) -> bool:
     binary = get_ffmpeg_manager(hass).binary
     args = build_mark_args(source, target, marks, STAMP_FONT, with_labels)
     try:
@@ -235,13 +251,15 @@ async def async_draw_marks(
             *args,
             stdin=asyncio.subprocess.DEVNULL,
             stdout=asyncio.subprocess.DEVNULL,
-            stderr=asyncio.subprocess.DEVNULL,
+            stderr=asyncio.subprocess.PIPE,
         )
     except OSError as err:
         _LOGGER.warning("kustos_vision: could not start ffmpeg for marks: %s", err)
         return False
     try:
-        code = await asyncio.wait_for(process.wait(), MARK_DRAW_TIMEOUT_SECONDS)
+        _, stderr = await asyncio.wait_for(
+            process.communicate(), MARK_DRAW_TIMEOUT_SECONDS
+        )
     except TimeoutError:
         _LOGGER.warning("kustos_vision: drawing the marks timed out")
         with contextlib.suppress(ProcessLookupError):
@@ -249,7 +267,16 @@ async def async_draw_marks(
         with contextlib.suppress(Exception):
             await process.wait()
         return False
-    return code == 0 and await hass.async_add_executor_job(target.is_file)
+    if process.returncode != 0:
+        # The reason a picture stayed unmarked must never be invisible: a
+        # whole field-test round was spent on exactly that silence.
+        _LOGGER.warning(
+            "kustos_vision: drawing the marks failed (labels %s): %s",
+            "on" if with_labels else "off",
+            (stderr or b"").decode(errors="replace")[-300:],
+        )
+        return False
+    return await hass.async_add_executor_job(target.is_file)
 
 
 def _temp_jpeg() -> Path:

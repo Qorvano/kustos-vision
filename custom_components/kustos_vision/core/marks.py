@@ -140,12 +140,13 @@ def objects_schema_fragment() -> dict[str, Any]:
         "maxItems": MAX_MARKS,
         "description": (
             "The name of every distinct object you recognise in the current "
-            "camera frame, in the language of the questions - everything "
-            "your other answers mention, and likewise any other clearly "
-            "recognisable thing (a person, an animal, a vehicle, a package, "
-            "a bin and the like). Never surfaces or fixed background such "
-            "as hedges, walls or floors. Names only, no positions. An empty "
-            "list when nothing stands out."
+            "camera frame, in the language of the questions. Each name must "
+            "tell ITS object apart from the others - by colour, kind or "
+            "place (like 'blaue Tonne', not five entries saying 'Tonne') - "
+            "because each name is later used to point at exactly one thing. "
+            "Never surfaces or fixed background such as hedges, walls or "
+            "floors. Names only, no positions. An empty list when nothing "
+            "stands out."
         ),
         "items": {"type": "string"},
     }
@@ -157,9 +158,12 @@ def objects_prompt() -> str:
         "in the current camera frame, in the language of the questions - "
         "everything your other answers mention, and likewise any other "
         "clearly recognisable thing (a person, an animal, a vehicle, a "
-        "package, a bin and the like). Never surfaces or fixed background "
-        "such as hedges, walls or floors. Names only; the positions are "
-        "somebody else's job."
+        "package, a bin and the like). Each name must tell ITS object apart "
+        "from the others, by colour, kind or place: 'blaue Tonne' and "
+        "'braune Tonne', never five entries saying 'Tonne', because each "
+        "name is later used to point at exactly one thing in the picture. "
+        "Never name surfaces or fixed background such as hedges, walls or "
+        "floors. Names only; the positions are somebody else's job."
     )
 
 
@@ -312,8 +316,11 @@ def build_mark_args(
             continue
         text = escape_drawtext(mark.label)
         # The plaque sits above the box when there is room, inside its top
-        # edge otherwise.
-        label_y = f"max(min({mark.y0}\\,ih-1)-th-{MARK_BOX_THICKNESS}\\,2)"
+        # edge otherwise. Regression trap: drawtext calls the frame height
+        # `h`, NOT `ih` - that is drawbox vocabulary, and an unknown
+        # constant fails the whole filter graph, silently unmarked pictures
+        # were the symptom.
+        label_y = f"max(min({mark.y0}\\,h-1)-th-{MARK_BOX_THICKNESS}\\,2)"
         filters.append(
             f"drawtext=fontfile='{font}':text='{text}'"
             f":fontsize={MARK_FONT_SIZE}:fontcolor=black"

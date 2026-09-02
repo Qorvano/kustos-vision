@@ -118,6 +118,27 @@ def test_the_boxes_are_pixels_clamped_into_the_frame() -> None:
     assert "text='Tonne'" in graph
 
 
+def test_drawtext_never_uses_drawbox_vocabulary() -> None:
+    """Regression: drawtext calls the frame height h, not ih - ih is
+    drawbox vocabulary, and the unknown constant failed the whole filter
+    graph. The symptom was silently unmarked pictures on every analysis,
+    invisible because the exit code was swallowed too."""
+    args = build_mark_args(
+        Path("/a.jpg"),
+        Path("/b.jpg"),
+        (Mark("Tonne", 100, 200, 400, 600),),
+        FONT,
+        with_labels=True,
+    )
+    graph = args[args.index("-vf") + 1]
+    # One mark: its drawtext is the last filter, everything after the
+    # keyword belongs to it.
+    drawtext_part = graph[graph.index("drawtext") :]
+    assert "ih" not in drawtext_part
+    assert "iw" not in drawtext_part
+    assert "\\,h-1)" in drawtext_part
+
+
 def test_without_freetype_the_boxes_survive_and_the_words_are_lost() -> None:
     args = build_mark_args(
         Path("/a.jpg"),
