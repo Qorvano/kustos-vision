@@ -676,3 +676,64 @@ async def test_marks_travel_in_schema_and_prompt_when_asked(
     fields_text = captured["payload"]["messages"][0]["content"][1]["text"]
     assert MARKS_FIELD in fields_text
     assert "bounding box" in fields_text
+
+
+async def test_a_poisoned_pooled_connection_is_retried_once(
+    hass: HomeAssistant,
+) -> None:
+    """Regression: three timeout-aborted analyses left three dead keep-alive
+    sockets in the shared session, and every following request failed within
+    fractions of a second with an EMPTY error text ("could not be reached: ")
+    without ever leaving the machine - the server log showed nothing
+    arriving. One retry on a fresh connection is the repair; the error text
+    now always carries at least the exception's type name."""
+    import json as jsonlib
+    from unittest.mock import AsyncMock, patch
+
+    import aiohttp
+
+    from custom_components.kustos_vision.vision import openai_compat
+
+    class FakeResponse:
+        status = 200
+
+        async def text(self) -> str:
+            return jsonlib.dumps(
+                {"choices": [{"message": {"content": "{\"paket\": true}"}}]}
+            )
+
+    class FakeSession:
+        def __init__(self) -> None:
+            self.calls = 0
+
+        async def post(self, url, json=None, headers=None, timeout=None):
+            self.calls += 1
+            if self.calls == 1:
+                raise aiohttp.ServerDisconnectedError()
+            return FakeResponse()
+
+    session = FakeSession()
+    with (
+        patch(
+            "custom_components.kustos_vision.vision.openai_compat."
+            "async_get_clientsession",
+            return_value=session,
+        ),
+        patch(
+            "custom_components.kustos_vision.vision.openai_compat._snapshot",
+            AsyncMock(return_value=(b"still", "image/jpeg")),
+        ),
+    ):
+        raw, _ = await openai_compat.async_run(hass, CAMERA, PROFILE, "camera.vg")
+    assert raw == {"paket": True}
+    assert session.calls == 2
+
+
+async def test_the_error_text_is_never_empty(hass: HomeAssistant) -> None:
+    import aiohttp
+
+    from custom_components.kustos_vision.vision.openai_compat import _describe
+
+    assert _describe(aiohttp.ServerDisconnectedError()) != ""
+    assert "ServerDisconnectedError" in _describe(aiohttp.ServerDisconnectedError())
+    assert _describe(ValueError("kaputt")) == "ValueError: kaputt"

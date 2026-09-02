@@ -15,6 +15,7 @@ import logging
 import time
 from typing import Any
 
+import aiohttp
 from homeassistant.components.camera import async_get_image
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
@@ -81,6 +82,38 @@ def _auth_headers(api_key: str) -> dict[str, str]:
     return {"Authorization": f"Bearer {api_key}"} if api_key else {}
 
 
+def _describe(err: Exception) -> str:
+    """An error line that is never empty.
+
+    ServerDisconnectedError and friends stringify to nothing, and "could not
+    be reached: " with nothing after the colon sent the diagnosis in circles.
+    """
+    text = str(err).strip()
+    return f"{type(err).__name__}: {text}" if text else type(err).__name__
+
+
+async def _post_once_retried(
+    session: aiohttp.ClientSession,
+    url: str,
+    payload: dict[str, Any],
+    headers: dict[str, str],
+    timeout: float,
+) -> aiohttp.ClientResponse:
+    """POST, retrying a single time when a pooled connection turned out dead.
+
+    A request the client aborts (our own timeout included) leaves its
+    keep-alive socket poisoned; the server closing idle connections does the
+    same. The next request then fails INSTANTLY without ever leaving the
+    machine, and aiohttp deliberately does not retry non-idempotent requests
+    on its own. One retry on a fresh connection is exactly the repair; a
+    second failure is a real refusal and goes to the caller.
+    """
+    try:
+        return await session.post(url, json=payload, headers=headers, timeout=timeout)
+    except (aiohttp.ServerDisconnectedError, aiohttp.ClientOSError):
+        return await session.post(url, json=payload, headers=headers, timeout=timeout)
+
+
 async def async_list_models(
     hass: HomeAssistant, url: str, api_key: str = ""
 ) -> list[str]:
@@ -94,7 +127,9 @@ async def async_list_models(
         )
         body = await response.text()
     except Exception as err:
-        raise VisionError(f"the endpoint could not be reached: {err}") from err
+        raise VisionError(
+            f"the endpoint could not be reached: {_describe(err)}"
+        ) from err
     if response.status >= 400:
         raise VisionError(f"the endpoint answered HTTP {response.status}: {body[:300]}")
     try:
@@ -133,15 +168,18 @@ async def async_probe_model(
     session = async_get_clientsession(hass)
     started = time.monotonic()
     try:
-        response = await session.post(
+        response = await _post_once_retried(
+            session,
             _endpoint(url),
-            json=payload,
-            headers={"Content-Type": "application/json", **_auth_headers(api_key)},
-            timeout=PROBE_TIMEOUT_SECONDS,
+            payload,
+            {"Content-Type": "application/json", **_auth_headers(api_key)},
+            PROBE_TIMEOUT_SECONDS,
         )
         body = await response.text()
     except Exception as err:
-        raise VisionError(f"the model could not be reached: {err}") from err
+        raise VisionError(
+            f"the model could not be reached: {_describe(err)}"
+        ) from err
     if response.status >= 400:
         raise VisionError(f"the model answered HTTP {response.status}: {body[:300]}")
     try:
@@ -263,15 +301,18 @@ async def async_run(
 
     session = async_get_clientsession(hass)
     try:
-        response = await session.post(
+        response = await _post_once_retried(
+            session,
             _endpoint(backend.url or ""),
-            json=payload,
-            headers=headers,
-            timeout=backend.timeout_seconds,
+            payload,
+            headers,
+            backend.timeout_seconds,
         )
         body = await response.text()
     except Exception as err:
-        raise VisionError(f"the model at {backend.url} could not be reached: {err}") from err
+        raise VisionError(
+            f"the model at {backend.url} could not be reached: {_describe(err)}"
+        ) from err
 
     if response.status >= 400:
         # The body usually says what is wrong (unknown model, no vision
