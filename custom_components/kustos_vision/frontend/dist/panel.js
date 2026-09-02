@@ -1813,7 +1813,7 @@ async function ne() {
       s.discard();
   return !0;
 }
-const De = "0.8.2", bs = "kustos-vision-built:0.8.2", vs = {
+const De = "0.9.0", bs = "kustos-vision-built:0.9.0", vs = {
   ptz_up: "Schwenken hoch",
   ptz_down: "Schwenken runter",
   ptz_left: "Schwenken links",
