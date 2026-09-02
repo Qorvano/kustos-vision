@@ -352,6 +352,7 @@ class VisionRunner:
                         references=references,
                         persons=persons,
                         mark_objects=want_marks,
+                        marks_model=profile.marks_model if want_marks else "",
                     ),
                 )
             except VisionError as err:

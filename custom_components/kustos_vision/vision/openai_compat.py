@@ -21,7 +21,17 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from ..core.config import CameraConfig, VisionProfile
-from ..core.marks import MARKS_FIELD, marks_prompt, marks_schema_fragment
+from ..core.marks import (
+    MARKS_FIELD,
+    OBJECTS_FIELD,
+    grounding_prompt,
+    grounding_schema,
+    marks_prompt,
+    marks_schema_fragment,
+    objects_prompt,
+    objects_schema_fragment,
+    parse_object_names,
+)
 from ..core.observations import fields_prompt, to_json_schema
 from . import VisionError, VisionRequest, analysis_fields, build_prompt
 
@@ -222,6 +232,13 @@ async def async_run(
         content, mime = await _snapshot(hass, camera_entity_id)
 
     asked = analysis_fields(profile, request)
+    # The split flow: the main model NAMES what it recognises, a grounding
+    # model then LOCATES exactly those names in a second request. One model
+    # doing both stays the default, for setups without the capacity for two
+    # models - and for models strong enough to not need the split.
+    split_marks = (
+        request is not None and request.mark_objects and bool(request.marks_model)
+    )
     # The current frame first, deliberately: a runner or model that honours
     # only the first image still answers about NOW, so the degradation is
     # graceful in the direction that matters.
@@ -232,7 +249,7 @@ async def async_run(
     # alone. See fields_prompt.
     fields_text = fields_prompt(asked)
     if request is not None and request.mark_objects:
-        fields_text += "\n\n" + marks_prompt()
+        fields_text += "\n\n" + (objects_prompt() if split_marks else marks_prompt())
     parts: list[dict[str, Any]] = [
         {"type": "text", "text": build_prompt(camera, profile)},
         {"type": "text", "text": fields_text},
@@ -274,10 +291,14 @@ async def async_run(
 
     schema = to_json_schema(asked)
     if request is not None and request.mark_objects:
-        schema["properties"][MARKS_FIELD] = marks_schema_fragment()
         # Required like every other field: strict runners refuse optionals,
-        # and "nothing locatable" is expressed as an empty list.
-        schema["required"].append(MARKS_FIELD)
+        # and "nothing" is expressed as an empty list either way.
+        if split_marks:
+            schema["properties"][OBJECTS_FIELD] = objects_schema_fragment()
+            schema["required"].append(OBJECTS_FIELD)
+        else:
+            schema["properties"][MARKS_FIELD] = marks_schema_fragment()
+            schema["required"].append(MARKS_FIELD)
 
     payload: dict[str, Any] = {
         "model": backend.model,
@@ -319,7 +340,86 @@ async def async_run(
         # support), and that is exactly what the user needs to see.
         raise VisionError(f"the model answered HTTP {response.status}: {body[:300]}")
 
-    return _extract(body), time.monotonic() - started
+    raw = _extract(body)
+    if split_marks and isinstance(raw, dict):
+        names = parse_object_names(raw.get(OBJECTS_FIELD))
+        if names:
+            try:
+                raw[MARKS_FIELD] = await _async_ground(
+                    hass, backend, request.marks_model, content, mime, names
+                )
+            except VisionError as err:
+                # Decoration on top of a finished analysis: the answers
+                # stand, the picture simply stays unmarked.
+                _LOGGER.warning(
+                    "kustos_vision: locating the objects failed: %s", err
+                )
+    return raw, time.monotonic() - started
+
+
+async def _async_ground(
+    hass: HomeAssistant,
+    backend,
+    marks_model: str,
+    content: bytes,
+    mime: str,
+    names: tuple[str, ...],
+) -> Any:
+    """The second request of the split flow: locate the given names.
+
+    Same endpoint and frame, different model, and a schema whose labels are
+    an enum over the names - the locating model cannot even mislabel what it
+    marks, because naming already happened in the main request.
+    """
+    payload: dict[str, Any] = {
+        "model": marks_model,
+        "messages": [
+            {
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": grounding_prompt(names)},
+                    {
+                        "type": "image_url",
+                        "image_url": {"url": _data_uri(content, mime)},
+                    },
+                ],
+            }
+        ],
+        "response_format": {
+            "type": "json_schema",
+            "json_schema": {
+                "name": "kustos_vision_grounding",
+                "strict": True,
+                "schema": grounding_schema(names),
+            },
+        },
+        "temperature": 0,
+    }
+    headers = {"Content-Type": "application/json"}
+    if backend.api_key:
+        headers["Authorization"] = f"Bearer {backend.api_key}"
+    session = async_get_clientsession(hass)
+    try:
+        response = await _post_once_retried(
+            session,
+            _endpoint(backend.url or ""),
+            payload,
+            headers,
+            backend.timeout_seconds,
+        )
+        body = await response.text()
+    except Exception as err:
+        raise VisionError(
+            f"the marks model could not be reached: {_describe(err)}"
+        ) from err
+    if response.status >= 400:
+        raise VisionError(
+            f"the marks model answered HTTP {response.status}: {body[:300]}"
+        )
+    extracted = _extract(body)
+    if not isinstance(extracted, dict):
+        raise VisionError("the marks model answered no field set")
+    return extracted.get(MARKS_FIELD, [])
 
 
 def _extract(body: str) -> Any:

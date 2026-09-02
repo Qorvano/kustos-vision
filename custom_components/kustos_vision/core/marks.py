@@ -18,12 +18,15 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from .capture import FRAME_JPEG_QUALITY
+from .capture import FRAME_JPEG_QUALITY, FRAME_LONG_EDGE
 
-# The normalised coordinate grid. 0..1000 integers are the convention
-# grounding-trained VLMs know from their training data, and integers keep the
-# grammar a constrained runner builds from the schema small.
-MARK_GRID = 1000
+# Boxes are ABSOLUTE PIXELS of the frame as sent. Measured, not chosen: the
+# Qwen-VL class emits pixel coordinates of its input image no matter what
+# grid the prompt requests, and mapping its y values onto a 0..1000 grid
+# squashed every box upward - the "boxes sit too high" pattern across every
+# tested model. The capture caps both edges at FRAME_LONG_EDGE, so that is
+# the largest coordinate a valid box can carry.
+MARK_COORD_MAX = FRAME_LONG_EDGE
 
 # Every mark costs answer tokens and drawing space; a frame with more than a
 # handful of highlighted objects reads as noise, not as an answer.
@@ -50,6 +53,11 @@ MARK_COLORS = ("red", "yellow", "lime", "cyan", "magenta", "orange")
 # with a lowercase letter (see core.observations).
 MARKS_FIELD = "_marks"
 
+# The synthetic field naming the recognised objects, used by the split flow:
+# the main model NAMES things (its strength), a grounding model then LOCATES
+# exactly those names (its strength) in a second request.
+OBJECTS_FIELD = "_objects"
+
 
 @dataclass(frozen=True, slots=True)
 class Mark:
@@ -60,6 +68,19 @@ class Mark:
     y0: int
     x1: int
     y1: int
+
+
+def _box_schema() -> dict[str, Any]:
+    return {
+        "type": "array",
+        "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": MARK_COORD_MAX,
+        },
+        "minItems": 4,
+        "maxItems": 4,
+    }
 
 
 def marks_schema_fragment() -> dict[str, Any]:
@@ -73,25 +94,15 @@ def marks_schema_fragment() -> dict[str, Any]:
             "and likewise any other clearly recognisable thing such as a "
             "person, an animal, a vehicle, a package or a bin. Not surfaces "
             "or fixed background like hedges, walls or floors. Each entry: "
-            "a short label and the bounding box [x0, y0, x1, y1] on a "
-            f"0..{MARK_GRID} grid over the full frame (x from the left "
-            "edge, y from the top edge). An empty list when nothing is "
-            "locatable."
+            "a short label and the bounding box [x0, y0, x1, y1] in PIXELS "
+            "of this image (x from the left edge, y from the top edge). An "
+            "empty list when nothing is locatable."
         ),
         "items": {
             "type": "object",
             "properties": {
                 "label": {"type": "string"},
-                "box": {
-                    "type": "array",
-                    "items": {
-                        "type": "integer",
-                        "minimum": 0,
-                        "maximum": MARK_GRID,
-                    },
-                    "minItems": 4,
-                    "maxItems": 4,
-                },
+                "box": _box_schema(),
             },
             "required": ["label", "box"],
             "additionalProperties": False,
@@ -114,11 +125,96 @@ def marks_prompt() -> str:
         "(a person, an animal, a vehicle, a package, a bin and the like). "
         "Do not box surfaces or fixed background such as hedges, walls or "
         "floors. Each entry has a short label in the language of the "
-        f"questions and the bounding box [x0, y0, x1, y1] on a 0..{MARK_GRID} "
-        "grid over the full frame: x0,y0 is the object's top left corner "
-        "(x from the left edge, y from the top edge), x1,y1 its bottom "
-        "right corner. Boxes must come from this frame only. Return an "
-        "empty list when nothing is locatable."
+        "questions and the bounding box [x0, y0, x1, y1] in PIXELS of the "
+        "image exactly as provided: x0,y0 is the object's top left corner "
+        "(x measured from the left edge, y from the top edge), x1,y1 its "
+        "bottom right corner. Boxes must come from this frame only. Return "
+        "an empty list when nothing is locatable."
+    )
+
+
+def objects_schema_fragment() -> dict[str, Any]:
+    """The name-list field of the split flow: naming only, no coordinates."""
+    return {
+        "type": "array",
+        "maxItems": MAX_MARKS,
+        "description": (
+            "The name of every distinct object you recognise in the current "
+            "camera frame, in the language of the questions - everything "
+            "your other answers mention, and likewise any other clearly "
+            "recognisable thing (a person, an animal, a vehicle, a package, "
+            "a bin and the like). Never surfaces or fixed background such "
+            "as hedges, walls or floors. Names only, no positions. An empty "
+            "list when nothing stands out."
+        ),
+        "items": {"type": "string"},
+    }
+
+
+def objects_prompt() -> str:
+    return (
+        f'Field "{OBJECTS_FIELD}": Name every distinct object you recognise '
+        "in the current camera frame, in the language of the questions - "
+        "everything your other answers mention, and likewise any other "
+        "clearly recognisable thing (a person, an animal, a vehicle, a "
+        "package, a bin and the like). Never surfaces or fixed background "
+        "such as hedges, walls or floors. Names only; the positions are "
+        "somebody else's job."
+    )
+
+
+def parse_object_names(value: Any) -> tuple[str, ...]:
+    """Read the main model's name list: trimmed, deduplicated, capped."""
+    if not isinstance(value, list):
+        return ()
+    names: list[str] = []
+    for entry in value:
+        name = str(entry or "").strip()[:MAX_LABEL_CHARS]
+        if name and name not in names:
+            names.append(name)
+        if len(names) >= MAX_MARKS:
+            break
+    return tuple(names)
+
+
+def grounding_schema(names: tuple[str, ...]) -> dict[str, Any]:
+    """The strict schema of the grounding request.
+
+    The labels are an enum OVER THE GIVEN NAMES: the locating model cannot
+    even mislabel what it marks, because naming already happened in the main
+    request - that split is the whole point of the two-stage flow.
+    """
+    return {
+        "type": "object",
+        "properties": {
+            MARKS_FIELD: {
+                "type": "array",
+                "maxItems": len(names),
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "label": {"type": "string", "enum": list(names)},
+                        "box": _box_schema(),
+                    },
+                    "required": ["label", "box"],
+                    "additionalProperties": False,
+                },
+            }
+        },
+        "required": [MARKS_FIELD],
+        "additionalProperties": False,
+    }
+
+
+def grounding_prompt(names: tuple[str, ...]) -> str:
+    return (
+        "Locate each of the following named objects in this camera frame: "
+        + ", ".join(names)
+        + ". Return at most ONE entry per name, with its bounding box "
+        "[x0, y0, x1, y1] in PIXELS of this image (x measured from the left "
+        "edge, y from the top edge; x0,y0 the top left corner, x1,y1 the "
+        "bottom right corner). Skip every name you cannot actually find in "
+        "the frame."
     )
 
 
@@ -128,11 +224,14 @@ def parse_marks(value: Any) -> tuple[Mark, ...]:
     Tolerant on purpose: a garbled entry is dropped, never fatal - the
     analysis result stands on its own and the marks are decoration on top.
     Reversed corners are reordered rather than refused, because models mix
-    the convention up and the intended box is still unambiguous.
+    the convention up and the intended box is still unambiguous. A box that
+    repeats an already kept box is dropped: a small model at temperature 0
+    filled the array's remaining slots with copies of one detection.
     """
     if not isinstance(value, list):
         return ()
     marks: list[Mark] = []
+    seen_boxes: set[tuple[int, int, int, int]] = set()
     for entry in value:
         if not isinstance(entry, dict):
             continue
@@ -141,13 +240,16 @@ def parse_marks(value: Any) -> tuple[Mark, ...]:
         if not isinstance(box, list) or len(box) != 4:
             continue
         try:
-            coords = [max(0, min(MARK_GRID, int(v))) for v in box]
+            coords = [max(0, min(MARK_COORD_MAX, int(v))) for v in box]
         except (TypeError, ValueError):
             continue
         x0, x1 = sorted((coords[0], coords[2]))
         y0, y1 = sorted((coords[1], coords[3]))
         if x1 <= x0 or y1 <= y0:
             continue
+        if (x0, y0, x1, y1) in seen_boxes:
+            continue
+        seen_boxes.add((x0, y0, x1, y1))
         marks.append(
             Mark(
                 label=str(label or "").strip()[:MAX_LABEL_CHARS],
@@ -185,18 +287,23 @@ def build_mark_args(
 ) -> list[str]:
     """ffmpeg arguments that burn the boxes into a copy of the frame.
 
-    The grid scales inside the filter expressions (iw/ih for drawbox, w/h
-    for drawtext), so nothing here needs to know the frame's pixel size.
-    ``with_labels`` is the drawtext capability switch: an ffmpeg without
-    freetype still draws the boxes, only the words are lost.
+    Coordinates are pixels of the very frame being drawn on. They are still
+    clamped into the image inside the filter expressions (min against iw/ih),
+    because a model may claim a corner slightly past an edge and drawbox must
+    not fail over it. ``with_labels`` is the drawtext capability switch: an
+    ffmpeg without freetype still draws the boxes, only the words are lost.
     """
     filters: list[str] = []
     for index, mark in enumerate(marks):
         color = MARK_COLORS[index % len(MARK_COLORS)]
-        x = f"({mark.x0}*iw)/{MARK_GRID}"
-        y = f"({mark.y0}*ih)/{MARK_GRID}"
-        w = f"({mark.x1 - mark.x0}*iw)/{MARK_GRID}"
-        h = f"({mark.y1 - mark.y0}*ih)/{MARK_GRID}"
+        # Commas inside min()/max() are filter-arg syntax and must be escaped.
+        # Width and height are re-derived from the clamped corners and
+        # floored at one pixel, so a claim entirely past an edge degrades to
+        # a sliver on the edge instead of a negative size drawbox refuses.
+        x = f"min({mark.x0}\\,iw-1)"
+        y = f"min({mark.y0}\\,ih-1)"
+        w = f"max(min({mark.x1}\\,iw)-min({mark.x0}\\,iw-1)\\,1)"
+        h = f"max(min({mark.y1}\\,ih)-min({mark.y0}\\,ih-1)\\,1)"
         filters.append(
             f"drawbox=x={x}:y={y}:w={w}:h={h}"
             f":color={color}:t={MARK_BOX_THICKNESS}"
@@ -205,16 +312,13 @@ def build_mark_args(
             continue
         text = escape_drawtext(mark.label)
         # The plaque sits above the box when there is room, inside its top
-        # edge otherwise; the comma inside max() is filter-arg syntax and
-        # has to be escaped.
-        label_y = (
-            f"max(({mark.y0}*h)/{MARK_GRID}-th-{MARK_BOX_THICKNESS}\\,2)"
-        )
+        # edge otherwise.
+        label_y = f"max(min({mark.y0}\\,ih-1)-th-{MARK_BOX_THICKNESS}\\,2)"
         filters.append(
             f"drawtext=fontfile='{font}':text='{text}'"
             f":fontsize={MARK_FONT_SIZE}:fontcolor=black"
             f":box=1:boxcolor={color}@0.9:boxborderw=3"
-            f":x=({mark.x0}*w)/{MARK_GRID}:y={label_y}"
+            f":x=min({mark.x0}\\,w-1):y={label_y}"
         )
     return [
         "-nostdin",

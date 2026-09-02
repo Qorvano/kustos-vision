@@ -737,3 +737,154 @@ async def test_the_error_text_is_never_empty(hass: HomeAssistant) -> None:
     assert _describe(aiohttp.ServerDisconnectedError()) != ""
     assert "ServerDisconnectedError" in _describe(aiohttp.ServerDisconnectedError())
     assert _describe(ValueError("kaputt")) == "ValueError: kaputt"
+
+
+async def test_the_split_flow_names_first_then_grounds_those_names(
+    hass: HomeAssistant,
+) -> None:
+    """The user's objection, answered in code: a weak recogniser must not
+    caption boxes. With a marks model set, the MAIN request asks only for
+    names (no marks field), the SECOND request goes to the marks model with
+    the labels locked to exactly those names, and the located boxes are
+    merged back so everything downstream stays unchanged."""
+    import json as jsonlib
+    from unittest.mock import AsyncMock, patch
+
+    from custom_components.kustos_vision.core.marks import (
+        MARKS_FIELD,
+        OBJECTS_FIELD,
+    )
+    from custom_components.kustos_vision.vision import VisionRequest
+    from custom_components.kustos_vision.vision import openai_compat
+
+    requests: list[dict] = []
+
+    class FakeResponse:
+        def __init__(self, content: dict) -> None:
+            self.status = 200
+            self._content = content
+
+        async def text(self) -> str:
+            return jsonlib.dumps(
+                {"choices": [{"message": {"content": jsonlib.dumps(self._content)}}]}
+            )
+
+    class FakeSession:
+        async def post(self, url, json=None, headers=None, timeout=None):
+            requests.append(json)
+            if len(requests) == 1:
+                return FakeResponse(
+                    {
+                        "paket": True,
+                        OBJECTS_FIELD: ["blaue Tonne", "Reifenstapel"],
+                    }
+                )
+            return FakeResponse(
+                {
+                    MARKS_FIELD: [
+                        {"label": "blaue Tonne", "box": [268, 119, 414, 334]}
+                    ]
+                }
+            )
+
+    with (
+        patch(
+            "custom_components.kustos_vision.vision.openai_compat."
+            "async_get_clientsession",
+            return_value=FakeSession(),
+        ),
+        patch(
+            "custom_components.kustos_vision.vision.openai_compat._snapshot",
+            AsyncMock(return_value=(b"still", "image/jpeg")),
+        ),
+    ):
+        raw, _ = await openai_compat.async_run(
+            hass,
+            CAMERA,
+            PROFILE,
+            "camera.vg",
+            request=VisionRequest(
+                mark_objects=True, marks_model="qwen2.5-vl-3b"
+            ),
+        )
+
+    assert len(requests) == 2
+    main_schema = requests[0]["response_format"]["json_schema"]["schema"]
+    assert OBJECTS_FIELD in main_schema["properties"]
+    assert MARKS_FIELD not in main_schema["properties"]
+
+    ground = requests[1]
+    assert ground["model"] == "qwen2.5-vl-3b"
+    ground_schema = ground["response_format"]["json_schema"]["schema"]
+    labels = ground_schema["properties"][MARKS_FIELD]["items"]["properties"]["label"]
+    assert labels["enum"] == ["blaue Tonne", "Reifenstapel"]
+
+    assert raw[MARKS_FIELD] == [
+        {"label": "blaue Tonne", "box": [268, 119, 414, 334]}
+    ]
+
+
+async def test_a_failed_grounding_never_fails_the_analysis(
+    hass: HomeAssistant,
+) -> None:
+    import json as jsonlib
+    from unittest.mock import AsyncMock, patch
+
+    from custom_components.kustos_vision.core.marks import (
+        MARKS_FIELD,
+        OBJECTS_FIELD,
+    )
+    from custom_components.kustos_vision.vision import VisionRequest
+    from custom_components.kustos_vision.vision import openai_compat
+
+    calls = {"n": 0}
+
+    class OkResponse:
+        status = 200
+
+        async def text(self) -> str:
+            return jsonlib.dumps(
+                {
+                    "choices": [
+                        {
+                            "message": {
+                                "content": jsonlib.dumps(
+                                    {"paket": True, OBJECTS_FIELD: ["Tonne"]}
+                                )
+                            }
+                        }
+                    ]
+                }
+            )
+
+    class BrokenResponse:
+        status = 500
+
+        async def text(self) -> str:
+            return "kaputt"
+
+    class FakeSession:
+        async def post(self, url, json=None, headers=None, timeout=None):
+            calls["n"] += 1
+            return OkResponse() if calls["n"] == 1 else BrokenResponse()
+
+    with (
+        patch(
+            "custom_components.kustos_vision.vision.openai_compat."
+            "async_get_clientsession",
+            return_value=FakeSession(),
+        ),
+        patch(
+            "custom_components.kustos_vision.vision.openai_compat._snapshot",
+            AsyncMock(return_value=(b"still", "image/jpeg")),
+        ),
+    ):
+        raw, _ = await openai_compat.async_run(
+            hass,
+            CAMERA,
+            PROFILE,
+            "camera.vg",
+            request=VisionRequest(mark_objects=True, marks_model="vl"),
+        )
+    assert raw["paket"] is True
+    assert MARKS_FIELD not in raw

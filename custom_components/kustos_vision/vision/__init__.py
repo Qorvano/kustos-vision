@@ -85,6 +85,10 @@ class VisionRequest:
     """Whether the request also asks WHERE the reported objects are (the
     synthetic _marks field), so the boxes can be drawn into the frame."""
 
+    marks_model: str = ""
+    """The grounding model of the split flow, at the same endpoint. Empty:
+    the main model answers the marks field itself in one request."""
+
 
 @dataclass(frozen=True, slots=True)
 class VisionResult:

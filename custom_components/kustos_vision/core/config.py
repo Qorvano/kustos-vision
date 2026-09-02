@@ -590,6 +590,13 @@ class VisionProfile:
     objects are, and burns the boxes into the image entity's picture.
     Meaningful only together with frame_sensor."""
 
+    marks_model: str = ""
+    """The model that LOCATES the objects, at the same endpoint. Empty means
+    the main model does everything in one request. Set, the flow splits:
+    the main model only NAMES what it recognises, and this model grounds
+    exactly those names - for setups where the strong question-answering
+    model is a poor localiser and a small grounding-trained model is not."""
+
     def __post_init__(self) -> None:
         if not is_valid_slug(self.camera_slug):
             raise ConfigError(f"{self.camera_slug!r} is not a camera slug")
@@ -628,6 +635,7 @@ class VisionProfile:
             "detect_persons": self.detect_persons,
             "frame_sensor": self.frame_sensor,
             "mark_objects": self.mark_objects,
+            "marks_model": self.marks_model,
         }
 
     @classmethod
@@ -654,6 +662,7 @@ class VisionProfile:
             detect_persons=bool(data.get("detect_persons", False)),
             frame_sensor=bool(data.get("frame_sensor", False)),
             mark_objects=bool(data.get("mark_objects", False)),
+            marks_model=str(data.get("marks_model", "")),
         )
 
 

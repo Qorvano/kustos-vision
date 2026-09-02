@@ -69,6 +69,7 @@ export class CamwatchVisionEditor extends LitElement {
   @state() private detectPersons = false;
   @state() private frameSensor = false;
   @state() private markObjects = false;
+  @state() private marksModel = "";
 
   @state() private aiTasks: AiTaskEntity[] = [];
   @state() private history: AnalysisRun[] = [];
@@ -132,6 +133,7 @@ export class CamwatchVisionEditor extends LitElement {
       this.detectPersons = this.profile.detect_persons ?? false;
       this.frameSensor = this.profile.frame_sensor ?? false;
       this.markObjects = this.profile.mark_objects ?? false;
+      this.marksModel = this.profile.marks_model ?? "";
       void this.loadHistory();
     } else {
       // A camera that reports motion is almost always the trigger the user
@@ -173,6 +175,7 @@ export class CamwatchVisionEditor extends LitElement {
       detect_persons: this.detectPersons,
       frame_sensor: this.frameSensor,
       mark_objects: this.markObjects,
+      marks_model: this.marksModel,
     };
   }
 
@@ -581,6 +584,54 @@ export class CamwatchVisionEditor extends LitElement {
       <p class="hint">
         Das Modell muss Bilder verarbeiten können. Bei llama.cpp heißt das:
         mit einer mmproj-Datei geladen.
+      </p>
+    `;
+  }
+
+  /** Who locates the objects: the main model in one request, or a second
+   *  grounding model at the same endpoint (the split flow). */
+  private renderMarksModel() {
+    const chosen = this.endpoints.find(
+      (e) => e.id === this.backend.endpoint_id,
+    );
+    const models = chosen?.models ?? [];
+    const current = this.marksModel;
+    return html`
+      <div class="fields">
+        <div>
+          <label>Modell für die Positionen</label>
+          ${models.length > 0
+            ? html`<kustos-vision-select
+                .options=${[
+                  { value: "", label: "Hauptmodell (eine Anfrage)" },
+                  ...(current && !models.includes(current)
+                    ? [
+                        {
+                          value: current,
+                          label: `${current} (nicht in der Modell-Liste)`,
+                        },
+                      ]
+                    : []),
+                  ...models.map((m) => ({ value: m, label: m })),
+                ]}
+                .value=${current}
+                @value-changed=${(e: CustomEvent<{ value: string }>) =>
+                  (this.marksModel = e.detail.value)}
+              ></kustos-vision-select>`
+            : html`<input
+                placeholder="leer = Hauptmodell"
+                .value=${current}
+                @change=${(e: Event) =>
+                  (this.marksModel = (e.target as HTMLInputElement).value)}
+              />`}
+        </div>
+      </div>
+      <p class="hint">
+        Leer erledigt das Hauptmodell alles in einer Anfrage, richtig für
+        starke Modelle oder wenn nur eines zur Verfügung steht. Mit einem
+        eigenen Positions-Modell benennt das Hauptmodell nur noch, was es
+        erkennt, und das zweite Modell verortet genau diese Namen, sinnvoll,
+        wenn ein kleines Grounding-Modell die Boxen deutlich präziser setzt.
       </p>
     `;
   }
@@ -1023,6 +1074,7 @@ export class CamwatchVisionEditor extends LitElement {
                 vom Modell ab; die Antworten der Sensoren bleiben davon
                 unberührt.
               </p>
+              ${this.markObjects ? this.renderMarksModel() : nothing}
             `
           : nothing}
 

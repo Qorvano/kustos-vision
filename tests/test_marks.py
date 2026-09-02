@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from kustos_vision.core.marks import (
-    MARK_GRID,
+    MARK_COORD_MAX,
     MARKS_FIELD,
     MAX_LABEL_CHARS,
     MAX_MARKS,
@@ -42,9 +42,25 @@ def test_reversed_corners_are_reordered_not_refused() -> None:
     assert marks[0] == Mark(label="Gelbe Tonne", x0=100, y0=200, x1=400, y1=600)
 
 
-def test_coordinates_are_clamped_to_the_grid() -> None:
+def test_coordinates_are_clamped_to_the_frame_cap() -> None:
     marks = parse_marks([entry([-50, 0, 5000, 100])])
-    assert (marks[0].x0, marks[0].x1) == (0, MARK_GRID)
+    assert (marks[0].x0, marks[0].x1) == (0, MARK_COORD_MAX)
+
+
+def test_a_repeated_box_is_dropped() -> None:
+    """Regression: a small model at temperature 0 filled the array's
+    remaining slots with copies of one detection - five identical boxes
+    around the tire stack, each labelled a little differently."""
+    marks = parse_marks(
+        [
+            entry([56, 32, 136, 191], label="Reifenstapel"),
+            entry([56, 32, 136, 191], label="blaue Tonne"),
+            entry([56, 32, 136, 191], label="blaue Tonne"),
+            entry([200, 300, 400, 500], label="blaue Tonne"),
+        ]
+    )
+    assert len(marks) == 2
+    assert marks[0].label == "Reifenstapel"
 
 
 def test_degenerate_and_garbled_entries_fall_away() -> None:
@@ -80,8 +96,13 @@ def test_a_label_is_a_name_not_a_sentence() -> None:
 # ----------------------------------------------------------------------
 
 
-def test_the_boxes_scale_inside_the_filter_not_in_python() -> None:
-    """iw/ih expressions, so nothing needs to know the frame's pixel size."""
+def test_the_boxes_are_pixels_clamped_into_the_frame() -> None:
+    """Regression: coordinates are PIXELS of the sent frame. The Qwen-VL
+    class emits pixel coordinates no matter what grid the prompt requests,
+    and mapping them onto a 0..1000 grid squashed every box upward - the
+    "boxes sit too high" pattern across every tested model. The filter still
+    clamps against iw/ih, because a claimed corner slightly past an edge
+    must not fail drawbox."""
     args = build_mark_args(
         Path("/a.jpg"),
         Path("/b.jpg"),
@@ -90,8 +111,9 @@ def test_the_boxes_scale_inside_the_filter_not_in_python() -> None:
         with_labels=True,
     )
     graph = args[args.index("-vf") + 1]
-    assert f"x=(100*iw)/{MARK_GRID}" in graph
-    assert f"w=(300*iw)/{MARK_GRID}" in graph
+    assert "x=min(100\\,iw-1)" in graph
+    assert "y=min(200\\,ih-1)" in graph
+    assert "w=max(min(400\\,iw)-min(100\\,iw-1)\\,1)" in graph
     assert "drawtext" in graph
     assert "text='Tonne'" in graph
 
@@ -128,7 +150,10 @@ def test_the_schema_fragment_is_strict_and_bounded() -> None:
     fragment = marks_schema_fragment()
     assert fragment["maxItems"] == MAX_MARKS
     assert fragment["items"]["additionalProperties"] is False
-    assert fragment["items"]["properties"]["box"]["items"]["maximum"] == MARK_GRID
+    assert (
+        fragment["items"]["properties"]["box"]["items"]["maximum"]
+        == MARK_COORD_MAX
+    )
 
 
 def test_the_prompt_asks_for_every_recognised_object() -> None:
@@ -141,4 +166,50 @@ def test_the_prompt_asks_for_every_recognised_object() -> None:
     assert "any other clearly recognisable thing" in text
     assert "animal" in text
     assert "hedges" in text
-    assert str(MARK_GRID) in text
+    assert "PIXELS" in text
+
+
+# ----------------------------------------------------------------------
+# The split flow: naming and locating are different jobs
+# ----------------------------------------------------------------------
+
+
+def test_object_names_are_trimmed_deduplicated_and_capped() -> None:
+    from kustos_vision.core.marks import parse_object_names
+
+    names = parse_object_names(
+        ["  blaue Tonne ", "blaue Tonne", "", None, "Reifenstapel"]
+    )
+    assert names == ("blaue Tonne", "Reifenstapel")
+    assert len(parse_object_names([f"n{i}" for i in range(20)])) == MAX_MARKS
+
+
+def test_the_grounding_schema_locks_labels_to_the_given_names() -> None:
+    """The locating model cannot even mislabel what it marks: the labels are
+    an enum over the names the main model reported - that split answers the
+    objection that a weak recogniser would caption the boxes wrongly."""
+    from kustos_vision.core.marks import MARKS_FIELD, grounding_schema
+
+    schema = grounding_schema(("blaue Tonne", "Reifenstapel"))
+    items = schema["properties"][MARKS_FIELD]["items"]
+    assert items["properties"]["label"]["enum"] == ["blaue Tonne", "Reifenstapel"]
+    assert schema["properties"][MARKS_FIELD]["maxItems"] == 2
+    assert items["properties"]["box"]["items"]["maximum"] == MARK_COORD_MAX
+
+
+def test_the_grounding_prompt_names_the_targets_and_allows_skipping() -> None:
+    from kustos_vision.core.marks import grounding_prompt
+
+    text = grounding_prompt(("blaue Tonne", "Reifenstapel"))
+    assert "blaue Tonne, Reifenstapel" in text
+    assert "Skip every name you cannot actually find" in text
+    assert "PIXELS" in text
+
+
+def test_the_objects_field_asks_for_names_only() -> None:
+    from kustos_vision.core.marks import objects_prompt, objects_schema_fragment
+
+    assert "Names only" in objects_prompt()
+    fragment = objects_schema_fragment()
+    assert fragment["items"] == {"type": "string"}
+    assert fragment["maxItems"] == MAX_MARKS

@@ -153,6 +153,9 @@ export interface VisionProfile {
   /** Whether the model is also asked WHERE the reported objects are, and
    *  the boxes are burned into the image entity's picture. */
   mark_objects?: boolean;
+  /** The model that locates the objects (same endpoint); empty = the main
+   *  model does everything in one request. */
+  marks_model?: string;
   state: VisionState;
 }
 
