@@ -829,7 +829,7 @@ class it {
     return this.hass.callWS({ type: `${v}/index/rebuild` });
   }
 }
-function k(t) {
+function x(t) {
   if (t instanceof Error) return t.message;
   if (typeof t == "string") return t;
   if (t && typeof t == "object") {
@@ -2116,7 +2116,7 @@ let I = class extends D {
       try {
         h = await this.inspect(this.placed[0].segment);
       } catch (_) {
-        this.message = k(_);
+        this.message = x(_);
         return;
       }
     }
@@ -2147,7 +2147,7 @@ let I = class extends D {
             const V = this.placed[this.placed.length - 1];
             V && (g.duration = V.mediaStart + V.segment.duration), this.pump();
           } catch (_) {
-            this.message = k(_);
+            this.message = x(_);
           }
       },
       { once: !0 }
@@ -2653,7 +2653,7 @@ let O = class extends D {
     t && (t.srcObject = null, t.removeAttribute("src")), this.mode = "idle";
   }
   fail(t) {
-    this.mode = "error", this.message = k(t);
+    this.mode = "error", this.message = x(t);
   }
   // --------------------------------------------------------------------
   // WebRTC
@@ -2995,7 +2995,7 @@ let N = class extends D {
     try {
       await this.api.trigger(this.camera.slug, t, e);
     } catch (s) {
-      this.error = k(s);
+      this.error = x(s);
     } finally {
       this.busy = "";
     }
@@ -3735,7 +3735,7 @@ let $ = class extends D {
       const { days: e } = await this.api.recordingDays(t);
       this.days = e, this.day = e[e.length - 1] ?? "", await this.loadDay();
     } catch (e) {
-      this.error = k(e);
+      this.error = x(e);
     } finally {
       this.busy = !1;
     }
@@ -3757,7 +3757,7 @@ let $ = class extends D {
       );
       this.blocks = s.blocks, this.segments = s.segments, this.position = Math.max(s.segments[0]?.start ?? t, t), this.seekTo = this.position;
     } catch (s) {
-      this.error = k(s);
+      this.error = x(s);
     } finally {
       this.busy = !1;
     }
@@ -3812,7 +3812,7 @@ let $ = class extends D {
         const e = await this.api.signedUrl(this.exportUrlFor(...t)), s = document.createElement("a");
         s.href = e, s.download = "", s.style.display = "none", this.renderRoot.appendChild(s), s.click(), s.remove();
       } catch (e) {
-        this.error = k(e);
+        this.error = x(e);
       } finally {
         this.downloading = !1;
       }
@@ -3833,7 +3833,7 @@ let $ = class extends D {
       const t = await this.api.signedUrl(this.exportUrl()), e = document.createElement("a");
       e.href = t, e.download = "", e.style.display = "none", this.renderRoot.appendChild(e), e.click(), e.remove();
     } catch (t) {
-      this.error = k(t);
+      this.error = x(t);
     } finally {
       this.downloading = !1;
     }
@@ -4436,7 +4436,7 @@ let E = class extends D {
           ])
         ), this.candidates = e.candidates;
       } catch (e) {
-        this.error = k(e);
+        this.error = x(e);
       } finally {
         this.busy = !1;
       }
@@ -4474,7 +4474,7 @@ let E = class extends D {
         this.camera !== void 0
       ), this.baseline = JSON.stringify(this.payload()), this.dispatchEvent(new CustomEvent("saved", { bubbles: !0, composed: !0 })), !0;
     } catch (t) {
-      return this.error = k(t), !1;
+      return this.error = x(t), !1;
     } finally {
       this.busy = !1;
     }
@@ -4511,7 +4511,7 @@ let E = class extends D {
         new CustomEvent("reordered", { bubbles: !0, composed: !0 })
       );
     } catch (s) {
-      this.error = k(s);
+      this.error = x(s);
     } finally {
       this.busy = !1;
     }
@@ -5390,7 +5390,7 @@ function pi(t) {
     i.onload = () => e(i), i.onerror = () => s(new Error("Das Referenzbild konnte nicht geladen werden")), i.src = t;
   });
 }
-var ui = Object.defineProperty, mi = Object.getOwnPropertyDescriptor, x = (t, e, s, i) => {
+var ui = Object.defineProperty, mi = Object.getOwnPropertyDescriptor, k = (t, e, s, i) => {
   for (var n = i > 1 ? void 0 : i ? mi(e, s) : e, r = t.length - 1, a; r >= 0; r--)
     (a = t[r]) && (n = (i ? a(e, s, n) : a(n)) || n);
   return i && n && ui(e, s, n), n;
@@ -5403,7 +5403,7 @@ const gi = [
 ], fi = "/api/kustos_vision/vision-frame", Me = 2, Oe = "__direct__";
 let w = class extends D {
   constructor() {
-    super(...arguments), this.endpoints = [], this.backend = { kind: "openai" }, this.observations = [], this.triggers = [], this.addingTrigger = !1, this.context = "", this.cooldown = 60, this.budget = 100, this.enabled = !0, this.detectPersons = !1, this.frameSensor = !1, this.aiTasks = [], this.history = [], this.frameUrls = /* @__PURE__ */ new Map(), this.referenceUrls = /* @__PURE__ */ new Map(), this.busy = !1, this.error = "", this.baseline = "", this.unsaved = {
+    super(...arguments), this.endpoints = [], this.backend = { kind: "openai" }, this.observations = [], this.triggers = [], this.addingTrigger = !1, this.context = "", this.cooldown = 60, this.budget = 100, this.enabled = !0, this.detectPersons = !1, this.frameSensor = !1, this.markObjects = !1, this.aiTasks = [], this.history = [], this.frameUrls = /* @__PURE__ */ new Map(), this.referenceUrls = /* @__PURE__ */ new Map(), this.busy = !1, this.error = "", this.baseline = "", this.unsaved = {
       isDirty: () => JSON.stringify(this.payload()) !== this.baseline,
       save: () => this.save(),
       // Nothing to restore: leaving unmounts the editor and its drafts.
@@ -5416,7 +5416,7 @@ let w = class extends D {
   }
   async connectedCallback() {
     if (super.connectedCallback(), this.profile)
-      this.backend = { ...this.profile.backend }, this.observations = this.profile.observations.map((t) => ({ ...t })), this.triggers = [...this.profile.triggers], this.context = this.profile.context, this.cooldown = this.profile.cooldown_seconds, this.budget = this.profile.daily_budget, this.enabled = this.profile.enabled, this.detectPersons = this.profile.detect_persons ?? !1, this.frameSensor = this.profile.frame_sensor ?? !1, this.loadHistory();
+      this.backend = { ...this.profile.backend }, this.observations = this.profile.observations.map((t) => ({ ...t })), this.triggers = [...this.profile.triggers], this.context = this.profile.context, this.cooldown = this.profile.cooldown_seconds, this.budget = this.profile.daily_budget, this.enabled = this.profile.enabled, this.detectPersons = this.profile.detect_persons ?? !1, this.frameSensor = this.profile.frame_sensor ?? !1, this.markObjects = this.profile.mark_objects ?? !1, this.loadHistory();
     else {
       const t = this.camera.capabilities.motion_trigger?.entity_id;
       t && (this.triggers = [t]);
@@ -5448,7 +5448,8 @@ let w = class extends D {
       daily_budget: this.budget,
       enabled: this.enabled,
       detect_persons: this.detectPersons,
-      frame_sensor: this.frameSensor
+      frame_sensor: this.frameSensor,
+      mark_objects: this.markObjects
     };
   }
   async loadHistory() {
@@ -5537,7 +5538,7 @@ let w = class extends D {
         const { asset_id: i } = await this.api.uploadReference(s);
         await this.appendReference(t, i);
       } catch (i) {
-        this.error = k(i);
+        this.error = x(i);
       } finally {
         this.busy = !1;
       }
@@ -5549,7 +5550,7 @@ let w = class extends D {
       const { asset_id: e } = await this.api.captureReference(this.camera.slug);
       await this.appendReference(t, e);
     } catch (e) {
-      this.error = k(e);
+      this.error = x(e);
     } finally {
       this.busy = !1;
     }
@@ -5577,7 +5578,7 @@ let w = class extends D {
             burned_asset_id: ""
           });
       } catch (n) {
-        this.error = k(n);
+        this.error = x(n);
       }
     }
   }
@@ -5586,7 +5587,7 @@ let w = class extends D {
     try {
       return await this.api.setVision(this.payload()), this.baseline = JSON.stringify(this.payload()), this.dispatchEvent(new CustomEvent("saved", { bubbles: !0, composed: !0 })), !0;
     } catch (t) {
-      return this.error = k(t), !1;
+      return this.error = x(t), !1;
     } finally {
       this.busy = !1;
     }
@@ -5597,7 +5598,7 @@ let w = class extends D {
       const t = await this.api.analyseNow(this.camera.slug);
       t.ran ? (this.lastRun = { values: t.values, raw: t.raw }, Object.keys(t.problems).length > 0 && (this.error = `Nicht verwertbar: ${Object.entries(t.problems).map(([e, s]) => `${e} (${s})`).join(", ")}`)) : this.error = "Das Tagesbudget ist aufgebraucht oder es läuft bereits eine Analyse.", await this.loadHistory();
     } catch (t) {
-      this.error = k(t);
+      this.error = x(t);
     } finally {
       this.busy = !1;
     }
@@ -6091,6 +6092,26 @@ let w = class extends D {
           zum Beispiel an eine Push-Benachrichtigung anhängen.
         </p>
 
+        ${this.frameSensor ? o`
+              <div class="row" style="margin-top:8px">
+                <label style="margin:0">
+                  <input
+                    type="checkbox"
+                    .checked=${this.markObjects}
+                    @change=${(e) => this.markObjects = e.target.checked}
+                  />
+                  Erkannte Objekte markieren
+                </label>
+              </div>
+              <p class="hint">
+                Fragt das Modell zusätzlich, wo die gemeldeten Objekte im Bild
+                liegen, und zeichnet farbige, beschriftete Rahmen in das Bild
+                der Bild-Entität. Wie treffsicher die Positionen sind, hängt
+                vom Modell ab; die Antworten der Sensoren bleiben davon
+                unberührt.
+              </p>
+            ` : c}
+
         <div class="row" style="margin-top:8px">
           <label style="margin:0">
             <input
@@ -6177,73 +6198,76 @@ w.styles = [
       }
     `
 ];
-x([
+k([
   u({ attribute: !1 })
 ], w.prototype, "api", 2);
-x([
+k([
   u({ attribute: !1 })
 ], w.prototype, "camera", 2);
-x([
+k([
   u({ attribute: !1 })
 ], w.prototype, "profile", 2);
-x([
+k([
   u({ attribute: !1 })
 ], w.prototype, "hass", 2);
-x([
+k([
   u({ attribute: !1 })
 ], w.prototype, "endpoints", 2);
-x([
+k([
   d()
 ], w.prototype, "backend", 2);
-x([
+k([
   d()
 ], w.prototype, "observations", 2);
-x([
+k([
   d()
 ], w.prototype, "triggers", 2);
-x([
+k([
   d()
 ], w.prototype, "addingTrigger", 2);
-x([
+k([
   d()
 ], w.prototype, "context", 2);
-x([
+k([
   d()
 ], w.prototype, "cooldown", 2);
-x([
+k([
   d()
 ], w.prototype, "budget", 2);
-x([
+k([
   d()
 ], w.prototype, "enabled", 2);
-x([
+k([
   d()
 ], w.prototype, "detectPersons", 2);
-x([
+k([
   d()
 ], w.prototype, "frameSensor", 2);
-x([
+k([
+  d()
+], w.prototype, "markObjects", 2);
+k([
   d()
 ], w.prototype, "aiTasks", 2);
-x([
+k([
   d()
 ], w.prototype, "history", 2);
-x([
+k([
   d()
 ], w.prototype, "frameUrls", 2);
-x([
+k([
   d()
 ], w.prototype, "referenceUrls", 2);
-x([
+k([
   d()
 ], w.prototype, "lastRun", 2);
-x([
+k([
   d()
 ], w.prototype, "busy", 2);
-x([
+k([
   d()
 ], w.prototype, "error", 2);
-w = x([
+w = k([
   M("kustos-vision-vision-editor")
 ], w);
 var bi = Object.defineProperty, vi = Object.getOwnPropertyDescriptor, T = (t, e, s, i) => {
@@ -6288,7 +6312,7 @@ let A = class extends D {
     try {
       return await t(), await this.refresh(), !0;
     } catch (e) {
-      return this.error = k(e), !1;
+      return this.error = x(e), !1;
     } finally {
       this.busy = !1;
     }
@@ -6298,7 +6322,7 @@ let A = class extends D {
     try {
       this.available = (await this.api.availableCameras()).cameras, this.adding = !0;
     } catch (t) {
-      this.error = k(t);
+      this.error = x(t);
     }
   }
   // ------------------------------------------------------------------
@@ -6544,7 +6568,7 @@ let A = class extends D {
     } catch (s) {
       this.endpointTestResult = new Map(this.endpointTestResult).set(
         t,
-        `Ermitteln fehlgeschlagen: ${k(s)}`
+        `Ermitteln fehlgeschlagen: ${x(s)}`
       );
     } finally {
       this.busy = !1;
@@ -6570,7 +6594,7 @@ let A = class extends D {
       } catch (i) {
         this.endpointTestResult = new Map(this.endpointTestResult).set(
           t,
-          `${s}: ${k(i)}`
+          `${s}: ${x(i)}`
         );
       } finally {
         this.busy = !1;
@@ -6770,7 +6794,7 @@ let A = class extends D {
         const { asset_id: i } = await this.api.uploadReference(s);
         await this.addPersonPhoto(t, i);
       } catch (i) {
-        this.error = k(i);
+        this.error = x(i);
       } finally {
         this.busy = !1;
       }
@@ -7467,7 +7491,7 @@ let R = class extends D {
       try {
         this.snapshot = await this.api.getConfig(), this.error = "", this.active || (this.active = this.snapshot.views[0]?.id ?? X, this.active !== X && (this.lastViewId = this.active));
       } catch (t) {
-        const e = k(t);
+        const e = x(t);
         this.error = e;
       }
     }
@@ -7518,7 +7542,7 @@ let R = class extends D {
       try {
         this.snapshot = await this.api.reconnectStorage();
       } catch (t) {
-        this.reconnectError = k(t);
+        this.reconnectError = x(t);
       } finally {
         this.reconnecting = !1;
       }

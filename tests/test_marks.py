@@ -1,0 +1,140 @@
+"""Tests for the reported boxes: parsing the model's answer, drawing args."""
+
+from __future__ import annotations
+
+from pathlib import Path
+
+from kustos_vision.core.marks import (
+    MARK_GRID,
+    MARKS_FIELD,
+    MAX_LABEL_CHARS,
+    MAX_MARKS,
+    Mark,
+    build_mark_args,
+    escape_drawtext,
+    marked_name,
+    marks_prompt,
+    marks_schema_fragment,
+    parse_marks,
+)
+
+FONT = Path("/fonts/mono.ttf")
+
+
+def entry(box, label="Gelbe Tonne"):
+    return {"label": label, "box": box}
+
+
+# ----------------------------------------------------------------------
+# Parsing
+# ----------------------------------------------------------------------
+
+
+def test_a_clean_box_parses() -> None:
+    marks = parse_marks([entry([100, 200, 400, 600])])
+    assert marks == (Mark(label="Gelbe Tonne", x0=100, y0=200, x1=400, y1=600),)
+
+
+def test_reversed_corners_are_reordered_not_refused() -> None:
+    """Models mix the corner convention up; the intended box is still
+    unambiguous, so drawing it beats dropping it."""
+    marks = parse_marks([entry([400, 600, 100, 200])])
+    assert marks[0] == Mark(label="Gelbe Tonne", x0=100, y0=200, x1=400, y1=600)
+
+
+def test_coordinates_are_clamped_to_the_grid() -> None:
+    marks = parse_marks([entry([-50, 0, 5000, 100])])
+    assert (marks[0].x0, marks[0].x1) == (0, MARK_GRID)
+
+
+def test_degenerate_and_garbled_entries_fall_away() -> None:
+    """Marks are decoration on top of a finished analysis; a garbled entry
+    must never be fatal."""
+    assert parse_marks("nonsense") == ()
+    assert (
+        parse_marks(
+            [
+                entry([100, 100, 100, 400]),  # zero width
+                "not a dict",
+                {"label": "ohne Box"},
+                entry(["a", "b", "c", "d"]),
+                entry([1, 2, 3]),  # wrong length
+            ]
+        )
+        == ()
+    )
+
+
+def test_more_than_the_cap_is_cut() -> None:
+    many = [entry([i, i, i + 10, i + 10]) for i in range(0, 200, 20)]
+    assert len(parse_marks(many)) == MAX_MARKS
+
+
+def test_a_label_is_a_name_not_a_sentence() -> None:
+    marks = parse_marks([entry([0, 0, 10, 10], label="x" * 100)])
+    assert len(marks[0].label) == MAX_LABEL_CHARS
+
+
+# ----------------------------------------------------------------------
+# Drawing arguments
+# ----------------------------------------------------------------------
+
+
+def test_the_boxes_scale_inside_the_filter_not_in_python() -> None:
+    """iw/ih expressions, so nothing needs to know the frame's pixel size."""
+    args = build_mark_args(
+        Path("/a.jpg"),
+        Path("/b.jpg"),
+        (Mark("Tonne", 100, 200, 400, 600),),
+        FONT,
+        with_labels=True,
+    )
+    graph = args[args.index("-vf") + 1]
+    assert f"x=(100*iw)/{MARK_GRID}" in graph
+    assert f"w=(300*iw)/{MARK_GRID}" in graph
+    assert "drawtext" in graph
+    assert "text='Tonne'" in graph
+
+
+def test_without_freetype_the_boxes_survive_and_the_words_are_lost() -> None:
+    args = build_mark_args(
+        Path("/a.jpg"),
+        Path("/b.jpg"),
+        (Mark("Tonne", 0, 0, 10, 10),),
+        FONT,
+        with_labels=False,
+    )
+    graph = args[args.index("-vf") + 1]
+    assert "drawbox" in graph
+    assert "drawtext" not in graph
+
+
+def test_labels_are_escaped_for_the_option_parser() -> None:
+    """Colon, quote, percent and backslash are drawtext syntax; a label
+    containing them must not be able to inject options."""
+    assert escape_drawtext(r"a:b'c%d\e") == r"a\:b\'c\%d\\e"
+
+
+def test_the_marked_name_mirrors_its_ring_frame() -> None:
+    assert marked_name("frame_07.jpg") == "marked_07.jpg"
+
+
+# ----------------------------------------------------------------------
+# Schema and prompt
+# ----------------------------------------------------------------------
+
+
+def test_the_schema_fragment_is_strict_and_bounded() -> None:
+    fragment = marks_schema_fragment()
+    assert fragment["maxItems"] == MAX_MARKS
+    assert fragment["items"]["additionalProperties"] is False
+    assert fragment["items"]["properties"]["box"]["items"]["maximum"] == MARK_GRID
+
+
+def test_the_prompt_ties_boxes_to_the_reported_answers() -> None:
+    """The boxes must describe what the other fields SAID, not invite the
+    model to find new things the questions never asked about."""
+    text = marks_prompt()
+    assert MARKS_FIELD in text
+    assert "other answers report" in text
+    assert str(MARK_GRID) in text

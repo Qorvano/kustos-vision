@@ -26,7 +26,13 @@ from .core.capture import (
     FrameSource,
     build_frame_args,
 )
+from .core.marks import Mark, build_mark_args
+from .export import STAMP_FONT
 from .vision import VisionError
+
+# Burning boxes into one JPEG is filter work on a single frame and finishes
+# in well under a second; the margin covers a Pi busy with recordings.
+MARK_DRAW_TIMEOUT_SECONDS = 15.0
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -158,6 +164,44 @@ async def _async_run_ffmpeg(
         source=FrameSource.STREAM,
         path=keep,
     )
+
+
+async def async_draw_marks(
+    hass: HomeAssistant,
+    source: Path,
+    target: Path,
+    marks: tuple[Mark, ...],
+    with_labels: bool,
+) -> bool:
+    """Burn the reported boxes into a copy of the frame. Returns success.
+
+    Never raises: the marked picture is decoration on top of a finished
+    analysis, and a drawing failure must not turn a good result into an
+    error - the image entity simply serves the plain frame then.
+    """
+    binary = get_ffmpeg_manager(hass).binary
+    args = build_mark_args(source, target, marks, STAMP_FONT, with_labels)
+    try:
+        process = await create_subprocess_exec(
+            binary,
+            *args,
+            stdin=asyncio.subprocess.DEVNULL,
+            stdout=asyncio.subprocess.DEVNULL,
+            stderr=asyncio.subprocess.DEVNULL,
+        )
+    except OSError as err:
+        _LOGGER.warning("kustos_vision: could not start ffmpeg for marks: %s", err)
+        return False
+    try:
+        code = await asyncio.wait_for(process.wait(), MARK_DRAW_TIMEOUT_SECONDS)
+    except TimeoutError:
+        _LOGGER.warning("kustos_vision: drawing the marks timed out")
+        with contextlib.suppress(ProcessLookupError):
+            process.kill()
+        with contextlib.suppress(Exception):
+            await process.wait()
+        return False
+    return code == 0 and await hass.async_add_executor_job(target.is_file)
 
 
 def _temp_jpeg() -> Path:

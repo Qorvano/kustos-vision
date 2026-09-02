@@ -928,6 +928,7 @@ async def ws_timeline(
         vol.Optional("enabled", default=True): bool,
         vol.Optional("detect_persons", default=False): bool,
         vol.Optional("frame_sensor", default=False): bool,
+        vol.Optional("mark_objects", default=False): bool,
     }
 )
 @websocket_api.async_response
@@ -947,6 +948,7 @@ async def ws_set_vision(
         "enabled": msg["enabled"],
         "detect_persons": msg["detect_persons"],
         "frame_sensor": msg["frame_sensor"],
+        "mark_objects": msg["mark_objects"],
     }
     for optional in ("cooldown_seconds", "daily_budget"):
         if optional in msg:

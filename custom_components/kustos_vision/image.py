@@ -68,15 +68,21 @@ class AnalysedFrameImage(CamwatchCameraEntity, ImageEntity):
         self._attr_image_last_updated = self._latest_at()
 
     def _latest(self) -> tuple[str, datetime] | None:
-        """Ring name and time of the newest run that kept a frame."""
+        """File name and time of the newest run that kept a picture.
+
+        The marked copy - boxes and labels burned in - wins over the plain
+        frame when the run produced one: the entity exists for notifications,
+        and the marked picture is the one worth attaching.
+        """
         state = self.coordinator.vision.state_for(self.camera_slug)
         for run in state.history:
-            if not run.get("frame"):
+            name = run.get("marked") or run.get("frame")
+            if not name:
                 continue
             at = dt_util.parse_datetime(run["at"])
             if at is None:
                 continue
-            return run["frame"], at
+            return name, at
         return None
 
     def _latest_at(self) -> datetime | None:

@@ -26,6 +26,7 @@ from homeassistant.exceptions import HomeAssistantError
 
 from ..core.capture import CapturedFrame
 from ..core.config import CameraConfig, VisionBackendKind, VisionProfile
+from ..core.marks import MARKS_FIELD, Mark, parse_marks
 from ..core.observations import Observation, coerce_answers
 from ..core.persons import (
     PersonField,
@@ -80,6 +81,10 @@ class VisionRequest:
     into the schema at request time and split back out of the answer here,
     so the entities never see a person key."""
 
+    mark_objects: bool = False
+    """Whether the request also asks WHERE the reported objects are (the
+    synthetic _marks field), so the boxes can be drawn into the frame."""
+
 
 @dataclass(frozen=True, slots=True)
 class VisionResult:
@@ -101,6 +106,9 @@ class VisionResult:
 
     persons: dict[str, bool] = field(default_factory=dict)
     """Person id -> whether the model matched them in this frame."""
+
+    marks: tuple[Mark, ...] = ()
+    """Where the model located the objects its answers report."""
 
 
 def build_prompt(camera: CameraConfig, profile: VisionProfile) -> str:
@@ -171,6 +179,11 @@ async def async_analyse(
         )
 
     values, problems = coerce_answers(analysis_fields(profile, request), raw)
+    marks: tuple[Mark, ...] = (
+        parse_marks(raw.get(MARKS_FIELD))
+        if request is not None and request.mark_objects
+        else ()
+    )
     # The person fields are split back out here, once, so neither the
     # backends nor the observation entities ever see a person key.
     persons: dict[str, bool] = {}
@@ -188,6 +201,7 @@ async def async_analyse(
         raw=raw,
         duration_s=duration,
         persons=persons,
+        marks=marks,
     )
 
 

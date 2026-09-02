@@ -622,3 +622,57 @@ async def test_the_probe_reports_the_answer_time_or_the_refusal(
     ):
         with pytest.raises(VisionError, match="HTTP 404"):
             await async_probe_model(hass, "http://x", "tippfehler")
+
+
+async def test_marks_travel_in_schema_and_prompt_when_asked(
+    hass: HomeAssistant,
+) -> None:
+    """The _marks field rides like the person fields: merged at request time,
+    in BOTH the schema (the grammar) and the prompt (what the model reads)."""
+    import json as jsonlib
+    from unittest.mock import AsyncMock, patch
+
+    from custom_components.kustos_vision.core.marks import MARKS_FIELD
+    from custom_components.kustos_vision.vision import VisionRequest
+    from custom_components.kustos_vision.vision import openai_compat
+
+    captured: dict = {}
+
+    class FakeResponse:
+        status = 200
+
+        async def text(self) -> str:
+            return jsonlib.dumps(
+                {"choices": [{"message": {"content": "{}"}}]}
+            )
+
+    class FakeSession:
+        async def post(self, url, json=None, headers=None, timeout=None):
+            captured["payload"] = json
+            return FakeResponse()
+
+    with (
+        patch(
+            "custom_components.kustos_vision.vision.openai_compat."
+            "async_get_clientsession",
+            return_value=FakeSession(),
+        ),
+        patch(
+            "custom_components.kustos_vision.vision.openai_compat._snapshot",
+            AsyncMock(return_value=(b"still", "image/jpeg")),
+        ),
+    ):
+        await openai_compat.async_run(
+            hass,
+            CAMERA,
+            PROFILE,
+            "camera.vg",
+            request=VisionRequest(mark_objects=True),
+        )
+
+    schema = captured["payload"]["response_format"]["json_schema"]["schema"]
+    assert MARKS_FIELD in schema["properties"]
+    assert MARKS_FIELD in schema["required"]
+    fields_text = captured["payload"]["messages"][0]["content"][1]["text"]
+    assert MARKS_FIELD in fields_text
+    assert "bounding box" in fields_text

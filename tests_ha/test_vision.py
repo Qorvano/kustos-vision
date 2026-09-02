@@ -1388,3 +1388,93 @@ async def test_without_the_switch_no_frame_entity_appears(
         e.unique_id == f"{entry.entry_id}_beispiel_analysed_frame"
         for e in registry.entities.values()
     )
+
+
+# ----------------------------------------------------------------------
+# Marked frames
+# ----------------------------------------------------------------------
+
+
+MARKED_BYTES = b"\xff\xd8\xff-marked-jpeg"
+
+
+def marks_result():
+    from custom_components.kustos_vision.core.marks import Mark
+
+    return VisionResult(
+        values={"paket": True},
+        raw={},
+        duration_s=0.1,
+        marks=(Mark(label="Paket", x0=100, y0=100, x1=300, y1=300),),
+    )
+
+
+async def fake_draw(hass_, source, target, marks, with_labels=True) -> bool:
+    target.write_bytes(MARKED_BYTES)
+    return True
+
+
+async def test_the_image_entity_prefers_the_marked_frame(
+    hass: HomeAssistant, setup_vision
+) -> None:
+    """The entity exists for notifications, and the picture with the boxes
+    burned in is the one worth attaching."""
+    from homeassistant.components.image import async_get_image
+    from homeassistant.helpers import entity_registry as er
+
+    entry = await setup_vision(
+        [profile(frame_sensor=True, mark_objects=True)]
+    )
+    runner = entry.runtime_data.vision
+    with (
+        patch(
+            "custom_components.kustos_vision.vision_runner.async_analyse",
+            AsyncMock(return_value=marks_result()),
+        ),
+        patch(
+            "custom_components.kustos_vision.vision_runner.async_draw_marks",
+            AsyncMock(side_effect=fake_draw),
+        ),
+    ):
+        await runner.async_analyse("beispiel", force=True)
+    await hass.async_block_till_done()
+
+    run = runner.state_for("beispiel").history[0]
+    assert run["marked"] == "marked_00.jpg"
+
+    registry = er.async_get(hass)
+    match = next(
+        e
+        for e in registry.entities.values()
+        if e.unique_id == f"{entry.entry_id}_beispiel_analysed_frame"
+    )
+    served = await async_get_image(hass, match.entity_id)
+    assert served.content == MARKED_BYTES
+
+
+async def test_a_run_without_marks_removes_the_stale_marked_copy(
+    hass: HomeAssistant, setup_vision
+) -> None:
+    """Ring slots come round again: a marked file from the previous lap must
+    not survive a run that reported nothing, where the image entity could
+    mistake it for current."""
+    entry = await setup_vision([profile(frame_sensor=True, mark_objects=True)])
+    runner = entry.runtime_data.vision
+    frames = Path(hass.config.path("kustos_vision")) / "frames" / "beispiel"
+    frames.mkdir(parents=True, exist_ok=True)
+    stale = frames / "marked_00.jpg"
+    stale.write_bytes(MARKED_BYTES)
+
+    await runner.async_analyse("beispiel", force=True)  # stub reports no marks
+    run = runner.state_for("beispiel").history[0]
+    assert run["marked"] is None
+    assert not stale.exists()
+
+
+async def test_without_the_switch_no_marks_are_requested(
+    hass: HomeAssistant, setup_vision, analysed
+) -> None:
+    """The image entity alone must not cost the request a marks field."""
+    entry = await setup_vision([profile(frame_sensor=True)])
+    await entry.runtime_data.vision.async_analyse("beispiel", force=True)
+    assert analysed[0]["request"].mark_objects is False

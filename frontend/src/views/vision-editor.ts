@@ -68,6 +68,7 @@ export class CamwatchVisionEditor extends LitElement {
   @state() private enabled = true;
   @state() private detectPersons = false;
   @state() private frameSensor = false;
+  @state() private markObjects = false;
 
   @state() private aiTasks: AiTaskEntity[] = [];
   @state() private history: AnalysisRun[] = [];
@@ -130,6 +131,7 @@ export class CamwatchVisionEditor extends LitElement {
       this.enabled = this.profile.enabled;
       this.detectPersons = this.profile.detect_persons ?? false;
       this.frameSensor = this.profile.frame_sensor ?? false;
+      this.markObjects = this.profile.mark_objects ?? false;
       void this.loadHistory();
     } else {
       // A camera that reports motion is almost always the trigger the user
@@ -170,6 +172,7 @@ export class CamwatchVisionEditor extends LitElement {
       enabled: this.enabled,
       detect_persons: this.detectPersons,
       frame_sensor: this.frameSensor,
+      mark_objects: this.markObjects,
     };
   }
 
@@ -978,6 +981,29 @@ export class CamwatchVisionEditor extends LitElement {
           Kamera bereit. Damit können Automationen den analysierten Screenshot
           zum Beispiel an eine Push-Benachrichtigung anhängen.
         </p>
+
+        ${this.frameSensor
+          ? html`
+              <div class="row" style="margin-top:8px">
+                <label style="margin:0">
+                  <input
+                    type="checkbox"
+                    .checked=${this.markObjects}
+                    @change=${(e: Event) =>
+                      (this.markObjects = (e.target as HTMLInputElement).checked)}
+                  />
+                  Erkannte Objekte markieren
+                </label>
+              </div>
+              <p class="hint">
+                Fragt das Modell zusätzlich, wo die gemeldeten Objekte im Bild
+                liegen, und zeichnet farbige, beschriftete Rahmen in das Bild
+                der Bild-Entität. Wie treffsicher die Positionen sind, hängt
+                vom Modell ab; die Antworten der Sensoren bleiben davon
+                unberührt.
+              </p>
+            `
+          : nothing}
 
         <div class="row" style="margin-top:8px">
           <label style="margin:0">

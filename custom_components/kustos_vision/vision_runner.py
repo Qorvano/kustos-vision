@@ -32,8 +32,9 @@ from homeassistant.core import Event, EventStateChangedData, HomeAssistant, call
 from homeassistant.helpers.event import async_track_state_change_event
 from homeassistant.util import dt as dt_util
 
-from .capture import async_capture_frame
-from .const import LOCAL_STATE_DIR
+from .capture import async_capture_frame, async_draw_marks
+from .const import DATA_STAMP_AVAILABLE, LOCAL_STATE_DIR
+from .core.marks import marked_name
 from .core.capture import (
     FRAME_DIR_NAME,
     CapturedFrame,
@@ -122,6 +123,10 @@ def _asks_anything(profile: VisionProfile, config: CamwatchConfig) -> bool:
     return profile.detect_persons and any(
         person.enabled for person in config.persons.people
     )
+
+
+def _unlink_quietly(path: Path) -> None:
+    path.unlink(missing_ok=True)
 
 
 def _read_asset(local_state: Path, asset_id: str) -> tuple[bytes, str] | None:
@@ -322,6 +327,9 @@ class VisionRunner:
                 if profile.detect_persons
                 else ()
             )
+            # WHERE things are is only worth asking when there is a picture
+            # entity to draw it into.
+            want_marks = profile.frame_sensor and profile.mark_objects
             try:
                 # References first - they are static files and must not sit
                 # between the frame grab and the request.
@@ -340,7 +348,10 @@ class VisionRunner:
                     profile,
                     entity_id,
                     request=VisionRequest(
-                        frame=frame, references=references, persons=persons
+                        frame=frame,
+                        references=references,
+                        persons=persons,
+                        mark_objects=want_marks,
                     ),
                 )
             except VisionError as err:
@@ -358,14 +369,40 @@ class VisionRunner:
             state.last_error = None
             state.last_run = dt_util.utcnow()
             state.values.update(result.values)
+            marked = await self._async_render_marks(want_marks, frame, result)
             # A True is a sighting; a False is nothing at all - only the
             # tracker's timer ever switches a person to absent.
             for person_id, seen in result.persons.items():
                 if seen:
                     self._coordinator.persons.async_seen(person_id, camera_slug)
-            self._record(state, reason, result, None, frame=frame)
+            self._record(state, reason, result, None, frame=frame, marked=marked)
             self._coordinator.async_update_listeners()
             return result
+
+    async def _async_render_marks(
+        self, want_marks: bool, frame: CapturedFrame | None, result: VisionResult
+    ) -> str | None:
+        """Burn the reported boxes into a marked copy of the ring frame.
+
+        Returns the marked file's name, or None - and then makes sure no
+        STALE marked file from an earlier lap of the ring survives in this
+        slot, where the image entity could mistake it for current.
+        """
+        if not want_marks or frame is None or frame.path is None:
+            return None
+        target = frame.path.with_name(marked_name(frame.path.name))
+        if result.marks:
+            drawn = await async_draw_marks(
+                self._hass,
+                frame.path,
+                target,
+                result.marks,
+                with_labels=self._hass.data.get(DATA_STAMP_AVAILABLE, False),
+            )
+            if drawn:
+                return target.name
+        await self._hass.async_add_executor_job(_unlink_quietly, target)
+        return None
 
     async def _async_capture(
         self, camera_slug: str, state: VisionState, entity_id: str
@@ -445,6 +482,7 @@ class VisionRunner:
         result: VisionResult | None,
         error: str | None,
         frame: CapturedFrame | None = None,
+        marked: str | None = None,
     ) -> None:
         """Keep the last few analyses, for improving a prompt with evidence."""
         state.history.insert(
@@ -461,6 +499,9 @@ class VisionRunner:
                 # "still" frame may be minutes older than the trigger.
                 "frame": frame.path.name if frame and frame.path else None,
                 "frame_source": str(frame.source) if frame else None,
+                # The copy with the reported boxes burned in, when one was
+                # drawn - what the image entity serves in preference.
+                "marked": marked,
             },
         )
         del state.history[HISTORY_LENGTH:]

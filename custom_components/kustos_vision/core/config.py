@@ -585,6 +585,11 @@ class VisionProfile:
     latest analysis, for automations that attach the picture to a push
     notification."""
 
+    mark_objects: bool = False
+    """Whether the analysis additionally asks the model WHERE the reported
+    objects are, and burns the boxes into the image entity's picture.
+    Meaningful only together with frame_sensor."""
+
     def __post_init__(self) -> None:
         if not is_valid_slug(self.camera_slug):
             raise ConfigError(f"{self.camera_slug!r} is not a camera slug")
@@ -622,6 +627,7 @@ class VisionProfile:
             "enabled": self.enabled,
             "detect_persons": self.detect_persons,
             "frame_sensor": self.frame_sensor,
+            "mark_objects": self.mark_objects,
         }
 
     @classmethod
@@ -647,6 +653,7 @@ class VisionProfile:
             enabled=bool(data.get("enabled", True)),
             detect_persons=bool(data.get("detect_persons", False)),
             frame_sensor=bool(data.get("frame_sensor", False)),
+            mark_objects=bool(data.get("mark_objects", False)),
         )
 
 

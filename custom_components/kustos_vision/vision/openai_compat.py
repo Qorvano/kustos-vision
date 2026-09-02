@@ -20,6 +20,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from ..core.config import CameraConfig, VisionProfile
+from ..core.marks import MARKS_FIELD, marks_prompt, marks_schema_fragment
 from ..core.observations import fields_prompt, to_json_schema
 from . import VisionError, VisionRequest, analysis_fields, build_prompt
 
@@ -191,9 +192,12 @@ async def async_run(
     # descriptions: llama.cpp turns the schema into a grammar and never
     # shows its text to the model, which then answers from the field names
     # alone. See fields_prompt.
+    fields_text = fields_prompt(asked)
+    if request is not None and request.mark_objects:
+        fields_text += "\n\n" + marks_prompt()
     parts: list[dict[str, Any]] = [
         {"type": "text", "text": build_prompt(camera, profile)},
-        {"type": "text", "text": fields_prompt(asked)},
+        {"type": "text", "text": fields_text},
     ]
     references = request.references if request is not None else ()
     if references:
@@ -230,6 +234,13 @@ async def async_run(
             }
         )
 
+    schema = to_json_schema(asked)
+    if request is not None and request.mark_objects:
+        schema["properties"][MARKS_FIELD] = marks_schema_fragment()
+        # Required like every other field: strict runners refuse optionals,
+        # and "nothing locatable" is expressed as an empty list.
+        schema["required"].append(MARKS_FIELD)
+
     payload: dict[str, Any] = {
         "model": backend.model,
         "messages": [{"role": "user", "content": parts}],
@@ -238,7 +249,7 @@ async def async_run(
             "json_schema": {
                 "name": SCHEMA_NAME,
                 "strict": True,
-                "schema": to_json_schema(asked),
+                "schema": schema,
             },
         },
         # Nothing here benefits from invention: the same picture should give

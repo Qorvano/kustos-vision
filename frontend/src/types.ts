@@ -150,6 +150,9 @@ export interface VisionProfile {
   detect_persons?: boolean;
   /** Whether an image entity carries the frame of the latest analysis. */
   frame_sensor?: boolean;
+  /** Whether the model is also asked WHERE the reported objects are, and
+   *  the boxes are burned into the image entity's picture. */
+  mark_objects?: boolean;
   state: VisionState;
 }
 
