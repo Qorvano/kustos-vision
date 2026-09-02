@@ -14,6 +14,7 @@ import {
   unregisterUnsavedWork,
   type UnsavedWork,
 } from "../dirty";
+import "../components/select";
 import { dropIndexAt, edgeAutoscroll, scrollParentOf } from "../drag";
 import { FlipList } from "../flip";
 import { shared } from "../styles";
@@ -40,6 +41,15 @@ type PersonDraft = {
 /** Mirrors the backend cap (core/persons.py): more photos per person risk
  *  overflowing a small model's context wholesale. */
 const MAX_PHOTOS_PER_PERSON = 2;
+
+/** An endpoint as edited on its card. */
+type EndpointDraft = {
+  id: string;
+  name: string;
+  url: string;
+  api_key: string;
+  models: string[];
+};
 
 type Section = "cameras" | "vision" | "storage" | "views" | "system";
 
@@ -68,6 +78,12 @@ export class CamwatchSettings extends LitElement {
   @state() private error = "";
   /** Edits to the view list that are not stored yet, see renderViews. */
   @state() private viewsDraft?: View[];
+  /** Edits to the endpoints card that are not stored yet. */
+  @state() private endpointsDraft?: EndpointDraft[];
+  /** Which model the Testen button of each endpoint row would probe. */
+  @state() private endpointTestModel = new Map<number, string>();
+  /** The last probe or discovery outcome per endpoint row, transient. */
+  @state() private endpointTestResult = new Map<number, string>();
   /** Edits to the persons card that are not stored yet, see renderPersons. */
   @state() private personsDraft?: PersonDraft[];
   /** The Abklingzeit field while it differs from the stored value. */
@@ -93,17 +109,22 @@ export class CamwatchSettings extends LitElement {
       storage fields. The editors it opens register on their own. */
   private readonly unsavedSections: UnsavedWork = {
     isDirty: () =>
-      this.viewsDirty() || this.storageDirty() || this.personsDirty(),
+      this.viewsDirty() ||
+      this.storageDirty() ||
+      this.personsDirty() ||
+      this.endpointsDirty(),
     save: async () => {
       if (this.viewsDirty() && !(await this.commitViews())) return false;
       if (this.storageDirty() && !(await this.saveStorage())) return false;
       if (this.personsDirty() && !(await this.commitPersons())) return false;
+      if (this.endpointsDirty() && !(await this.commitEndpoints())) return false;
       return true;
     },
     discard: () => {
       this.viewsDraft = undefined;
       this.personsDraft = undefined;
       this.absenceInput = undefined;
+      this.endpointsDraft = undefined;
       this.resetStorageInputs();
     },
   };
@@ -313,6 +334,7 @@ export class CamwatchSettings extends LitElement {
       <kustos-vision-vision-editor
         .api=${this.api}
         .hass=${this.hass}
+        .endpoints=${this.snapshot.endpoints ?? []}
         .camera=${this.visionFor}
         .profile=${this.snapshot.vision.find(
           (p) => p.camera_slug === this.visionFor!.slug,
@@ -351,7 +373,283 @@ export class CamwatchSettings extends LitElement {
               </table>
             </div>`}
       </div>
-      ${this.renderPersons()}
+      ${this.renderEndpoints()} ${this.renderPersons()}
+    `;
+  }
+
+  // ------------------------------------------------------------------
+  // Endpoints
+  // ------------------------------------------------------------------
+
+  private snapshotEndpoints(): EndpointDraft[] {
+    return (this.snapshot.endpoints ?? []).map((endpoint) => ({
+      id: endpoint.id,
+      name: endpoint.name,
+      url: endpoint.url,
+      api_key: endpoint.api_key ?? "",
+      models: endpoint.models ?? [],
+    }));
+  }
+
+  private draftEndpoints(): EndpointDraft[] {
+    return this.endpointsDraft ?? this.snapshotEndpoints();
+  }
+
+  private endpointsDirty(): boolean {
+    if (!this.endpointsDraft) return false;
+    return (
+      JSON.stringify(this.endpointsDraft) !==
+      JSON.stringify(this.snapshotEndpoints())
+    );
+  }
+
+  private async commitEndpoints(): Promise<boolean> {
+    const draft = this.draftEndpoints();
+    if (draft.some((endpoint) => !endpoint.name.trim() || !endpoint.url.trim())) {
+      this.error = "Jeder Endpunkt braucht einen Namen und eine Adresse.";
+      return false;
+    }
+    const before = this.snapshotEndpoints();
+    for (const endpoint of before) {
+      if (draft.some((d) => d.id === endpoint.id)) continue;
+      if (!(await this.run(() => this.api.deleteEndpoint(endpoint.id)))) {
+        return false;
+      }
+    }
+    for (const endpoint of draft) {
+      const previous = before.find((e) => e.id === endpoint.id);
+      if (previous && JSON.stringify(previous) === JSON.stringify(endpoint)) {
+        continue;
+      }
+      const ok = await this.run(() =>
+        this.api.setEndpoint({
+          ...(endpoint.id ? { endpoint_id: endpoint.id } : {}),
+          name: endpoint.name.trim(),
+          url: endpoint.url.trim(),
+          api_key: endpoint.api_key,
+          models: endpoint.models,
+        }),
+      );
+      if (!ok) return false;
+    }
+    this.endpointsDraft = undefined;
+    return true;
+  }
+
+  private patchEndpoint(index: number, patch: Partial<EndpointDraft>): void {
+    this.endpointsDraft = this.draftEndpoints().map((endpoint, i) =>
+      i === index ? { ...endpoint, ...patch } : endpoint,
+    );
+  }
+
+  private addEndpoint(): void {
+    // No id yet: the server derives it from the name on creation, because
+    // profiles reference endpoints by that id forever.
+    this.endpointsDraft = [
+      ...this.draftEndpoints(),
+      { id: "", name: "", url: "", api_key: "", models: [] },
+    ];
+  }
+
+  /** Ask the endpoint itself which models it offers and take the answer
+   *  into the draft. Runners without a listing keep the manual field. */
+  private async discoverEndpointModels(index: number): Promise<void> {
+    const endpoint = this.draftEndpoints()[index];
+    this.busy = true;
+    this.error = "";
+    try {
+      const { models } = await this.api.endpointModels(
+        endpoint.url.trim(),
+        endpoint.api_key,
+      );
+      this.patchEndpoint(index, { models });
+      this.endpointTestResult = new Map(this.endpointTestResult).set(
+        index,
+        `${models.length} Modelle gefunden.`,
+      );
+    } catch (err) {
+      this.endpointTestResult = new Map(this.endpointTestResult).set(
+        index,
+        `Ermitteln fehlgeschlagen: ${errorText(err)}`,
+      );
+    } finally {
+      this.busy = false;
+    }
+  }
+
+  private async testEndpointModel(index: number): Promise<void> {
+    const endpoint = this.draftEndpoints()[index];
+    const model =
+      this.endpointTestModel.get(index) ?? endpoint.models[0] ?? "";
+    if (!model) return;
+    this.busy = true;
+    this.error = "";
+    this.endpointTestResult = new Map(this.endpointTestResult).set(
+      index,
+      `Teste ${model} … (lädt der Server das Modell erst, kann das eine Weile dauern)`,
+    );
+    try {
+      const { duration } = await this.api.testEndpoint(
+        endpoint.url.trim(),
+        model,
+        endpoint.api_key,
+      );
+      this.endpointTestResult = new Map(this.endpointTestResult).set(
+        index,
+        `${model} hat in ${duration} s geantwortet.`,
+      );
+    } catch (err) {
+      this.endpointTestResult = new Map(this.endpointTestResult).set(
+        index,
+        `${model}: ${errorText(err)}`,
+      );
+    } finally {
+      this.busy = false;
+    }
+  }
+
+  private renderEndpointRow(endpoint: EndpointDraft, index: number) {
+    const testModel =
+      this.endpointTestModel.get(index) ?? endpoint.models[0] ?? "";
+    return html`
+      <div class="divided">
+        <div class="fields">
+          <div>
+            <label>Name</label>
+            <input
+              placeholder="Mac mini"
+              .value=${endpoint.name}
+              @change=${(e: Event) =>
+                this.patchEndpoint(index, {
+                  name: (e.target as HTMLInputElement).value,
+                })}
+            />
+          </div>
+          <div>
+            <label>Adresse</label>
+            <input
+              placeholder="http://192.168.1.10:8080/v1"
+              .value=${endpoint.url}
+              @change=${(e: Event) =>
+                this.patchEndpoint(index, {
+                  url: (e.target as HTMLInputElement).value,
+                })}
+            />
+          </div>
+          <div>
+            <label>Schlüssel (bei lokalen Modellen meist leer)</label>
+            <input
+              type="password"
+              .value=${endpoint.api_key}
+              @change=${(e: Event) =>
+                this.patchEndpoint(index, {
+                  api_key: (e.target as HTMLInputElement).value,
+                })}
+            />
+          </div>
+        </div>
+        <label>Modelle, durch Komma getrennt</label>
+        <input
+          placeholder="gemma4-vision, qwen-vision"
+          .value=${endpoint.models.join(", ")}
+          @change=${(e: Event) =>
+            this.patchEndpoint(index, {
+              models: (e.target as HTMLInputElement).value
+                .split(",")
+                .map((m) => m.trim())
+                .filter((m) => m),
+            })}
+        />
+        <div class="row" style="align-items:center;margin-top:8px">
+          <button
+            class="secondary compact"
+            ?disabled=${this.busy || !endpoint.url.trim()}
+            @click=${() => this.discoverEndpointModels(index)}
+          >
+            Modelle automatisch ermitteln
+          </button>
+          ${endpoint.models.length > 0
+            ? html`
+                <kustos-vision-select
+                  compact
+                  .options=${endpoint.models.map((m) => ({
+                    value: m,
+                    label: m,
+                  }))}
+                  .value=${testModel}
+                  @value-changed=${(e: CustomEvent<{ value: string }>) => {
+                    this.endpointTestModel = new Map(
+                      this.endpointTestModel,
+                    ).set(index, e.detail.value);
+                  }}
+                ></kustos-vision-select>
+                <button
+                  class="secondary compact"
+                  ?disabled=${this.busy || !testModel}
+                  @click=${() => this.testEndpointModel(index)}
+                >
+                  Testen
+                </button>
+              `
+            : nothing}
+          <span class="spacer"></span>
+          <button
+            class="danger compact"
+            ?disabled=${this.busy}
+            @click=${() =>
+              (this.endpointsDraft = this.draftEndpoints().filter(
+                (_, i) => i !== index,
+              ))}
+          >
+            Endpunkt entfernen
+          </button>
+        </div>
+        ${this.endpointTestResult.has(index)
+          ? html`<p class="hint">${this.endpointTestResult.get(index)}</p>`
+          : nothing}
+      </div>
+    `;
+  }
+
+  private renderEndpoints() {
+    const endpoints = this.draftEndpoints();
+    const dirty = this.endpointsDirty();
+    return html`
+      <div class="card">
+        <h2>Modell-Endpunkte</h2>
+        <p class="hint">
+          OpenAI-kompatible Endpunkte, einmal eingetragen: Die Kameras wählen
+          dann nur noch Endpunkt und Modell aus einer Liste. „Modelle
+          automatisch ermitteln" fragt den Endpunkt selbst; Server ohne
+          Modell-Liste bekommen die Namen hier von Hand.
+        </p>
+        ${endpoints.map((endpoint, index) =>
+          this.renderEndpointRow(endpoint, index),
+        )}
+        <div class="row" style="margin-top:8px">
+          <button
+            class="secondary"
+            ?disabled=${this.busy}
+            @click=${() => this.addEndpoint()}
+          >
+            Endpunkt hinzufügen
+          </button>
+          ${dirty
+            ? html`
+                <button ?disabled=${this.busy} @click=${() => this.commitEndpoints()}>
+                  Speichern
+                </button>
+                <button
+                  class="secondary"
+                  ?disabled=${this.busy}
+                  @click=${() => (this.endpointsDraft = undefined)}
+                >
+                  Verwerfen
+                </button>
+              `
+            : nothing}
+        </div>
+      </div>
     `;
   }
 

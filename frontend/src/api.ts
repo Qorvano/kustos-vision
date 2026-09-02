@@ -283,6 +283,47 @@ export class CamwatchApi {
     return this.hass.callWS({ type: `${DOMAIN}/vision/backends` });
   }
 
+  setEndpoint(endpoint: {
+    endpoint_id?: string;
+    name: string;
+    url: string;
+    api_key: string;
+    models: string[];
+  }): Promise<Snapshot> {
+    return this.hass.callWS({ type: `${DOMAIN}/endpoint/set`, ...endpoint });
+  }
+
+  deleteEndpoint(endpointId: string): Promise<Snapshot> {
+    return this.hass.callWS({
+      type: `${DOMAIN}/endpoint/delete`,
+      endpoint_id: endpointId,
+    });
+  }
+
+  /** Ask an endpoint for its models (server-side, past any CORS). */
+  endpointModels(url: string, apiKey: string): Promise<{ models: string[] }> {
+    return this.hass.callWS({
+      type: `${DOMAIN}/endpoint/models`,
+      url,
+      api_key: apiKey,
+    });
+  }
+
+  /** One tiny completion against one model, so a typo fails here and not
+   *  silently at the next motion event. */
+  testEndpoint(
+    url: string,
+    model: string,
+    apiKey: string,
+  ): Promise<{ ok: boolean; duration: number }> {
+    return this.hass.callWS({
+      type: `${DOMAIN}/endpoint/test`,
+      url,
+      model,
+      api_key: apiKey,
+    });
+  }
+
   setPerson(person: {
     person_id?: string;
     name: string;

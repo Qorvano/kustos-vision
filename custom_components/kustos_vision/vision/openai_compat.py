@@ -48,6 +48,110 @@ def _endpoint(url: str) -> str:
     return f"{trimmed}/v1/chat/completions"
 
 
+# Listing models loads nothing on the server and answers immediately or not
+# at all; waiting longer only delays the error message.
+LIST_MODELS_TIMEOUT_SECONDS = 15
+
+# A probe completion may be the request that makes a swapping runner load
+# the model from disk, which takes a minute on large models; giving up
+# earlier reports a healthy endpoint as broken.
+PROBE_TIMEOUT_SECONDS = 120
+
+# Enough tokens for an acknowledgement in any tokenizer while cutting a
+# chatty model short - the probe only proves the model answers at all.
+PROBE_MAX_TOKENS = 8
+
+
+def models_endpoint(url: str) -> str:
+    """Normalise the configured URL to the model listing.
+
+    Accepts the same spellings _endpoint does, so whatever URL worked for
+    analyses also works for discovery.
+    """
+    trimmed = (url or "").rstrip("/")
+    if trimmed.endswith("/chat/completions"):
+        trimmed = trimmed[: -len("/chat/completions")]
+    if not trimmed.endswith("/v1"):
+        trimmed = f"{trimmed}/v1"
+    return f"{trimmed}/models"
+
+
+def _auth_headers(api_key: str) -> dict[str, str]:
+    return {"Authorization": f"Bearer {api_key}"} if api_key else {}
+
+
+async def async_list_models(
+    hass: HomeAssistant, url: str, api_key: str = ""
+) -> list[str]:
+    """Ask an endpoint which models it offers (GET /v1/models)."""
+    session = async_get_clientsession(hass)
+    try:
+        response = await session.get(
+            models_endpoint(url),
+            headers=_auth_headers(api_key),
+            timeout=LIST_MODELS_TIMEOUT_SECONDS,
+        )
+        body = await response.text()
+    except Exception as err:
+        raise VisionError(f"the endpoint could not be reached: {err}") from err
+    if response.status >= 400:
+        raise VisionError(f"the endpoint answered HTTP {response.status}: {body[:300]}")
+    try:
+        parsed = json.loads(body)
+    except json.JSONDecodeError as err:
+        raise VisionError(f"the answer was not JSON: {body[:200]}") from err
+    data = parsed.get("data")
+    if not isinstance(data, list):
+        raise VisionError("the answer did not look like a model list")
+    models = sorted(
+        str(entry["id"])
+        for entry in data
+        if isinstance(entry, dict) and entry.get("id")
+    )
+    if not models:
+        raise VisionError("the endpoint lists no models")
+    return models
+
+
+async def async_probe_model(
+    hass: HomeAssistant, url: str, model: str, api_key: str = ""
+) -> float:
+    """One tiny completion against one model; the seconds it took, or raises.
+
+    Text-only on purpose: reachability, authentication and model loading are
+    what fail in practice, and a probe must not need a camera picture.
+    """
+    payload: dict[str, Any] = {
+        "model": model,
+        "messages": [
+            {"role": "user", "content": "Reply with the single word OK."}
+        ],
+        "max_tokens": PROBE_MAX_TOKENS,
+        "temperature": 0,
+    }
+    session = async_get_clientsession(hass)
+    started = time.monotonic()
+    try:
+        response = await session.post(
+            _endpoint(url),
+            json=payload,
+            headers={"Content-Type": "application/json", **_auth_headers(api_key)},
+            timeout=PROBE_TIMEOUT_SECONDS,
+        )
+        body = await response.text()
+    except Exception as err:
+        raise VisionError(f"the model could not be reached: {err}") from err
+    if response.status >= 400:
+        raise VisionError(f"the model answered HTTP {response.status}: {body[:300]}")
+    try:
+        content = json.loads(body)["choices"][0]["message"]["content"]
+    except (json.JSONDecodeError, KeyError, IndexError, TypeError) as err:
+        raise VisionError(f"unexpected answer shape: {body[:200]}") from err
+    if not content:
+        raise VisionError("the model answered nothing")
+    return time.monotonic() - started
+
+
 def _data_uri(content: bytes, mime: str) -> str:
     return f"data:{mime};base64,{base64.b64encode(content).decode('ascii')}"
 

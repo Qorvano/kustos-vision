@@ -115,6 +115,18 @@ export interface VisionBackend {
   model?: string;
   api_key?: string;
   timeout_seconds?: number;
+  /** A configured endpoint to take url and api_key from at request time;
+   *  the direct url stays supported for profiles from before endpoints. */
+  endpoint_id?: string;
+}
+
+/** One OpenAI-compatible endpoint, entered once and picked everywhere. */
+export interface EndpointConfig {
+  id: string;
+  name: string;
+  url: string;
+  api_key?: string;
+  models?: string[];
 }
 
 export interface VisionState {
@@ -210,6 +222,7 @@ export interface Snapshot {
   views: View[];
   vision: VisionProfile[];
   persons: PersonsSnapshot;
+  endpoints: EndpointConfig[];
   capability_keys: string[];
   totals: {
     used_bytes: number;

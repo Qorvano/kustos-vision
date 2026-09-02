@@ -446,6 +446,59 @@ class VisionBackendKind(StrEnum):
 
 
 @dataclass(frozen=True, slots=True)
+class EndpointConfig:
+    """One OpenAI-compatible endpoint, entered once and picked everywhere.
+
+    Cameras used to carry their own URL and API key; a changed port then
+    meant editing every camera. The endpoint owns connection and model list,
+    a profile only points at it by id.
+    """
+
+    id: str
+    """A slug, the stable identity profiles reference. Renaming is free,
+    re-identifying is not."""
+
+    name: str
+    url: str
+    api_key: str = ""
+    models: tuple[str, ...] = ()
+    """The model names this endpoint offers. Filled by asking the endpoint
+    (GET /v1/models) or typed by hand for runners without a listing."""
+
+    def __post_init__(self) -> None:
+        if not is_valid_slug(self.id):
+            raise ConfigError(f"{self.id!r} is not an endpoint id")
+        if not self.name.strip():
+            raise ConfigError("an endpoint needs a name")
+        if not self.url.strip():
+            raise ConfigError("an endpoint needs a URL")
+        if len(set(self.models)) != len(self.models):
+            raise ConfigError(f"endpoint {self.id!r} lists a model twice")
+
+    def as_dict(self) -> dict[str, Any]:
+        stored: dict[str, Any] = {
+            "id": self.id,
+            "name": self.name,
+            "url": self.url,
+        }
+        if self.api_key:
+            stored["api_key"] = self.api_key
+        if self.models:
+            stored["models"] = list(self.models)
+        return stored
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> Self:
+        return cls(
+            id=str(data["id"]),
+            name=str(data["name"]),
+            url=str(data["url"]),
+            api_key=str(data.get("api_key", "")),
+            models=tuple(data.get("models", [])),
+        )
+
+
+@dataclass(frozen=True, slots=True)
 class VisionBackend:
     """How to reach the model."""
 
@@ -456,6 +509,10 @@ class VisionBackend:
     model: str | None = None
     api_key: str | None = None
     timeout_seconds: int = 120
+    endpoint_id: str = ""
+    """For OPENAI: a configured endpoint to take url and api_key from at
+    request time. The direct url stays supported for profiles from before
+    endpoints existed; endpoint_id wins when both are present."""
 
     def __post_init__(self) -> None:
         if self.kind is VisionBackendKind.AI_TASK:
@@ -464,8 +521,10 @@ class VisionBackend:
             if not self.entity_id.startswith("ai_task."):
                 raise ConfigError(f"{self.entity_id!r} is not an AI Task entity")
         else:
-            if not self.url:
-                raise ConfigError("an OpenAI-compatible backend needs a URL")
+            if not self.url and not self.endpoint_id:
+                raise ConfigError(
+                    "an OpenAI-compatible backend needs a URL or an endpoint"
+                )
             if not self.model:
                 raise ConfigError("an OpenAI-compatible backend needs a model name")
         if self.timeout_seconds <= 0:
@@ -476,7 +535,7 @@ class VisionBackend:
             "kind": str(self.kind),
             "timeout_seconds": self.timeout_seconds,
         }
-        for name in ("entity_id", "url", "model", "api_key"):
+        for name in ("entity_id", "url", "model", "api_key", "endpoint_id"):
             value = getattr(self, name)
             if value:
                 stored[name] = value
@@ -495,6 +554,7 @@ class VisionBackend:
             model=data.get("model"),
             api_key=data.get("api_key"),
             timeout_seconds=int(data.get("timeout_seconds", 120)),
+            endpoint_id=str(data.get("endpoint_id", "")),
         )
 
 
@@ -676,6 +736,7 @@ class CamwatchConfig:
     views: tuple[ViewConfig, ...] = ()
     vision: tuple[VisionProfile, ...] = ()
     persons: PersonsConfig = field(default_factory=PersonsConfig)
+    endpoints: tuple[EndpointConfig, ...] = ()
 
     def camera(self, slug: str) -> CameraConfig | None:
         return next((c for c in self.cameras if c.slug == slug), None)
@@ -900,6 +961,19 @@ class CamwatchConfig:
             self, persons=replace(self.persons, absence_seconds=absence_seconds)
         )
 
+    def endpoint(self, endpoint_id: str) -> EndpointConfig | None:
+        return next((e for e in self.endpoints if e.id == endpoint_id), None)
+
+    def with_endpoint(self, endpoint: EndpointConfig) -> Self:
+        others = tuple(e for e in self.endpoints if e.id != endpoint.id)
+        return replace(self, endpoints=(*others, endpoint))
+
+    def without_endpoint(self, endpoint_id: str) -> Self:
+        return replace(
+            self,
+            endpoints=tuple(e for e in self.endpoints if e.id != endpoint_id),
+        )
+
     @property
     def retention_days_by_camera(self) -> dict[str, int]:
         """The per-camera age limits, in the shape the retention policy wants.
@@ -918,6 +992,7 @@ class CamwatchConfig:
             "views": [v.as_dict() for v in self.views],
             "vision": [p.as_dict() for p in self.vision],
             "persons": self.persons.as_dict(),
+            "endpoints": [e.as_dict() for e in self.endpoints],
         }
 
     @classmethod
@@ -949,6 +1024,9 @@ class CamwatchConfig:
             # Absent in every configuration stored before the feature; the
             # default covers that without a version bump.
             persons=PersonsConfig.from_dict(data.get("persons", {})),
+            endpoints=tuple(
+                EndpointConfig.from_dict(e) for e in data.get("endpoints", [])
+            ),
         )
 
 

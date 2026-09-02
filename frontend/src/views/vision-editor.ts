@@ -22,6 +22,7 @@ import type {
   AiTaskEntity,
   AnalysisRun,
   Camera,
+  EndpointConfig,
   HomeAssistant,
   Observation,
   ObservationType,
@@ -44,12 +45,18 @@ const FRAME_URL_BASE = "/api/kustos_vision/vision-frame";
  *  model a tile budget, and an overflowing request fails wholesale. */
 const MAX_REFERENCES_PER_OBSERVATION = 2;
 
+/** Select value standing for a profile that still carries its own URL from
+ *  before endpoints existed. Kept selectable so nothing breaks on open;
+ *  picking a real endpoint replaces it for good. */
+const DIRECT_ENTRY = "__direct__";
+
 @customElement("kustos-vision-vision-editor")
 export class CamwatchVisionEditor extends LitElement {
   @property({ attribute: false }) api!: CamwatchApi;
   @property({ attribute: false }) camera!: Camera;
   @property({ attribute: false }) profile?: VisionProfile;
   @property({ attribute: false }) hass?: HomeAssistant;
+  @property({ attribute: false }) endpoints: EndpointConfig[] = [];
 
   @state() private backend: VisionBackend = { kind: "openai" };
   @state() private observations: Observation[] = [];
@@ -430,33 +437,103 @@ export class CamwatchVisionEditor extends LitElement {
                 </p>`
               : nothing}
           `
-        : html`
-            <div class="fields">
-              <div>
-                <label>Adresse</label>
-                <input
-                  placeholder="http://192.168.1.10:8080/v1"
-                  .value=${this.backend.url ?? ""}
-                  @change=${(e: Event) =>
-                    (this.backend = {
-                      ...this.backend,
-                      url: (e.target as HTMLInputElement).value,
-                    })}
-                />
-              </div>
-              <div>
-                <label>Modell</label>
-                <input
-                  .value=${this.backend.model ?? ""}
-                  @change=${(e: Event) =>
-                    (this.backend = {
-                      ...this.backend,
-                      model: (e.target as HTMLInputElement).value,
-                    })}
-                />
-              </div>
-            </div>
-            <label>Schlüssel (bei lokalen Modellen meist leer)</label>
+        : this.renderOpenAiBackend()}
+    `;
+  }
+
+  /** Endpoint and model come from lists; the free-text trio (URL, model,
+   *  key) survives only for a profile saved before endpoints existed. */
+  private renderOpenAiBackend() {
+    const legacy = !this.backend.endpoint_id && !!this.backend.url;
+    const direct = legacy || (!this.backend.endpoint_id && this.endpoints.length === 0);
+    const chosen = this.endpoints.find(
+      (e) => e.id === this.backend.endpoint_id,
+    );
+
+    if (this.endpoints.length === 0 && !legacy) {
+      return html`<p class="hint">
+        Noch kein Endpunkt angelegt. Endpunkte verwalten Sie auf der
+        Übersichtsseite der Bilderkennung unter „Modell-Endpunkte"; danach
+        wählen Sie hier nur noch Endpunkt und Modell aus.
+      </p>`;
+    }
+
+    const models = chosen?.models ?? [];
+    const model = this.backend.model ?? "";
+    const modelOptions = [
+      // A saved model the endpoint no longer lists stays selectable, so
+      // opening the editor never silently rewrites a working profile.
+      ...(model && !models.includes(model)
+        ? [{ value: model, label: `${model} (nicht in der Modell-Liste)` }]
+        : []),
+      ...models.map((m) => ({ value: m, label: m })),
+    ];
+
+    return html`
+      <div class="fields">
+        <div>
+          <label>Endpunkt</label>
+          <kustos-vision-select
+            .options=${[
+              ...(this.backend.endpoint_id || legacy
+                ? []
+                : [{ value: "", label: "Bitte wählen …" }]),
+              ...(legacy
+                ? [
+                    {
+                      value: DIRECT_ENTRY,
+                      label: `Direkteingabe: ${this.backend.url}`,
+                    },
+                  ]
+                : []),
+              ...this.endpoints.map((e) => ({
+                value: e.id,
+                label: `${e.name} (${e.url})`,
+              })),
+            ]}
+            .value=${this.backend.endpoint_id || (legacy ? DIRECT_ENTRY : "")}
+            @value-changed=${(e: CustomEvent<{ value: string }>) => {
+              const value = e.detail.value;
+              if (value === DIRECT_ENTRY || value === "") return;
+              const endpoint = this.endpoints.find((ep) => ep.id === value);
+              this.backend = {
+                ...this.backend,
+                endpoint_id: value,
+                // The endpoint owns the connection from here on.
+                url: undefined,
+                api_key: undefined,
+                model:
+                  this.backend.model &&
+                  endpoint?.models?.includes(this.backend.model)
+                    ? this.backend.model
+                    : (endpoint?.models?.[0] ?? this.backend.model),
+              };
+            }}
+          ></kustos-vision-select>
+        </div>
+        <div>
+          <label>Modell</label>
+          ${direct
+            ? html`<input
+                .value=${model}
+                @change=${(e: Event) =>
+                  (this.backend = {
+                    ...this.backend,
+                    model: (e.target as HTMLInputElement).value,
+                  })}
+              />`
+            : html`<kustos-vision-select
+                .options=${modelOptions.length
+                  ? modelOptions
+                  : [{ value: "", label: "Keine Modelle am Endpunkt hinterlegt" }]}
+                .value=${model}
+                @value-changed=${(e: CustomEvent<{ value: string }>) =>
+                  (this.backend = { ...this.backend, model: e.detail.value })}
+              ></kustos-vision-select>`}
+        </div>
+      </div>
+      ${direct && legacy
+        ? html`<label>Schlüssel (bei lokalen Modellen meist leer)</label>
             <input
               type="password"
               .value=${this.backend.api_key ?? ""}
@@ -465,12 +542,19 @@ export class CamwatchVisionEditor extends LitElement {
                   ...this.backend,
                   api_key: (e.target as HTMLInputElement).value || undefined,
                 })}
-            />
-            <p class="hint">
-              Das Modell muss Bilder verarbeiten können. Bei llama.cpp heißt das:
-              mit einer mmproj-Datei geladen.
-            </p>
-          `}
+            />`
+        : nothing}
+      ${!direct && models.length === 0
+        ? html`<p class="hint">
+            Für diesen Endpunkt sind noch keine Modelle hinterlegt. Auf der
+            Übersichtsseite unter „Modell-Endpunkte" lassen sie sich
+            automatisch ermitteln oder von Hand eintragen.
+          </p>`
+        : nothing}
+      <p class="hint">
+        Das Modell muss Bilder verarbeiten können. Bei llama.cpp heißt das:
+        mit einer mmproj-Datei geladen.
+      </p>
     `;
   }
 

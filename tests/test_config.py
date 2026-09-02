@@ -216,6 +216,53 @@ def test_config_with_persons_round_trips() -> None:
     assert CamwatchConfig.from_dict(config.as_dict()) == config
 
 
+def test_endpoints_round_trip_and_are_replace_and_removable() -> None:
+    from kustos_vision.core.config import EndpointConfig
+
+    endpoint = EndpointConfig(
+        id="mini",
+        name="Mac mini",
+        url="http://192.168.1.10:8080/v1",
+        api_key="secret",
+        models=("gemma4-vision", "qwen-vision"),
+    )
+    assert EndpointConfig.from_dict(endpoint.as_dict()) == endpoint
+
+    config = CamwatchConfig(storage=storage()).with_endpoint(endpoint)
+    assert CamwatchConfig.from_dict(config.as_dict()) == config
+    assert config.endpoint("mini") == endpoint
+
+    renamed = EndpointConfig(id="mini", name="Neu", url=endpoint.url)
+    replaced = config.with_endpoint(renamed)
+    assert len(replaced.endpoints) == 1
+    assert replaced.endpoint("mini").name == "Neu"
+    assert replaced.without_endpoint("mini").endpoints == ()
+
+
+def test_an_endpoint_needs_name_url_and_distinct_models() -> None:
+    from kustos_vision.core.config import EndpointConfig
+
+    with pytest.raises(ConfigError, match="name"):
+        EndpointConfig(id="mini", name="  ", url="http://x")
+    with pytest.raises(ConfigError, match="URL"):
+        EndpointConfig(id="mini", name="Mini", url="")
+    with pytest.raises(ConfigError, match="twice"):
+        EndpointConfig(id="mini", name="Mini", url="http://x", models=("a", "a"))
+
+
+def test_an_openai_backend_accepts_an_endpoint_instead_of_a_url() -> None:
+    """Regression guard for the whole feature: a profile referencing an
+    endpoint carries no URL of its own, and validation must not demand one."""
+    from kustos_vision.core.config import VisionBackend, VisionBackendKind
+
+    backend = VisionBackend(
+        kind=VisionBackendKind.OPENAI, endpoint_id="mini", model="gemma4-vision"
+    )
+    assert VisionBackend.from_dict(backend.as_dict()) == backend
+    with pytest.raises(ConfigError, match="URL or an endpoint"):
+        VisionBackend(kind=VisionBackendKind.OPENAI, model="gemma4-vision")
+
+
 def test_a_stored_config_without_a_persons_key_loads() -> None:
     """Every configuration stored before the feature lacks the key; the
     default covers that without a version bump."""

@@ -116,7 +116,12 @@ def vision_env(analysed: list[dict]):
 
     async def _analyse(hass, camera, prof, entity_id, request=None):
         analysed.append(
-            {"camera": camera.slug, "entity_id": entity_id, "request": request}
+            {
+                "camera": camera.slug,
+                "entity_id": entity_id,
+                "request": request,
+                "backend": prof.backend,
+            }
         )
         return VisionResult(
             values={"paket": True, "wer": "Postbote"},
@@ -1231,3 +1236,102 @@ async def test_person_detection_without_any_person_is_still_pointless(
     await fire(hass, "off")
     await fire(hass, "on")
     assert analysed == []
+
+
+# ----------------------------------------------------------------------
+# Endpoints
+# ----------------------------------------------------------------------
+
+
+def endpoint_backend() -> dict:
+    return {"kind": "openai", "endpoint_id": "mini", "model": "gemma4-vision"}
+
+
+async def test_a_profile_resolves_its_endpoint_at_request_time(
+    hass: HomeAssistant, setup_vision, analysed
+) -> None:
+    """The profile carries only the endpoint id; url and key are filled in
+    when the analysis runs, so editing the endpoint takes effect for every
+    camera at once."""
+    from custom_components.kustos_vision.core.config import EndpointConfig
+
+    entry = await setup_vision([profile(backend=endpoint_backend())])
+    coordinator = entry.runtime_data
+    await coordinator.async_set_config(
+        coordinator.config.with_endpoint(
+            EndpointConfig(
+                id="mini",
+                name="Mac mini",
+                url="http://mini.local:8080/v1",
+                api_key="secret",
+            )
+        )
+    )
+    await coordinator.vision.async_analyse("beispiel", force=True)
+    assert analysed
+    backend = analysed[0]["backend"]
+    assert backend.url == "http://mini.local:8080/v1"
+    assert backend.api_key == "secret"
+    assert backend.model == "gemma4-vision"
+
+
+async def test_a_vanished_endpoint_fails_loudly_not_silently(
+    hass: HomeAssistant, setup_vision, analysed
+) -> None:
+    entry = await setup_vision([profile(backend=endpoint_backend())])
+    runner = entry.runtime_data.vision
+    with pytest.raises(Exception, match="no longer exists"):
+        await runner.async_analyse("beispiel", force=True)
+    assert analysed == []
+
+
+async def test_endpoints_ws_round_trip(
+    hass: HomeAssistant, hass_ws_client, setup_vision
+) -> None:
+    await setup_vision()
+    client = await hass_ws_client(hass)
+
+    await client.send_json_auto_id(
+        {
+            "type": f"{DOMAIN}/endpoint/set",
+            "name": "Mac mini",
+            "url": "http://mini.local:8080/v1",
+            "models": ["gemma4-vision"],
+        }
+    )
+    reply = await client.receive_json()
+    assert reply["success"]
+    stored_endpoint = reply["result"]["endpoints"][0]
+    assert stored_endpoint["id"] == "mac_mini"
+    assert stored_endpoint["models"] == ["gemma4-vision"]
+
+    await client.send_json_auto_id(
+        {"type": f"{DOMAIN}/endpoint/delete", "endpoint_id": "mac_mini"}
+    )
+    reply = await client.receive_json()
+    assert reply["success"]
+    assert reply["result"]["endpoints"] == []
+
+
+async def test_an_endpoint_in_use_cannot_be_deleted(
+    hass: HomeAssistant, hass_ws_client, setup_vision
+) -> None:
+    """A deleted endpoint would strand every camera pointing at it; the
+    refusal names the cameras so the user knows what to change first."""
+    from custom_components.kustos_vision.core.config import EndpointConfig
+
+    entry = await setup_vision([profile(backend=endpoint_backend())])
+    coordinator = entry.runtime_data
+    await coordinator.async_set_config(
+        coordinator.config.with_endpoint(
+            EndpointConfig(id="mini", name="Mac mini", url="http://mini:8080/v1")
+        )
+    )
+    client = await hass_ws_client(hass)
+    await client.send_json_auto_id(
+        {"type": f"{DOMAIN}/endpoint/delete", "endpoint_id": "mini"}
+    )
+    reply = await client.receive_json()
+    assert not reply["success"]
+    assert reply["error"]["code"] == "still_in_use"
+    assert "beispiel" in reply["error"]["message"]

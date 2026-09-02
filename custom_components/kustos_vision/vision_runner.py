@@ -22,7 +22,7 @@ import asyncio
 import logging
 import shutil
 from collections.abc import Callable
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import date, datetime
 from pathlib import Path
 from typing import Any
@@ -41,7 +41,7 @@ from .core.capture import (
     frame_slot,
     frames_dir,
 )
-from .core.config import CamwatchConfig, VisionProfile
+from .core.config import CamwatchConfig, VisionBackendKind, VisionProfile
 from .core.persons import PersonProfile, plan_person_pictures
 from .core.references import (
     MAX_PICTURES_PER_REQUEST,
@@ -82,6 +82,31 @@ class VisionState:
     def count_for(self, today: date) -> int:
         """Analyses used today, resetting when the local day rolls over."""
         return self.analyses_today if self.budget_day == today else 0
+
+
+def _resolve_backend(profile: VisionProfile, config: CamwatchConfig) -> VisionProfile:
+    """Fill in a referenced endpoint's connection details.
+
+    At request time on purpose: editing the endpoint then takes effect for
+    every camera at once, which is the whole point of entering it once. The
+    direct URL of profiles from before endpoints existed passes through
+    untouched.
+    """
+    backend = profile.backend
+    if backend.kind is not VisionBackendKind.OPENAI or not backend.endpoint_id:
+        return profile
+    endpoint = config.endpoint(backend.endpoint_id)
+    if endpoint is None:
+        raise VisionError(
+            f"the endpoint {backend.endpoint_id!r} configured for "
+            f"{profile.camera_slug!r} no longer exists"
+        )
+    return replace(
+        profile,
+        backend=replace(
+            backend, url=endpoint.url, api_key=endpoint.api_key or None
+        ),
+    )
 
 
 def _asks_anything(profile: VisionProfile, config: CamwatchConfig) -> bool:
@@ -261,6 +286,7 @@ class VisionRunner:
         profile = config.vision_for(camera_slug)
         if camera is None or profile is None:
             raise VisionError(f"no vision profile for {camera_slug!r}")
+        profile = _resolve_backend(profile, config)
 
         state = self.state_for(camera_slug)
         lock = self._locks.setdefault(camera_slug, asyncio.Lock())

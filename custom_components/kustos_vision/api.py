@@ -52,6 +52,7 @@ from .core.config import (
     CapabilityBinding,
     ConfigError,
     CustomControl,
+    EndpointConfig,
     StorageConfig,
     StreamConfig,
     ViewConfig,
@@ -95,6 +96,10 @@ def async_register(hass: HomeAssistant) -> None:
         ws_set_person,
         ws_delete_person,
         ws_persons_options,
+        ws_set_endpoint,
+        ws_delete_endpoint,
+        ws_endpoint_models,
+        ws_endpoint_test,
     ):
         websocket_api.async_register_command(hass, command)
 
@@ -193,6 +198,7 @@ def _snapshot(coordinator: CamwatchCoordinator) -> dict[str, Any]:
         "cameras": cameras,
         "vision": vision,
         "persons": persons,
+        "endpoints": [e.as_dict() for e in coordinator.config.endpoints],
         "views": [
             {
                 **view.as_dict(),
@@ -1104,6 +1110,149 @@ async def ws_persons_options(
         coordinator.config.with_persons_options(msg["absence_seconds"])
     )
     connection.send_result(msg["id"], _snapshot(coordinator))
+
+
+@websocket_api.require_admin
+@websocket_api.websocket_command(
+    {
+        vol.Required("type"): f"{DOMAIN}/endpoint/set",
+        vol.Optional("endpoint_id"): str,
+        vol.Required("name"): str,
+        vol.Required("url"): str,
+        vol.Optional("api_key", default=""): str,
+        vol.Optional("models", default=[]): [str],
+    }
+)
+@websocket_api.async_response
+async def ws_set_endpoint(
+    hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict
+) -> None:
+    """Create or replace one OpenAI-compatible endpoint."""
+    if (coordinator := _require(hass, connection, msg)) is None:
+        return
+    name = msg["name"].strip()
+    if not name:
+        connection.send_error(msg["id"], "invalid_config", "an endpoint needs a name")
+        return
+    endpoint_id = msg.get("endpoint_id") or slugify(name)
+    if msg.get("endpoint_id") is None and coordinator.config.endpoint(endpoint_id):
+        connection.send_error(
+            msg["id"],
+            "invalid_config",
+            f"an endpoint with the identifier {endpoint_id!r} already exists",
+        )
+        return
+    try:
+        endpoint = EndpointConfig(
+            id=endpoint_id,
+            name=name,
+            url=msg["url"].strip(),
+            api_key=msg["api_key"],
+            models=tuple(msg["models"]),
+        )
+        updated = coordinator.config.with_endpoint(endpoint)
+    except ConfigError as err:
+        connection.send_error(msg["id"], "invalid_config", str(err))
+        return
+    await coordinator.async_set_config(updated)
+    connection.send_result(msg["id"], _snapshot(coordinator))
+
+
+@websocket_api.require_admin
+@websocket_api.websocket_command(
+    {
+        vol.Required("type"): f"{DOMAIN}/endpoint/delete",
+        vol.Required("endpoint_id"): str,
+    }
+)
+@websocket_api.async_response
+async def ws_delete_endpoint(
+    hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict
+) -> None:
+    """Remove one endpoint, unless a camera still analyses through it."""
+    if (coordinator := _require(hass, connection, msg)) is None:
+        return
+    endpoint_id = msg["endpoint_id"]
+    if coordinator.config.endpoint(endpoint_id) is None:
+        connection.send_error(msg["id"], "not_found", "no such endpoint")
+        return
+    users = [
+        profile.camera_slug
+        for profile in coordinator.config.vision
+        if profile.backend.endpoint_id == endpoint_id
+    ]
+    if users:
+        connection.send_error(
+            msg["id"],
+            "still_in_use",
+            "dieser Endpunkt wird noch benutzt von: " + ", ".join(users),
+        )
+        return
+    await coordinator.async_set_config(
+        coordinator.config.without_endpoint(endpoint_id)
+    )
+    connection.send_result(msg["id"], _snapshot(coordinator))
+
+
+@websocket_api.require_admin
+@websocket_api.websocket_command(
+    {
+        vol.Required("type"): f"{DOMAIN}/endpoint/models",
+        vol.Required("url"): str,
+        vol.Optional("api_key", default=""): str,
+    }
+)
+@websocket_api.async_response
+async def ws_endpoint_models(
+    hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict
+) -> None:
+    """Ask an endpoint for its model list (GET /v1/models).
+
+    Done server-side, not in the panel: the browser would be stopped by CORS
+    on almost every runner, and the server is the one whose network can
+    reach a LAN endpoint anyway.
+    """
+    if _require(hass, connection, msg) is None:
+        return
+    from .vision import VisionError
+    from .vision.openai_compat import async_list_models
+
+    try:
+        models = await async_list_models(hass, msg["url"], msg["api_key"])
+    except VisionError as err:
+        connection.send_error(msg["id"], "endpoint_error", str(err))
+        return
+    connection.send_result(msg["id"], {"models": models})
+
+
+@websocket_api.require_admin
+@websocket_api.websocket_command(
+    {
+        vol.Required("type"): f"{DOMAIN}/endpoint/test",
+        vol.Required("url"): str,
+        vol.Required("model"): str,
+        vol.Optional("api_key", default=""): str,
+    }
+)
+@websocket_api.async_response
+async def ws_endpoint_test(
+    hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict
+) -> None:
+    """One tiny completion against one model, so a typo fails here and not
+    silently at the next motion event."""
+    if _require(hass, connection, msg) is None:
+        return
+    from .vision import VisionError
+    from .vision.openai_compat import async_probe_model
+
+    try:
+        duration = await async_probe_model(
+            hass, msg["url"], msg["model"], msg["api_key"]
+        )
+    except VisionError as err:
+        connection.send_error(msg["id"], "endpoint_error", str(err))
+        return
+    connection.send_result(msg["id"], {"ok": True, "duration": round(duration, 2)})
 
 
 @websocket_api.require_admin

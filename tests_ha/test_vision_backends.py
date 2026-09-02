@@ -487,3 +487,138 @@ async def test_a_person_only_analysis_passes_the_asks_nothing_guard(
         result = await async_analyse(hass, CAMERA, empty, "camera.vg", request=request)
     assert result.persons == {"dustin": True}
     assert result.values == {}
+
+
+# ----------------------------------------------------------------------
+# Endpoint discovery and probing
+# ----------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "given",
+    [
+        "http://mini.local:8080",
+        "http://mini.local:8080/",
+        "http://mini.local:8080/v1",
+        "http://mini.local:8080/v1/",
+        "http://mini.local:8080/v1/chat/completions",
+    ],
+)
+def test_every_form_of_the_url_reaches_the_model_listing(given: str) -> None:
+    from custom_components.kustos_vision.vision.openai_compat import (
+        models_endpoint,
+    )
+
+    assert models_endpoint(given) == "http://mini.local:8080/v1/models"
+
+
+async def test_the_model_listing_is_read_from_the_openai_shape(
+    hass: HomeAssistant,
+) -> None:
+    """GET /v1/models with data[].id - verified live against llama-swap."""
+    from unittest.mock import patch
+
+    from custom_components.kustos_vision.vision.openai_compat import (
+        async_list_models,
+    )
+
+    class FakeResponse:
+        status = 200
+
+        async def text(self) -> str:
+            return json.dumps(
+                {
+                    "object": "list",
+                    "data": [
+                        {"id": "qwen-vision", "object": "model"},
+                        {"id": "gemma4-vision", "object": "model"},
+                    ],
+                }
+            )
+
+    class FakeSession:
+        async def get(self, url, headers=None, timeout=None):
+            assert url.endswith("/v1/models")
+            return FakeResponse()
+
+    with patch(
+        "custom_components.kustos_vision.vision.openai_compat."
+        "async_get_clientsession",
+        return_value=FakeSession(),
+    ):
+        models = await async_list_models(hass, "http://mini.local:8080")
+    assert models == ["gemma4-vision", "qwen-vision"]
+
+
+async def test_a_listing_that_is_not_a_model_list_is_an_error(
+    hass: HomeAssistant,
+) -> None:
+    from unittest.mock import patch
+
+    from custom_components.kustos_vision.vision.openai_compat import (
+        async_list_models,
+    )
+
+    class FakeResponse:
+        status = 200
+
+        async def text(self) -> str:
+            return json.dumps({"unexpected": True})
+
+    class FakeSession:
+        async def get(self, url, headers=None, timeout=None):
+            return FakeResponse()
+
+    with patch(
+        "custom_components.kustos_vision.vision.openai_compat."
+        "async_get_clientsession",
+        return_value=FakeSession(),
+    ):
+        with pytest.raises(VisionError, match="model list"):
+            await async_list_models(hass, "http://mini.local:8080")
+
+
+async def test_the_probe_reports_the_answer_time_or_the_refusal(
+    hass: HomeAssistant,
+) -> None:
+    from unittest.mock import patch
+
+    from custom_components.kustos_vision.vision.openai_compat import (
+        async_probe_model,
+    )
+
+    class OkResponse:
+        status = 200
+
+        async def text(self) -> str:
+            return json.dumps({"choices": [{"message": {"content": "OK"}}]})
+
+    class RefusingResponse:
+        status = 404
+
+        async def text(self) -> str:
+            return "model not found"
+
+    class FakeSession:
+        def __init__(self, response) -> None:
+            self.response = response
+
+        async def post(self, url, json=None, headers=None, timeout=None):
+            assert json["max_tokens"] > 0
+            return self.response
+
+    with patch(
+        "custom_components.kustos_vision.vision.openai_compat."
+        "async_get_clientsession",
+        return_value=FakeSession(OkResponse()),
+    ):
+        duration = await async_probe_model(hass, "http://x", "gemma4-vision")
+    assert duration >= 0
+
+    with patch(
+        "custom_components.kustos_vision.vision.openai_compat."
+        "async_get_clientsession",
+        return_value=FakeSession(RefusingResponse()),
+    ):
+        with pytest.raises(VisionError, match="HTTP 404"):
+            await async_probe_model(hass, "http://x", "tippfehler")
