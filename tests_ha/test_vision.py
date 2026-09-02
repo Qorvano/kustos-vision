@@ -1478,3 +1478,30 @@ async def test_without_the_switch_no_marks_are_requested(
     entry = await setup_vision([profile(frame_sensor=True)])
     await entry.runtime_data.vision.async_analyse("beispiel", force=True)
     assert analysed[0]["request"].mark_objects is False
+
+
+async def test_an_upload_is_shrunk_before_it_is_addressed(
+    hass: HomeAssistant, hass_client, setup_vision
+) -> None:
+    """Regression: a full-resolution phone photo as a reference cost a
+    Qwen-class vision encoder ~4000 prompt tokens and a minute of prefill on
+    EVERY analysis. Uploads are capped like the frames, and the content id
+    is the hash of what is actually stored."""
+    from custom_components.kustos_vision.core.references import asset_id_for
+
+    small = b"\xff\xd8\xff-shrunk"
+    with patch(
+        "custom_components.kustos_vision.capture.async_shrink_image",
+        AsyncMock(return_value=(small, "image/jpeg")),
+    ):
+        await setup_vision()
+        client = await hass_client()
+        reply = await client.post(
+            f"/api/{DOMAIN}/reference", data=upload_form(JPEG_UPLOAD)
+        )
+    body = await reply.json()
+    assert body["asset_id"] == asset_id_for(small)
+    assert body["bytes"] == len(small)
+
+    served = await client.get(f"/api/{DOMAIN}/reference/{body['asset_id']}")
+    assert await served.read() == small

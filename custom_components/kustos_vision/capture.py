@@ -25,6 +25,7 @@ from .core.capture import (
     CapturedFrame,
     FrameSource,
     build_frame_args,
+    build_shrink_args,
 )
 from .core.marks import Mark, build_mark_args
 from .export import STAMP_FONT
@@ -164,6 +165,53 @@ async def _async_run_ffmpeg(
         source=FrameSource.STREAM,
         path=keep,
     )
+
+
+async def async_shrink_image(
+    hass: HomeAssistant, content: bytes, content_type: str
+) -> tuple[bytes, str]:
+    """Cap an uploaded picture at the frame's long edge, as JPEG.
+
+    Never upscales, and never fails the upload: when ffmpeg is missing or
+    refuses the file, the original travels - larger than it needs to be, but
+    working, which beats refusing a picture that every backend but the
+    strictest could have used.
+    """
+    source = await hass.async_add_executor_job(_temp_jpeg)
+    target = await hass.async_add_executor_job(_temp_jpeg)
+    try:
+        await hass.async_add_executor_job(source.write_bytes, content)
+        binary = get_ffmpeg_manager(hass).binary
+        args = build_shrink_args(source, target)
+        try:
+            process = await create_subprocess_exec(
+                binary,
+                *args,
+                stdin=asyncio.subprocess.DEVNULL,
+                stdout=asyncio.subprocess.DEVNULL,
+                stderr=asyncio.subprocess.DEVNULL,
+            )
+            code = await asyncio.wait_for(
+                process.wait(), MARK_DRAW_TIMEOUT_SECONDS
+            )
+        except OSError:
+            return content, content_type
+        except TimeoutError:
+            with contextlib.suppress(ProcessLookupError):
+                process.kill()
+            with contextlib.suppress(Exception):
+                await process.wait()
+            return content, content_type
+        if code != 0:
+            return content, content_type
+        shrunk = await hass.async_add_executor_job(_read_or_none, target)
+        if not shrunk:
+            return content, content_type
+        return shrunk, "image/jpeg"
+    finally:
+        for path in (source, target):
+            with contextlib.suppress(OSError):
+                await hass.async_add_executor_job(path.unlink)
 
 
 async def async_draw_marks(

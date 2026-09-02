@@ -327,6 +327,16 @@ class ReferenceUploadView(HomeAssistantView):
                 text="Nur JPEG- und PNG-Bilder werden als Referenz akzeptiert.",
             )
 
+        # Capped like the frames, before it is hashed: a full-resolution
+        # phone photo cost a Qwen-class vision encoder four thousand prompt
+        # tokens and a minute of prefill PER ANALYSIS - every pixel past the
+        # model's tile grid is pure cost, on every run, forever.
+        from .capture import async_shrink_image
+
+        content, content_type = await async_shrink_image(
+            self.hass, content, content_type
+        )
+
         asset_id = asset_id_for(content)
         target = asset_path(
             Path(self.hass.config.path(LOCAL_STATE_DIR)), asset_id, content_type

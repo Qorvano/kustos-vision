@@ -64,6 +64,22 @@ def test_a_nonsense_long_edge_is_refused() -> None:
         build_frame_args("rtsp://cam.local/s", TARGET, long_edge=0)
 
 
+def test_shrink_args_cap_without_upscaling() -> None:
+    """Regression: an uploaded phone photo travelled at full resolution and
+    cost a Qwen-class vision encoder ~4000 prompt tokens and a minute of
+    prefill per analysis. Uploads are capped like the frames - min() on both
+    edges, so a small picture is never blown up."""
+    from kustos_vision.core.capture import build_shrink_args
+
+    args = build_shrink_args(Path("/in.png"), Path("/out.jpg"))
+    filter_expr = args[args.index("-vf") + 1]
+    assert f"min({FRAME_LONG_EDGE},iw)" in filter_expr
+    assert f"min({FRAME_LONG_EDGE},ih)" in filter_expr
+    assert "-rtsp_transport" not in args
+    with pytest.raises(ValueError):
+        build_shrink_args(Path("/in.png"), Path("/out.jpg"), long_edge=0)
+
+
 # ----------------------------------------------------------------------
 # The ring
 # ----------------------------------------------------------------------

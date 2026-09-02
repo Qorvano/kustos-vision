@@ -112,6 +112,39 @@ def build_frame_args(
     return args
 
 
+def build_shrink_args(
+    source: Path, target: Path, long_edge: int = FRAME_LONG_EDGE
+) -> list[str]:
+    """ffmpeg arguments that re-encode one image, capped at the long edge.
+
+    For uploaded reference pictures, and for exactly the reason the frames
+    are capped: a phone photo at full resolution cost a Qwen-class vision
+    encoder over four thousand prompt tokens and a minute of prefill for a
+    single image, while everything beyond the model's tile grid is discarded
+    unseen. min() on both edges, so a small picture is never blown up.
+    """
+    if long_edge <= 0:
+        raise ValueError("long_edge must be positive")
+    return [
+        "-nostdin",
+        "-loglevel",
+        "error",
+        "-y",
+        "-i",
+        str(source),
+        "-vf",
+        f"scale=w='min({long_edge},iw)':h='min({long_edge},ih)'"
+        ":force_original_aspect_ratio=decrease",
+        "-frames:v",
+        "1",
+        "-q:v",
+        FRAME_JPEG_QUALITY,
+        "-f",
+        "image2",
+        str(target),
+    ]
+
+
 def frames_dir(local_state: Path, camera_slug: str) -> Path:
     """Where one camera's analysed frames live.
 
