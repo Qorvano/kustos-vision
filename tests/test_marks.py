@@ -131,10 +131,14 @@ def test_the_schema_fragment_is_strict_and_bounded() -> None:
     assert fragment["items"]["properties"]["box"]["items"]["maximum"] == MARK_GRID
 
 
-def test_the_prompt_ties_boxes_to_the_reported_answers() -> None:
-    """The boxes must describe what the other fields SAID, not invite the
-    model to find new things the questions never asked about."""
+def test_the_prompt_asks_for_every_recognised_object() -> None:
+    """Regression: the first wording tied boxes to what the questions asked,
+    so a description mentioning three bins produced boxes for only the two
+    with sensors - and a dog walking through would have gone unboxed. The
+    contract is: every recognised THING, but never surfaces or background."""
     text = marks_prompt()
     assert MARKS_FIELD in text
-    assert "other answers report" in text
+    assert "any other clearly recognisable thing" in text
+    assert "animal" in text
+    assert "hedges" in text
     assert str(MARK_GRID) in text

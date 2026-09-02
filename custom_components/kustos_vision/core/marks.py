@@ -68,11 +68,15 @@ def marks_schema_fragment() -> dict[str, Any]:
         "type": "array",
         "maxItems": MAX_MARKS,
         "description": (
-            "For every object your other answers report as present, one "
-            "entry: a short label and its bounding box [x0, y0, x1, y1] on "
-            f"a 0..{MARK_GRID} grid over the current camera frame (x0,y0 = "
-            "top left, x1,y1 = bottom right). An empty list when nothing "
-            "reported is locatable."
+            "One entry for every distinct object you recognise in the "
+            "current camera frame - everything your other answers mention, "
+            "and likewise any other clearly recognisable thing such as a "
+            "person, an animal, a vehicle, a package or a bin. Not surfaces "
+            "or fixed background like hedges, walls or floors. Each entry: "
+            "a short label and the bounding box [x0, y0, x1, y1] on a "
+            f"0..{MARK_GRID} grid over the full frame (x from the left "
+            "edge, y from the top edge). An empty list when nothing is "
+            "locatable."
         ),
         "items": {
             "type": "object",
@@ -96,15 +100,25 @@ def marks_schema_fragment() -> dict[str, Any]:
 
 
 def marks_prompt() -> str:
-    """The instruction block for the prompt, beside the other fields."""
+    """The instruction block for the prompt, beside the other fields.
+
+    Every recognised THING, not only what the questions asked about: a dog
+    walking through the frame deserves its box even though no question ever
+    mentioned dogs. Surfaces and fixed background are excluded, or the model
+    boxes the hedge and the floor and the picture drowns.
+    """
     return (
-        f'Field "{MARKS_FIELD}": For every object your other answers report '
-        "as present in the current camera frame, add one entry with a short "
-        "label (in the language of the questions) and its bounding box "
-        f"[x0, y0, x1, y1] on a 0..{MARK_GRID} grid, where x0,y0 is the top "
-        "left and x1,y1 the bottom right corner of the object. Boxes must "
-        "come from this frame only. Return an empty list when nothing you "
-        "reported can be located."
+        f'Field "{MARKS_FIELD}": One entry for every distinct object you '
+        "recognise in the current camera frame - everything your other "
+        "answers mention, and likewise any other clearly recognisable thing "
+        "(a person, an animal, a vehicle, a package, a bin and the like). "
+        "Do not box surfaces or fixed background such as hedges, walls or "
+        "floors. Each entry has a short label in the language of the "
+        f"questions and the bounding box [x0, y0, x1, y1] on a 0..{MARK_GRID} "
+        "grid over the full frame: x0,y0 is the object's top left corner "
+        "(x from the left edge, y from the top edge), x1,y1 its bottom "
+        "right corner. Boxes must come from this frame only. Return an "
+        "empty list when nothing is locatable."
     )
 
 
