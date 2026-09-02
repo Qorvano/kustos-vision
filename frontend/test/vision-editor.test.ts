@@ -15,6 +15,7 @@ type EditorInternals = {
   api: CamwatchApi;
   camera: { slug: string };
   detectPersons: boolean;
+  frameSensor: boolean;
   saveBlocked(): boolean;
   observations: Observation[];
   baseline: string;
@@ -58,6 +59,14 @@ describe("saving is blocked only when there is nothing to analyse", () => {
     const el = editor([{ ...QUESTION }]);
     el.detectPersons = false;
     expect(el.saveBlocked()).toBe(false);
+  });
+
+  it("the frame-entity switch travels in the payload", () => {
+    const el = editor([{ ...QUESTION }]);
+    el.frameSensor = true;
+    expect(
+      (el.payload() as { frame_sensor?: boolean }).frame_sensor,
+    ).toBe(true);
   });
 });
 

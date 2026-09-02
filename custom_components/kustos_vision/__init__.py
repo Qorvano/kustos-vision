@@ -37,7 +37,12 @@ from .storage import CamwatchStore
 
 _LOGGER = logging.getLogger(__name__)
 
-PLATFORMS = [Platform.BINARY_SENSOR, Platform.SENSOR, Platform.SWITCH]
+PLATFORMS = [
+    Platform.BINARY_SENSOR,
+    Platform.IMAGE,
+    Platform.SENSOR,
+    Platform.SWITCH,
+]
 
 type CamwatchEntry = ConfigEntry[CamwatchCoordinator]
 

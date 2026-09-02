@@ -1,13 +1,13 @@
-const We = "kustos-vision-reloaded";
+const je = "kustos-vision-reloaded";
 if (customElements.get("kustos-vision-panel") !== void 0) {
   let t = 0;
   try {
-    t = Number(sessionStorage.getItem(We) ?? 0);
+    t = Number(sessionStorage.getItem(je) ?? 0);
   } catch {
   }
   if (Date.now() - t > 3e4) {
     try {
-      sessionStorage.setItem(We, String(Date.now()));
+      sessionStorage.setItem(je, String(Date.now()));
     } catch {
     }
     location.reload();
@@ -18,7 +18,7 @@ if (customElements.get("kustos-vision-panel") !== void 0) {
  * Copyright 2019 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
  */
-const xe = globalThis, Be = xe.ShadowRoot && (xe.ShadyCSS === void 0 || xe.ShadyCSS.nativeShadow) && "adoptedStyleSheets" in Document.prototype && "replace" in CSSStyleSheet.prototype, Le = Symbol(), je = /* @__PURE__ */ new WeakMap();
+const xe = globalThis, Be = xe.ShadowRoot && (xe.ShadyCSS === void 0 || xe.ShadyCSS.nativeShadow) && "adoptedStyleSheets" in Document.prototype && "replace" in CSSStyleSheet.prototype, Le = Symbol(), We = /* @__PURE__ */ new WeakMap();
 let xt = class {
   constructor(e, s, i) {
     if (this._$cssResult$ = !0, i !== Le) throw Error("CSSResult is not constructable. Use `unsafeCSS` or `css` instead.");
@@ -29,7 +29,7 @@ let xt = class {
     const s = this.t;
     if (Be && e === void 0) {
       const i = s !== void 0 && s.length === 1;
-      i && (e = je.get(s)), e === void 0 && ((this.o = e = new CSSStyleSheet()).replaceSync(this.cssText), i && je.set(s, e));
+      i && (e = We.get(s)), e === void 0 && ((this.o = e = new CSSStyleSheet()).replaceSync(this.cssText), i && We.set(s, e));
     }
     return e;
   }
@@ -37,7 +37,7 @@ let xt = class {
     return this.cssText;
   }
 };
-const It = (t) => new xt(typeof t == "string" ? t : t + "", void 0, Le), M = (t, ...e) => {
+const It = (t) => new xt(typeof t == "string" ? t : t + "", void 0, Le), z = (t, ...e) => {
   const s = t.length === 1 ? t[0] : e.reduce((i, n, r) => i + ((a) => {
     if (a._$cssResult$ === !0) return a.cssText;
     if (typeof a == "number") return a;
@@ -60,7 +60,7 @@ const It = (t) => new xt(typeof t == "string" ? t : t + "", void 0, Le), M = (t,
  * Copyright 2017 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
  */
-const { is: Ut, defineProperty: Ht, getOwnPropertyDescriptor: Vt, getOwnPropertyNames: Ft, getOwnPropertySymbols: Wt, getPrototypeOf: jt } = Object, Ee = globalThis, qe = Ee.trustedTypes, Kt = qe ? qe.emptyScript : "", qt = Ee.reactiveElementPolyfillSupport, me = (t, e) => t, _e = { toAttribute(t, e) {
+const { is: Ut, defineProperty: Ht, getOwnPropertyDescriptor: Vt, getOwnPropertyNames: Ft, getOwnPropertySymbols: jt, getPrototypeOf: Wt } = Object, Ee = globalThis, qe = Ee.trustedTypes, Kt = qe ? qe.emptyScript : "", qt = Ee.reactiveElementPolyfillSupport, me = (t, e) => t, _e = { toAttribute(t, e) {
   switch (e) {
     case Boolean:
       t = t ? Kt : null;
@@ -119,13 +119,13 @@ let ie = class extends HTMLElement {
   }
   static _$Ei() {
     if (this.hasOwnProperty(me("elementProperties"))) return;
-    const e = jt(this);
+    const e = Wt(this);
     e.finalize(), e.l !== void 0 && (this.l = [...e.l]), this.elementProperties = new Map(e.elementProperties);
   }
   static finalize() {
     if (this.hasOwnProperty(me("finalized"))) return;
     if (this.finalized = !0, this._$Ei(), this.hasOwnProperty(me("properties"))) {
-      const s = this.properties, i = [...Ft(s), ...Wt(s)];
+      const s = this.properties, i = [...Ft(s), ...jt(s)];
       for (const n of i) this.createProperty(n, s[n]);
     }
     const e = this[Symbol.metadata];
@@ -539,7 +539,7 @@ as?.({ LitElement: D });
  * Copyright 2017 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
  */
-const z = (t) => (e, s) => {
+const M = (t) => (e, s) => {
   s !== void 0 ? s.addInitializer(() => {
     customElements.define(t, e);
   }) : customElements.define(t, e);
@@ -853,7 +853,7 @@ function we(t) {
     s /= 1e3, i += 1;
   return `${s.toFixed(s < 10 && i > 0 ? 1 : 0)} ${e[i]}`;
 }
-const F = M`
+const F = z`
   :host {
     /* The geometry the panel repeats, named once. Each maps onto Home
        Assistant's own variable where the theme system has one, so a theme
@@ -1414,7 +1414,7 @@ const F = M`
     }
   }
 `;
-var ds = Object.defineProperty, cs = Object.getOwnPropertyDescriptor, W = (t, e, s, i) => {
+var ds = Object.defineProperty, cs = Object.getOwnPropertyDescriptor, j = (t, e, s, i) => {
   for (var n = i > 1 ? void 0 : i ? cs(e, s) : e, r = t.length - 1, a; r >= 0; r--)
     (a = t[r]) && (n = (i ? a(e, s, n) : a(n)) || n);
   return i && n && ds(e, s, n), n;
@@ -1599,7 +1599,7 @@ let L = class extends D {
 };
 L.styles = [
   F,
-  M`
+  z`
       :host {
         display: block;
         width: 100%;
@@ -1665,32 +1665,32 @@ L.styles = [
       }
     `
 ];
-W([
+j([
   u({ attribute: !1 })
 ], L.prototype, "options", 2);
-W([
+j([
   u()
 ], L.prototype, "value", 2);
-W([
+j([
   u({ type: Boolean })
 ], L.prototype, "search", 2);
-W([
+j([
   u({ type: Boolean })
 ], L.prototype, "disabled", 2);
-W([
+j([
   d()
 ], L.prototype, "open", 2);
-W([
+j([
   d()
 ], L.prototype, "query", 2);
-W([
+j([
   d()
 ], L.prototype, "highlighted", 2);
-W([
+j([
   d()
 ], L.prototype, "drop", 2);
-L = W([
-  z("kustos-vision-select")
+L = j([
+  M("kustos-vision-select")
 ], L);
 var ms = Object.defineProperty, gs = Object.getOwnPropertyDescriptor, Dt = (t, e, s, i) => {
   for (var n = i > 1 ? void 0 : i ? gs(e, s) : e, r = t.length - 1, a; r >= 0; r--)
@@ -1745,7 +1745,7 @@ let Ae = class extends D {
 };
 Ae.styles = [
   F,
-  M`
+  z`
       :host {
         min-height: 0;
         background: none;
@@ -1796,7 +1796,7 @@ Dt([
   d()
 ], Ae.prototype, "open", 2);
 Ae = Dt([
-  z("kustos-vision-unsaved-dialog")
+  M("kustos-vision-unsaved-dialog")
 ], Ae);
 const ye = [];
 function Ve(t) {
@@ -1875,7 +1875,7 @@ const ws = {
   select: "Auswahl",
   number: "Wert"
 };
-var $s = Object.defineProperty, ks = Object.getOwnPropertyDescriptor, j = (t, e, s, i) => {
+var $s = Object.defineProperty, ks = Object.getOwnPropertyDescriptor, W = (t, e, s, i) => {
   for (var n = i > 1 ? void 0 : i ? ks(e, s) : e, r = t.length - 1, a; r >= 0; r--)
     (a = t[r]) && (n = (i ? a(e, s, n) : a(n)) || n);
   return i && n && $s(e, s, n), n;
@@ -1939,7 +1939,7 @@ function Ps(t) {
   const r = (a) => a.toString(16).padStart(2, "0");
   return `avc1.${r(s)}${r(i)}${r(n)}`;
 }
-function Mt(t) {
+function zt(t) {
   const e = new Date(t * 1e3);
   return `${e.toLocaleDateString(void 0, {
     day: "2-digit",
@@ -2115,8 +2115,8 @@ let I = class extends D {
       if (r !== this.generation) return;
       try {
         h = await this.inspect(this.placed[0].segment);
-      } catch (x) {
-        this.message = k(x);
+      } catch (_) {
+        this.message = k(_);
         return;
       }
     }
@@ -2142,12 +2142,12 @@ let I = class extends D {
       () => {
         if (r === this.generation)
           try {
-            const x = g.addSourceBuffer(b);
-            x.mode = "segments", this.buffer = x, x.addEventListener("updateend", () => void this.pump());
+            const _ = g.addSourceBuffer(b);
+            _.mode = "segments", this.buffer = _, _.addEventListener("updateend", () => void this.pump());
             const V = this.placed[this.placed.length - 1];
             V && (g.duration = V.mediaStart + V.segment.duration), this.pump();
-          } catch (x) {
-            this.message = k(x);
+          } catch (_) {
+            this.message = k(_);
           }
       },
       { once: !0 }
@@ -2394,7 +2394,7 @@ let I = class extends D {
   render() {
     return o`
       <video controls playsinline></video>
-      ${this.clockUtc !== void 0 && !this.message && this.gapAt === void 0 ? o`<div class="clock">${Mt(this.clockUtc)}</div>` : c}
+      ${this.clockUtc !== void 0 && !this.message && this.gapAt === void 0 ? o`<div class="clock">${zt(this.clockUtc)}</div>` : c}
       ${this.gapAt !== void 0 ? o`<div class="gap">
             Um ${new Date(this.gapAt * 1e3).toLocaleTimeString()} liegt keine
             Aufnahme vor.
@@ -2404,7 +2404,7 @@ let I = class extends D {
     `;
   }
 };
-I.styles = M`
+I.styles = z`
     :host {
       display: block;
       background: #000;
@@ -2455,35 +2455,35 @@ I.styles = M`
       padding: 12px;
     }
   `;
-j([
+W([
   u({ attribute: !1 })
 ], I.prototype, "api", 2);
-j([
+W([
   u({ attribute: !1 })
 ], I.prototype, "segments", 2);
-j([
+W([
   u({ type: Number })
 ], I.prototype, "seekTo", 2);
-j([
+W([
   u()
 ], I.prototype, "segmentUrlBase", 2);
-j([
+W([
   d()
 ], I.prototype, "message", 2);
-j([
+W([
   d()
 ], I.prototype, "gapAt", 2);
-j([
+W([
   d()
 ], I.prototype, "clockUtc", 2);
-j([
+W([
   d()
 ], I.prototype, "loadingRun", 2);
-I = j([
-  z("kustos-vision-player")
+I = W([
+  M("kustos-vision-player")
 ], I);
-var Cs = Object.defineProperty, Ms = Object.getOwnPropertyDescriptor, U = (t, e, s, i) => {
-  for (var n = i > 1 ? void 0 : i ? Ms(e, s) : e, r = t.length - 1, a; r >= 0; r--)
+var Cs = Object.defineProperty, zs = Object.getOwnPropertyDescriptor, U = (t, e, s, i) => {
+  for (var n = i > 1 ? void 0 : i ? zs(e, s) : e, r = t.length - 1, a; r >= 0; r--)
     (a = t[r]) && (n = (i ? a(e, s, n) : a(n)) || n);
   return i && n && Cs(e, s, n), n;
 };
@@ -2734,7 +2734,7 @@ let O = class extends D {
     >
       ${this.renderPicture()}
     </div>
-    ${t ? o`<div class="clock">${Mt(this.nowSeconds)}</div>` : c}
+    ${t ? o`<div class="clock">${zt(this.nowSeconds)}</div>` : c}
     ${this.expanded ? o`<button
           class="exit"
           title="Vollbild verlassen"
@@ -2791,7 +2791,7 @@ let O = class extends D {
     }
   }
 };
-O.styles = M`
+O.styles = z`
     :host {
       display: block;
       position: relative;
@@ -2964,12 +2964,12 @@ U([
   d()
 ], O.prototype, "zoom", 2);
 O = U([
-  z("kustos-vision-live-stream")
+  M("kustos-vision-live-stream")
 ], O);
-var zs = Object.defineProperty, Os = Object.getOwnPropertyDescriptor, Z = (t, e, s, i) => {
+var Ms = Object.defineProperty, Os = Object.getOwnPropertyDescriptor, Z = (t, e, s, i) => {
   for (var n = i > 1 ? void 0 : i ? Os(e, s) : e, r = t.length - 1, a; r >= 0; r--)
     (a = t[r]) && (n = (i ? a(e, s, n) : a(n)) || n);
-  return i && n && zs(e, s, n), n;
+  return i && n && Ms(e, s, n), n;
 };
 const Rs = ["ptz_up", "ptz_left", "ptz_right", "ptz_down", "siren_on", "siren_off"], Bs = ["light", "siren", "privacy_mode"];
 let N = class extends D {
@@ -3129,7 +3129,7 @@ let N = class extends D {
 };
 N.styles = [
   F,
-  M`
+  z`
       :host {
         display: block;
         /* shared's :host serves full-page views and sets min-height: 100%;
@@ -3251,7 +3251,7 @@ Z([
   d()
 ], N.prototype, "error", 2);
 N = Z([
-  z("kustos-vision-camera-tile")
+  M("kustos-vision-camera-tile")
 ], N);
 var Ls = Object.defineProperty, Is = Object.getOwnPropertyDescriptor, oe = (t, e, s, i) => {
   for (var n = i > 1 ? void 0 : i ? Is(e, s) : e, r = t.length - 1, a; r >= 0; r--)
@@ -3291,7 +3291,7 @@ let q = class extends D {
     `;
   }
 };
-q.styles = M`
+q.styles = z`
     :host {
       display: block;
       /* A phone has no 16px to spare on each side; a monitor does. */
@@ -3356,7 +3356,7 @@ oe([
   u({ type: Boolean })
 ], q.prototype, "narrow", 2);
 q = oe([
-  z("kustos-vision-live-view")
+  M("kustos-vision-live-view")
 ], q);
 var Ns = Object.defineProperty, Us = Object.getOwnPropertyDescriptor, B = (t, e, s, i) => {
   for (var n = i > 1 ? void 0 : i ? Us(e, s) : e, r = t.length - 1, a; r >= 0; r--)
@@ -3372,7 +3372,7 @@ function Fs(t, e, s, i = 4) {
   const n = s / 2, r = Math.min(n + i, e / 2), a = Math.max(e - n - i, e / 2);
   return Math.min(Math.max(t, r), a);
 }
-const Ws = 168;
+const js = 168;
 let C = class extends D {
   constructor() {
     super(...arguments), this.from = 0, this.to = 0, this.blocks = [], this.segments = [], this.position = 0, this.thumbnailUrlBase = "/api/kustos_vision/thumbnail", this.dragging = !1, this.barWidth = 0;
@@ -3503,7 +3503,7 @@ let C = class extends D {
               style="left:${this.barWidth ? Fs(
       this.hover.x / 100 * this.barWidth,
       this.barWidth,
-      Math.min(Ws, this.barWidth)
+      Math.min(js, this.barWidth)
     ) + "px" : `${this.hover.x}%`}"
             >
               ${this.preview && this.preview.path === this.hover.segment?.path ? o`<img alt="" src=${this.preview.url} />` : c}
@@ -3544,7 +3544,7 @@ let C = class extends D {
     `;
   }
 };
-C.styles = M`
+C.styles = z`
     :host {
       display: block;
       user-select: none;
@@ -3698,12 +3698,12 @@ B([
   d()
 ], C.prototype, "barWidth", 2);
 C = B([
-  z("kustos-vision-timeline")
+  M("kustos-vision-timeline")
 ], C);
-var js = Object.defineProperty, Ks = Object.getOwnPropertyDescriptor, _ = (t, e, s, i) => {
+var Ws = Object.defineProperty, Ks = Object.getOwnPropertyDescriptor, S = (t, e, s, i) => {
   for (var n = i > 1 ? void 0 : i ? Ks(e, s) : e, r = t.length - 1, a; r >= 0; r--)
     (a = t[r]) && (n = (i ? a(e, s, n) : a(n)) || n);
-  return i && n && js(e, s, n), n;
+  return i && n && Ws(e, s, n), n;
 };
 const ct = 25, Ce = [
   { value: "high", label: "Beste Qualität", share: "etwa 120 %" },
@@ -3717,7 +3717,7 @@ function pt(t) {
   const s = (i) => String(i).padStart(2, "0");
   return `${e.getFullYear()}-${s(e.getMonth() + 1)}-${s(e.getDate())}`;
 }
-let w = class extends D {
+let $ = class extends D {
   constructor() {
     super(...arguments), this.cameras = [], this.stampAvailable = !1, this.narrow = !1, this.camera = "", this.stream = "", this.day = "", this.days = [], this.blocks = [], this.segments = [], this.position = 0, this.seekTo = 0, this.busy = !1, this.scrubbing = !1, this.downloading = !1, this.stampExport = !1, this.stampQuality = "balanced", this.error = "", this.rangeFromDay = "", this.rangeFromTime = "", this.rangeToDay = "", this.rangeToTime = "", this.rangeDay = "";
   }
@@ -4038,9 +4038,9 @@ let w = class extends D {
     `;
   }
 };
-w.styles = [
+$.styles = [
   F,
-  M`
+  z`
       /* The tab has to fit on one screen: picker, picture and timeline all
          visible at once, because scrolling to reach the timeline while
          watching the picture defeats the point of having both. So the view
@@ -4151,72 +4151,72 @@ w.styles = [
       }
     `
 ];
-_([
+S([
   u({ attribute: !1 })
-], w.prototype, "api", 2);
-_([
+], $.prototype, "api", 2);
+S([
   u({ attribute: !1 })
-], w.prototype, "cameras", 2);
-_([
+], $.prototype, "cameras", 2);
+S([
   u({ type: Boolean })
-], w.prototype, "stampAvailable", 2);
-_([
+], $.prototype, "stampAvailable", 2);
+S([
   u({ type: Boolean, reflect: !0 })
-], w.prototype, "narrow", 2);
-_([
+], $.prototype, "narrow", 2);
+S([
   d()
-], w.prototype, "camera", 2);
-_([
+], $.prototype, "camera", 2);
+S([
   d()
-], w.prototype, "stream", 2);
-_([
+], $.prototype, "stream", 2);
+S([
   d()
-], w.prototype, "day", 2);
-_([
+], $.prototype, "day", 2);
+S([
   d()
-], w.prototype, "days", 2);
-_([
+], $.prototype, "days", 2);
+S([
   d()
-], w.prototype, "blocks", 2);
-_([
+], $.prototype, "blocks", 2);
+S([
   d()
-], w.prototype, "segments", 2);
-_([
+], $.prototype, "segments", 2);
+S([
   d()
-], w.prototype, "position", 2);
-_([
+], $.prototype, "position", 2);
+S([
   d()
-], w.prototype, "seekTo", 2);
-_([
+], $.prototype, "seekTo", 2);
+S([
   d()
-], w.prototype, "busy", 2);
-_([
+], $.prototype, "busy", 2);
+S([
   d()
-], w.prototype, "downloading", 2);
-_([
+], $.prototype, "downloading", 2);
+S([
   d()
-], w.prototype, "stampExport", 2);
-_([
+], $.prototype, "stampExport", 2);
+S([
   d()
-], w.prototype, "stampQuality", 2);
-_([
+], $.prototype, "stampQuality", 2);
+S([
   d()
-], w.prototype, "error", 2);
-_([
+], $.prototype, "error", 2);
+S([
   d()
-], w.prototype, "rangeFromDay", 2);
-_([
+], $.prototype, "rangeFromDay", 2);
+S([
   d()
-], w.prototype, "rangeFromTime", 2);
-_([
+], $.prototype, "rangeFromTime", 2);
+S([
   d()
-], w.prototype, "rangeToDay", 2);
-_([
+], $.prototype, "rangeToDay", 2);
+S([
   d()
-], w.prototype, "rangeToTime", 2);
-w = _([
-  z("kustos-vision-recordings")
-], w);
+], $.prototype, "rangeToTime", 2);
+$ = S([
+  M("kustos-vision-recordings")
+], $);
 /**
  * @license
  * Copyright 2017 Google LLC
@@ -4264,7 +4264,7 @@ const { I: Js } = is, ut = (t) => t, mt = () => document.createComment(""), pe =
     }
   }
   return s;
-}, Y = (t, e, s = t) => (t._$AI(e, s), t), Ys = {}, Xs = (t, e = Ys) => t._$AH = e, Qs = (t) => t._$AH, Me = (t) => {
+}, Y = (t, e, s = t) => (t._$AI(e, s), t), Ys = {}, Xs = (t, e = Ys) => t._$AH = e, Qs = (t) => t._$AH, ze = (t) => {
   t._$AR(), t._$AA.remove();
 };
 /**
@@ -4276,7 +4276,7 @@ const gt = (t, e, s) => {
   const i = /* @__PURE__ */ new Map();
   for (let n = e; n <= s; n++) i.set(t[n], n);
   return i;
-}, zt = Gs(class extends Zs {
+}, Mt = Gs(class extends Zs {
   constructor(t) {
     if (super(t), t.type !== qs.CHILD) throw Error("repeat() can only be used in text expressions");
   }
@@ -4303,21 +4303,21 @@ const gt = (t, e, s) => {
     else if (l[p] === a[y]) h[y] = Y(n[p], r[y]), pe(t, h[y + 1], n[p]), p++, y--;
     else if (l[b] === a[g]) h[g] = Y(n[b], r[g]), pe(t, n[p], n[b]), b--, g++;
     else if (m === void 0 && (m = gt(a, g, y), f = gt(l, p, b)), m.has(l[p])) if (m.has(l[b])) {
-      const x = f.get(a[g]), V = x !== void 0 ? n[x] : null;
+      const _ = f.get(a[g]), V = _ !== void 0 ? n[_] : null;
       if (V === null) {
         const he = pe(t, n[p]);
         Y(he, r[g]), h[g] = he;
-      } else h[g] = Y(V, r[g]), pe(t, n[p], V), n[x] = null;
+      } else h[g] = Y(V, r[g]), pe(t, n[p], V), n[_] = null;
       g++;
-    } else Me(n[b]), b--;
-    else Me(n[p]), p++;
+    } else ze(n[b]), b--;
+    else ze(n[p]), p++;
     for (; g <= y; ) {
-      const x = pe(t, h[y + 1]);
-      Y(x, r[g]), h[g++] = x;
+      const _ = pe(t, h[y + 1]);
+      Y(_, r[g]), h[g++] = _;
     }
     for (; p <= b; ) {
-      const x = n[p++];
-      x !== null && Me(x);
+      const _ = n[p++];
+      _ !== null && ze(_);
     }
     return this.ut = a, Xs(t, h), se;
   }
@@ -4740,7 +4740,7 @@ let E = class extends D {
                 weil sie die anderen Kameras mit betrifft.
               </p>
               <div class="members">
-                ${zt(
+                ${Mt(
       i,
       (a) => `${t.id}:${a.slug}`,
       (a, l) => o`
@@ -5022,7 +5022,7 @@ let E = class extends D {
 };
 E.styles = [
   F,
-  M`
+  z`
       .member-row {
         display: flex;
         align-items: center;
@@ -5090,7 +5090,7 @@ P([
   d()
 ], E.prototype, "error", 2);
 E = P([
-  z("kustos-vision-camera-editor")
+  M("kustos-vision-camera-editor")
 ], E);
 const ni = 1 / 300, ri = 1 / 32, vt = 0.02, yt = "#e53935", ai = 0.9;
 function $e(t) {
@@ -5124,8 +5124,8 @@ function $t(t, e, s, i, n = -1) {
     const f = h.x * s, p = h.y * i, b = h.w * s, g = h.h * i;
     if (t.lineWidth = a, t.strokeStyle = yt, t.setLineDash([]), t.strokeRect(f, p, b, g), m === n && (t.lineWidth = Math.max(1, a / 2), t.strokeStyle = "#ffffff", t.setLineDash([a * 2, a * 2]), t.strokeRect(f, p, b, g), t.setLineDash([])), !h.label) return;
     t.font = `bold ${l}px sans-serif`;
-    const y = l * 0.35, x = l + 2 * y, V = t.measureText(h.label).width + 2 * y, he = p >= x ? p - x : p;
-    t.fillStyle = yt, t.fillRect(f, he, V, x), t.fillStyle = "#ffffff", t.textBaseline = "middle", t.fillText(h.label, f + y, he + x / 2);
+    const y = l * 0.35, _ = l + 2 * y, V = t.measureText(h.label).width + 2 * y, he = p >= _ ? p - _ : p;
+    t.fillStyle = yt, t.fillRect(f, he, V, _), t.fillStyle = "#ffffff", t.textBaseline = "middle", t.fillText(h.label, f + y, he + _ / 2);
   });
 }
 var di = Object.defineProperty, ci = Object.getOwnPropertyDescriptor, le = (t, e, s, i) => {
@@ -5303,7 +5303,7 @@ let G = class extends D {
 };
 G.styles = [
   F,
-  M`
+  z`
       :host {
         min-height: 0;
         background: none;
@@ -5382,7 +5382,7 @@ le([
   d()
 ], G.prototype, "error", 2);
 G = le([
-  z("kustos-vision-annotate-dialog")
+  M("kustos-vision-annotate-dialog")
 ], G);
 function pi(t) {
   return new Promise((e, s) => {
@@ -5390,7 +5390,7 @@ function pi(t) {
     i.onload = () => e(i), i.onerror = () => s(new Error("Das Referenzbild konnte nicht geladen werden")), i.src = t;
   });
 }
-var ui = Object.defineProperty, mi = Object.getOwnPropertyDescriptor, S = (t, e, s, i) => {
+var ui = Object.defineProperty, mi = Object.getOwnPropertyDescriptor, x = (t, e, s, i) => {
   for (var n = i > 1 ? void 0 : i ? mi(e, s) : e, r = t.length - 1, a; r >= 0; r--)
     (a = t[r]) && (n = (i ? a(e, s, n) : a(n)) || n);
   return i && n && ui(e, s, n), n;
@@ -5400,10 +5400,10 @@ const gi = [
   ["text", "Text"],
   ["number", "Anzahl"],
   ["select", "Auswahl"]
-], fi = "/api/kustos_vision/vision-frame", ze = 2, Oe = "__direct__";
-let $ = class extends D {
+], fi = "/api/kustos_vision/vision-frame", Me = 2, Oe = "__direct__";
+let w = class extends D {
   constructor() {
-    super(...arguments), this.endpoints = [], this.backend = { kind: "openai" }, this.observations = [], this.triggers = [], this.addingTrigger = !1, this.context = "", this.cooldown = 60, this.budget = 100, this.enabled = !0, this.detectPersons = !1, this.aiTasks = [], this.history = [], this.frameUrls = /* @__PURE__ */ new Map(), this.referenceUrls = /* @__PURE__ */ new Map(), this.busy = !1, this.error = "", this.baseline = "", this.unsaved = {
+    super(...arguments), this.endpoints = [], this.backend = { kind: "openai" }, this.observations = [], this.triggers = [], this.addingTrigger = !1, this.context = "", this.cooldown = 60, this.budget = 100, this.enabled = !0, this.detectPersons = !1, this.frameSensor = !1, this.aiTasks = [], this.history = [], this.frameUrls = /* @__PURE__ */ new Map(), this.referenceUrls = /* @__PURE__ */ new Map(), this.busy = !1, this.error = "", this.baseline = "", this.unsaved = {
       isDirty: () => JSON.stringify(this.payload()) !== this.baseline,
       save: () => this.save(),
       // Nothing to restore: leaving unmounts the editor and its drafts.
@@ -5416,7 +5416,7 @@ let $ = class extends D {
   }
   async connectedCallback() {
     if (super.connectedCallback(), this.profile)
-      this.backend = { ...this.profile.backend }, this.observations = this.profile.observations.map((t) => ({ ...t })), this.triggers = [...this.profile.triggers], this.context = this.profile.context, this.cooldown = this.profile.cooldown_seconds, this.budget = this.profile.daily_budget, this.enabled = this.profile.enabled, this.detectPersons = this.profile.detect_persons ?? !1, this.loadHistory();
+      this.backend = { ...this.profile.backend }, this.observations = this.profile.observations.map((t) => ({ ...t })), this.triggers = [...this.profile.triggers], this.context = this.profile.context, this.cooldown = this.profile.cooldown_seconds, this.budget = this.profile.daily_budget, this.enabled = this.profile.enabled, this.detectPersons = this.profile.detect_persons ?? !1, this.frameSensor = this.profile.frame_sensor ?? !1, this.loadHistory();
     else {
       const t = this.camera.capabilities.motion_trigger?.entity_id;
       t && (this.triggers = [t]);
@@ -5447,7 +5447,8 @@ let $ = class extends D {
       cooldown_seconds: this.cooldown,
       daily_budget: this.budget,
       enabled: this.enabled,
-      detect_persons: this.detectPersons
+      detect_persons: this.detectPersons,
+      frame_sensor: this.frameSensor
     };
   }
   async loadHistory() {
@@ -5507,7 +5508,7 @@ let $ = class extends D {
   /** Append an uploaded or captured picture to one question, unsaved. */
   async appendReference(t, e) {
     const s = this.observations[t].references ?? [];
-    if (s.length >= ze || (this.patchObservation(t, {
+    if (s.length >= Me || (this.patchObservation(t, {
       references: [...s, { asset_id: e, caption: "" }]
     }), !this.isConnected)) return;
     await this.updateComplete;
@@ -5831,7 +5832,7 @@ let $ = class extends D {
     `;
   }
   renderReferences(t, e) {
-    const s = t.references ?? [], i = s.length >= ze;
+    const s = t.references ?? [], i = s.length >= Me;
     return o`
       <details class="expander" ?open=${s.length > 0}>
         <summary>Referenzbilder (${s.length})</summary>
@@ -5905,7 +5906,7 @@ let $ = class extends D {
               Aktuelles Kamerabild übernehmen
             </button>
             ${i ? o`<span class="muted">
-                  Höchstens ${ze} Bilder je Frage:
+                  Höchstens ${Me} Bilder je Frage:
                   jedes weitere Bild verkleinert den Platz, den das Modell für
                   die eigentliche Analyse hat.
                 </span>` : c}
@@ -6078,6 +6079,22 @@ let $ = class extends D {
           <label style="margin:0">
             <input
               type="checkbox"
+              .checked=${this.frameSensor}
+              @change=${(e) => this.frameSensor = e.target.checked}
+            />
+            Bild-Entität
+          </label>
+        </div>
+        <p class="hint">
+          Stellt das Bild der jeweils letzten Analyse als Bild-Entität an der
+          Kamera bereit. Damit können Automationen den analysierten Screenshot
+          zum Beispiel an eine Push-Benachrichtigung anhängen.
+        </p>
+
+        <div class="row" style="margin-top:8px">
+          <label style="margin:0">
+            <input
+              type="checkbox"
               .checked=${this.enabled}
               @change=${(e) => this.enabled = e.target.checked}
             />
@@ -6135,9 +6152,9 @@ ${JSON.stringify(this.lastRun.raw, null, 2)}</pre
     `;
   }
 };
-$.styles = [
+w.styles = [
   F,
-  M`
+  z`
       /* The analysed frame beside each history row. A fixed height keeps the
          table from jumping while thumbnails load. */
       .framecell img {
@@ -6160,72 +6177,75 @@ $.styles = [
       }
     `
 ];
-S([
+x([
   u({ attribute: !1 })
-], $.prototype, "api", 2);
-S([
+], w.prototype, "api", 2);
+x([
   u({ attribute: !1 })
-], $.prototype, "camera", 2);
-S([
+], w.prototype, "camera", 2);
+x([
   u({ attribute: !1 })
-], $.prototype, "profile", 2);
-S([
+], w.prototype, "profile", 2);
+x([
   u({ attribute: !1 })
-], $.prototype, "hass", 2);
-S([
+], w.prototype, "hass", 2);
+x([
   u({ attribute: !1 })
-], $.prototype, "endpoints", 2);
-S([
+], w.prototype, "endpoints", 2);
+x([
   d()
-], $.prototype, "backend", 2);
-S([
+], w.prototype, "backend", 2);
+x([
   d()
-], $.prototype, "observations", 2);
-S([
+], w.prototype, "observations", 2);
+x([
   d()
-], $.prototype, "triggers", 2);
-S([
+], w.prototype, "triggers", 2);
+x([
   d()
-], $.prototype, "addingTrigger", 2);
-S([
+], w.prototype, "addingTrigger", 2);
+x([
   d()
-], $.prototype, "context", 2);
-S([
+], w.prototype, "context", 2);
+x([
   d()
-], $.prototype, "cooldown", 2);
-S([
+], w.prototype, "cooldown", 2);
+x([
   d()
-], $.prototype, "budget", 2);
-S([
+], w.prototype, "budget", 2);
+x([
   d()
-], $.prototype, "enabled", 2);
-S([
+], w.prototype, "enabled", 2);
+x([
   d()
-], $.prototype, "detectPersons", 2);
-S([
+], w.prototype, "detectPersons", 2);
+x([
   d()
-], $.prototype, "aiTasks", 2);
-S([
+], w.prototype, "frameSensor", 2);
+x([
   d()
-], $.prototype, "history", 2);
-S([
+], w.prototype, "aiTasks", 2);
+x([
   d()
-], $.prototype, "frameUrls", 2);
-S([
+], w.prototype, "history", 2);
+x([
   d()
-], $.prototype, "referenceUrls", 2);
-S([
+], w.prototype, "frameUrls", 2);
+x([
   d()
-], $.prototype, "lastRun", 2);
-S([
+], w.prototype, "referenceUrls", 2);
+x([
   d()
-], $.prototype, "busy", 2);
-S([
+], w.prototype, "lastRun", 2);
+x([
   d()
-], $.prototype, "error", 2);
-$ = S([
-  z("kustos-vision-vision-editor")
-], $);
+], w.prototype, "busy", 2);
+x([
+  d()
+], w.prototype, "error", 2);
+w = x([
+  M("kustos-vision-vision-editor")
+], w);
 var bi = Object.defineProperty, vi = Object.getOwnPropertyDescriptor, T = (t, e, s, i) => {
   for (var n = i > 1 ? void 0 : i ? vi(e, s) : e, r = t.length - 1, a; r >= 0; r--)
     (a = t[r]) && (n = (i ? a(e, s, n) : a(n)) || n);
@@ -7086,7 +7106,7 @@ Was bereits unter ${this.snapshot.storage.base_path} liegt, bleibt unverändert 
           dem Stream und den Bedienelementen für genau diese Ansicht. Eine neue
           Ansicht startet deshalb leer.
         </p>
-        ${t.length === 0 ? o`<p class="hint">Noch keine Ansicht angelegt.</p>` : zt(
+        ${t.length === 0 ? o`<p class="hint">Noch keine Ansicht angelegt.</p>` : Mt(
       t,
       (e) => e.id,
       (e, s) => this.renderViewRow(e, s)
@@ -7375,7 +7395,7 @@ T([
   d()
 ], A.prototype, "viewDrag", 2);
 A = T([
-  z("kustos-vision-settings")
+  M("kustos-vision-settings")
 ], A);
 var wi = Object.defineProperty, $i = Object.getOwnPropertyDescriptor, H = (t, e, s, i) => {
   for (var n = i > 1 ? void 0 : i ? $i(e, s) : e, r = t.length - 1, a; r >= 0; r--)
@@ -7642,7 +7662,7 @@ let R = class extends D {
 };
 R.styles = [
   F,
-  M`
+  z`
       :host {
         display: flex;
         flex-direction: column;
@@ -7865,7 +7885,7 @@ H([
   d()
 ], R.prototype, "viewMenu", 2);
 R = H([
-  z("kustos-vision-panel")
+  M("kustos-vision-panel")
 ], R);
 export {
   R as CamwatchPanel

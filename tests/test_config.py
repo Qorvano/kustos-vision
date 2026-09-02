@@ -263,6 +263,23 @@ def test_an_openai_backend_accepts_an_endpoint_instead_of_a_url() -> None:
         VisionBackend(kind=VisionBackendKind.OPENAI, model="gemma4-vision")
 
 
+def test_the_frame_sensor_flag_round_trips_and_defaults_off() -> None:
+    from kustos_vision.core.config import (
+        VisionBackend,
+        VisionBackendKind,
+        VisionProfile,
+    )
+
+    backend = VisionBackend(
+        kind=VisionBackendKind.OPENAI, endpoint_id="mini", model="m"
+    )
+    profile = VisionProfile(camera_slug="cam", backend=backend, frame_sensor=True)
+    assert VisionProfile.from_dict(profile.as_dict()).frame_sensor is True
+    stored_before_the_feature = profile.as_dict()
+    del stored_before_the_feature["frame_sensor"]
+    assert VisionProfile.from_dict(stored_before_the_feature).frame_sensor is False
+
+
 def test_a_stored_config_without_a_persons_key_loads() -> None:
     """Every configuration stored before the feature lacks the key; the
     default covers that without a version bump."""

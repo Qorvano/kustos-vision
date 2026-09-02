@@ -148,6 +148,8 @@ export interface VisionProfile {
   enabled: boolean;
   /** Whether this camera's analyses also ask for the configured people. */
   detect_persons?: boolean;
+  /** Whether an image entity carries the frame of the latest analysis. */
+  frame_sensor?: boolean;
   state: VisionState;
 }
 

@@ -45,6 +45,11 @@
       "recording": {
         "name": "Recording"
       }
+    },
+    "image": {
+      "analysed_frame": {
+        "name": "Analysed frame"
+      }
     }
   },
   "services": {

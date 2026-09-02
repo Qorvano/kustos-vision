@@ -580,6 +580,11 @@ class VisionProfile:
     One switch, off by default: not every camera should recognise persons,
     and every person question costs the request pictures and context."""
 
+    frame_sensor: bool = False
+    """Whether the camera gets an image entity carrying the frame of the
+    latest analysis, for automations that attach the picture to a push
+    notification."""
+
     def __post_init__(self) -> None:
         if not is_valid_slug(self.camera_slug):
             raise ConfigError(f"{self.camera_slug!r} is not a camera slug")
@@ -616,6 +621,7 @@ class VisionProfile:
             "daily_budget": self.daily_budget,
             "enabled": self.enabled,
             "detect_persons": self.detect_persons,
+            "frame_sensor": self.frame_sensor,
         }
 
     @classmethod
@@ -640,6 +646,7 @@ class VisionProfile:
             # may still sit in stored data and is deliberately ignored.
             enabled=bool(data.get("enabled", True)),
             detect_persons=bool(data.get("detect_persons", False)),
+            frame_sensor=bool(data.get("frame_sensor", False)),
         )
 
 

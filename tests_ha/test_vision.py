@@ -45,6 +45,9 @@ def fake_frame(path=None) -> CapturedFrame:
 
 async def fake_capture(hass_, entity_id, target=None) -> CapturedFrame:
     """Stand-in for async_capture_frame, honouring the ring target."""
+    if target is not None:
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(FRAME_BYTES)
     return fake_frame(path=target)
 
 
@@ -1335,3 +1338,53 @@ async def test_an_endpoint_in_use_cannot_be_deleted(
     assert not reply["success"]
     assert reply["error"]["code"] == "still_in_use"
     assert "beispiel" in reply["error"]["message"]
+
+
+# ----------------------------------------------------------------------
+# The frame image entity
+# ----------------------------------------------------------------------
+
+
+async def test_the_frame_entity_serves_the_latest_analysed_frame(
+    hass: HomeAssistant, setup_vision
+) -> None:
+    """The picture a push notification would attach: always the frame of the
+    newest analysis, updating with every run."""
+    from homeassistant.components.image import async_get_image
+    from homeassistant.helpers import entity_registry as er
+
+    entry = await setup_vision([profile(frame_sensor=True)])
+    runner = entry.runtime_data.vision
+    await runner.async_analyse("beispiel", force=True)
+    await hass.async_block_till_done()
+
+    registry = er.async_get(hass)
+    match = next(
+        (
+            e
+            for e in registry.entities.values()
+            if e.unique_id == f"{entry.entry_id}_beispiel_analysed_frame"
+        ),
+        None,
+    )
+    assert match is not None
+    state = hass.states.get(match.entity_id)
+    # An image entity's state is the time of its picture.
+    assert state.state not in ("unknown", "unavailable")
+
+    served = await async_get_image(hass, match.entity_id)
+    assert served.content == FRAME_BYTES
+    assert served.content_type == "image/jpeg"
+
+
+async def test_without_the_switch_no_frame_entity_appears(
+    hass: HomeAssistant, setup_vision
+) -> None:
+    from homeassistant.helpers import entity_registry as er
+
+    entry = await setup_vision()
+    registry = er.async_get(hass)
+    assert not any(
+        e.unique_id == f"{entry.entry_id}_beispiel_analysed_frame"
+        for e in registry.entities.values()
+    )

@@ -67,6 +67,7 @@ export class CamwatchVisionEditor extends LitElement {
   @state() private budget = 100;
   @state() private enabled = true;
   @state() private detectPersons = false;
+  @state() private frameSensor = false;
 
   @state() private aiTasks: AiTaskEntity[] = [];
   @state() private history: AnalysisRun[] = [];
@@ -128,6 +129,7 @@ export class CamwatchVisionEditor extends LitElement {
       this.budget = this.profile.daily_budget;
       this.enabled = this.profile.enabled;
       this.detectPersons = this.profile.detect_persons ?? false;
+      this.frameSensor = this.profile.frame_sensor ?? false;
       void this.loadHistory();
     } else {
       // A camera that reports motion is almost always the trigger the user
@@ -167,6 +169,7 @@ export class CamwatchVisionEditor extends LitElement {
       daily_budget: this.budget,
       enabled: this.enabled,
       detect_persons: this.detectPersons,
+      frame_sensor: this.frameSensor,
     };
   }
 
@@ -957,6 +960,23 @@ export class CamwatchVisionEditor extends LitElement {
           Fragt bei jeder Analyse dieser Kamera zusätzlich, ob eine der
           angelegten Personen zu sehen ist. Die Personen und ihre Fotos
           verwalten Sie auf der Übersichtsseite der Bilderkennung.
+        </p>
+
+        <div class="row" style="margin-top:8px">
+          <label style="margin:0">
+            <input
+              type="checkbox"
+              .checked=${this.frameSensor}
+              @change=${(e: Event) =>
+                (this.frameSensor = (e.target as HTMLInputElement).checked)}
+            />
+            Bild-Entität
+          </label>
+        </div>
+        <p class="hint">
+          Stellt das Bild der jeweils letzten Analyse als Bild-Entität an der
+          Kamera bereit. Damit können Automationen den analysierten Screenshot
+          zum Beispiel an eine Push-Benachrichtigung anhängen.
         </p>
 
         <div class="row" style="margin-top:8px">
