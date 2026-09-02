@@ -163,7 +163,10 @@ def objects_prompt() -> str:
         "'braune Tonne', never five entries saying 'Tonne', because each "
         "name is later used to point at exactly one thing in the picture. "
         "Never name surfaces or fixed background such as hedges, walls or "
-        "floors. Names only; the positions are somebody else's job."
+        "floors. List a thing even when it is ordinary, permanent or called "
+        "unremarkable by the extra context: this field is an inventory of "
+        "what is visible, not a report of anomalies. Names only; the "
+        "positions are somebody else's job."
     )
 
 

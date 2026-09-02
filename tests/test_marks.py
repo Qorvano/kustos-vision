@@ -234,3 +234,17 @@ def test_the_objects_field_asks_for_names_only() -> None:
     fragment = objects_schema_fragment()
     assert fragment["items"] == {"type": "string"}
     assert fragment["maxItems"] == MAX_MARKS
+
+
+def test_the_object_list_is_an_inventory_not_an_anomaly_report() -> None:
+    """Regression: a garden profile whose extra context declared furniture
+    and bike "nothing unusual" made the main model flap between listing
+    them and returning an empty list for near-identical frames - and an
+    empty list silently skips the whole grounding step. The prompt must
+    say that ordinariness never exempts an object."""
+    from kustos_vision.core.marks import objects_prompt
+
+    text = objects_prompt()
+    assert "inventory" in text
+    assert "not a report of anomalies" in text
+    assert "unremarkable" in text
