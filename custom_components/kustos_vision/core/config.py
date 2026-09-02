@@ -22,6 +22,7 @@ from .observations import Observation, ObservationError
 from .persons import PersonProfile, PersonsConfig
 from .paths import is_valid_slug
 from .recorder import AudioMode
+from .references import is_asset_id
 
 CONFIG_VERSION = 2
 
@@ -597,9 +598,19 @@ class VisionProfile:
     exactly those names - for setups where the strong question-answering
     model is a poor localiser and a small grounding-trained model is not."""
 
+    baseline: str = ""
+    """Asset id of the normal-scene reference picture: what this camera sees
+    when nothing is going on. It travels with every analysis so the model
+    can prioritise what DIFFERS from it. Captured from the camera itself,
+    never uploaded - a photo from elsewhere would differ everywhere."""
+
     def __post_init__(self) -> None:
         if not is_valid_slug(self.camera_slug):
             raise ConfigError(f"{self.camera_slug!r} is not a camera slug")
+        if self.baseline and not is_asset_id(self.baseline):
+            raise ConfigError(
+                f"{self.baseline!r} is not a stored picture's asset id"
+            )
         if self.cooldown_seconds < 0:
             raise ConfigError("cooldown_seconds must not be negative")
         if self.daily_budget <= 0:
@@ -636,6 +647,7 @@ class VisionProfile:
             "frame_sensor": self.frame_sensor,
             "mark_objects": self.mark_objects,
             "marks_model": self.marks_model,
+            "baseline": self.baseline,
         }
 
     @classmethod
@@ -663,6 +675,7 @@ class VisionProfile:
             frame_sensor=bool(data.get("frame_sensor", False)),
             mark_objects=bool(data.get("mark_objects", False)),
             marks_model=str(data.get("marks_model", "")),
+            baseline=str(data.get("baseline", "")),
         )
 
 

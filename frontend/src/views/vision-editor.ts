@@ -71,6 +71,10 @@ export class CamwatchVisionEditor extends LitElement {
   @state() private markObjects = false;
   @state() private marksModel = "";
 
+  /** Asset id of the pinned normal-scene picture; empty = none. Named apart
+   *  from `baseline` below, which is this editor's dirty-tracking snapshot. */
+  @state() private sceneBaseline = "";
+
   @state() private aiTasks: AiTaskEntity[] = [];
   @state() private history: AnalysisRun[] = [];
   @state() private frameUrls = new Map<string, string>();
@@ -134,6 +138,7 @@ export class CamwatchVisionEditor extends LitElement {
       this.frameSensor = this.profile.frame_sensor ?? false;
       this.markObjects = this.profile.mark_objects ?? false;
       this.marksModel = this.profile.marks_model ?? "";
+      this.sceneBaseline = this.profile.baseline ?? "";
       void this.loadHistory();
     } else {
       // A camera that reports motion is almost always the trigger the user
@@ -176,6 +181,7 @@ export class CamwatchVisionEditor extends LitElement {
       frame_sensor: this.frameSensor,
       mark_objects: this.markObjects,
       marks_model: this.marksModel,
+      baseline: this.sceneBaseline,
     };
   }
 
@@ -324,6 +330,22 @@ export class CamwatchVisionEditor extends LitElement {
     try {
       const { asset_id } = await this.api.captureReference(this.camera.slug);
       await this.appendReference(index, asset_id);
+    } catch (err) {
+      this.error = errorText(err);
+    } finally {
+      this.busy = false;
+    }
+  }
+
+  /** Pin the camera's picture of THIS moment as its normal scene. Capture
+   *  only, no upload: a photo from anywhere else would differ from the live
+   *  frames everywhere, and "what differs" is the whole point. */
+  private async captureSceneBaseline(): Promise<void> {
+    this.busy = true;
+    this.error = "";
+    try {
+      const { asset_id } = await this.api.captureReference(this.camera.slug);
+      this.sceneBaseline = asset_id;
     } catch (err) {
       this.error = errorText(err);
     } finally {
@@ -990,6 +1012,42 @@ export class CamwatchVisionEditor extends LitElement {
           @change=${(e: Event) =>
             (this.context = (e.target as HTMLTextAreaElement).value)}
         ></textarea>
+
+        <label style="margin-top:8px">Referenzbild der Normalszene</label>
+        <div class="row refrow">
+          ${this.sceneBaseline
+            ? html`${this.referenceUrl(this.sceneBaseline)
+                  ? html`<img
+                      class="refthumb"
+                      src=${this.referenceUrl(this.sceneBaseline)!}
+                      alt="Normalszene"
+                    />`
+                  : html`<span class="muted">Bild wird geladen …</span>`}
+                <button
+                  class="danger compact"
+                  ?disabled=${this.busy}
+                  @click=${() => (this.sceneBaseline = "")}
+                >
+                  Entfernen
+                </button>`
+            : nothing}
+          <button
+            class="secondary"
+            ?disabled=${this.busy}
+            @click=${() => this.captureSceneBaseline()}
+          >
+            ${this.sceneBaseline
+              ? "Neu aus aktuellem Kamerabild übernehmen"
+              : "Aktuelles Kamerabild übernehmen"}
+          </button>
+        </div>
+        <p class="hint">
+          Ein Bild dieser Kamera, das die Szene ohne Besonderheiten zeigt. Es
+          wird bei jeder Analyse mitgeschickt: Was vom Referenzbild abweicht,
+          also neu, verschwunden oder verschoben ist, bekommt bei der
+          Objekterkennung Vorrang. Übernehmen Sie es in einem Moment, in dem
+          nichts Ungewöhnliches zu sehen ist.
+        </p>
 
         <h3>Grenzen</h3>
         <div class="fields">

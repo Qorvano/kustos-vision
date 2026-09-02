@@ -160,6 +160,45 @@ def test_the_cap_protects_the_request_and_keeps_the_frame_slot() -> None:
 
 
 # ----------------------------------------------------------------------
+# The normal-scene baseline
+# ----------------------------------------------------------------------
+
+
+def test_no_baseline_plans_nothing() -> None:
+    from kustos_vision.core.references import plan_baseline
+
+    assert plan_baseline("") == ()
+
+
+def test_the_baseline_frames_the_comparison_and_disclaims_evidence() -> None:
+    """The normal-scene picture exists to steer the object list toward what
+    DIFFERS from it - and like every reference it must disclaim being the
+    current frame, or it becomes evidence for things long gone."""
+    from kustos_vision.core.references import plan_baseline
+
+    (planned,) = plan_baseline("b" * 32)
+    assert planned.asset_id == "b" * 32
+    assert "NORMAL scene" in planned.preamble
+    assert "NOT the current frame" in planned.preamble
+    assert "new, missing or moved" in planned.preamble
+    assert "priority in the object list" in planned.preamble
+
+
+def test_baselines_count_as_referenced_for_the_sweep() -> None:
+    """Regression guard for the orphan sweep: a pinned normal scene is named
+    nowhere in the observations, so without this collector the sweep would
+    delete a camera's baseline an hour after any unrelated save."""
+    from kustos_vision.core.references import baseline_asset_ids
+
+    class Profile:
+        def __init__(self, baseline: str) -> None:
+            self.baseline = baseline
+
+    ids = baseline_asset_ids([Profile("e" * 32), Profile(""), Profile("e" * 32)])
+    assert ids == {"e" * 32}
+
+
+# ----------------------------------------------------------------------
 # Round trip
 # ----------------------------------------------------------------------
 

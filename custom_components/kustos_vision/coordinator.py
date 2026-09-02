@@ -23,6 +23,7 @@ from .core.config import CamwatchConfig
 from .core.index import SegmentIndex
 from .core.paths import prepare_storage
 from .core.references import (
+    baseline_asset_ids,
     prune_unreferenced,
     referenced_asset_ids,
     references_dir,
@@ -198,7 +199,7 @@ class CamwatchCoordinator(DataUpdateCoordinator[CamwatchData]):
                 ),
                 *self.config.persons.people,
             ]
-        )
+        ) | baseline_asset_ids(self.config.vision)
         directory = references_dir(Path(self.hass.config.path(LOCAL_STATE_DIR)))
         await self.hass.async_add_executor_job(
             prune_unreferenced, directory, referenced, time.time()

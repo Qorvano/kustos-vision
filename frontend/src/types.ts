@@ -156,6 +156,9 @@ export interface VisionProfile {
   /** The model that locates the objects (same endpoint); empty = the main
    *  model does everything in one request. */
   marks_model?: string;
+  /** Asset id of the normal-scene reference picture, captured from the
+   *  camera itself; empty = none pinned. */
+  baseline?: string;
   state: VisionState;
 }
 

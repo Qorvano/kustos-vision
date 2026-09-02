@@ -82,7 +82,10 @@ def test_degenerate_and_garbled_entries_fall_away() -> None:
 
 
 def test_more_than_the_cap_is_cut() -> None:
-    many = [entry([i, i, i + 10, i + 10]) for i in range(0, 200, 20)]
+    many = [
+        entry([i * 20, i * 20, i * 20 + 10, i * 20 + 10])
+        for i in range(MAX_MARKS + 3)
+    ]
     assert len(parse_marks(many)) == MAX_MARKS
 
 
@@ -234,6 +237,21 @@ def test_the_objects_field_asks_for_names_only() -> None:
     fragment = objects_schema_fragment()
     assert fragment["items"] == {"type": "string"}
     assert fragment["maxItems"] == MAX_MARKS
+
+
+def test_scarce_slots_go_to_the_unusual_not_the_furniture() -> None:
+    """Regression: with eight slots and a garden full of chairs, the list
+    filled with the furniture cluster and a bicycle, a wheelbarrow and a
+    tarp at the back were never named - the grammar cuts the list hard, so
+    the priority has to be stated, and a pinned normal-scene picture makes
+    differences to it the top priority."""
+    from kustos_vision.core.marks import objects_prompt
+
+    text = objects_prompt()
+    assert "people, animals, vehicles" in text
+    assert "before furniture and fixtures" in text
+    assert "normal scene" in text
+    assert "differs" in text
 
 
 def test_the_object_list_is_an_inventory_not_an_anomaly_report() -> None:

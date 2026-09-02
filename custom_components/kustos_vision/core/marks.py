@@ -28,9 +28,12 @@ from .capture import FRAME_JPEG_QUALITY, FRAME_LONG_EDGE
 # the largest coordinate a valid box can carry.
 MARK_COORD_MAX = FRAME_LONG_EDGE
 
-# Every mark costs answer tokens and drawing space; a frame with more than a
-# handful of highlighted objects reads as noise, not as an answer.
-MAX_MARKS = 8
+# Every mark costs answer tokens and drawing space; a frame with dozens of
+# highlighted objects reads as noise, not as an answer. Twelve, not eight:
+# the schema enforces this as a grammar, and a garden scene proved that
+# eight slots fill up with the furniture cluster before a bicycle or a
+# wheelbarrow at the back ever gets named.
+MAX_MARKS = 12
 
 # A label is a name, not a sentence; longer text would not fit next to its
 # box at the frame sizes the capture produces.
@@ -165,8 +168,13 @@ def objects_prompt() -> str:
         "Never name surfaces or fixed background such as hedges, walls or "
         "floors. List a thing even when it is ordinary, permanent or called "
         "unremarkable by the extra context: this field is an inventory of "
-        "what is visible, not a report of anomalies. Names only; the "
-        "positions are somebody else's job."
+        "what is visible, not a report of anomalies. The list is capped: "
+        "when more things are visible than fit, people, animals, vehicles "
+        "and anything that does not belong to the scene take the slots "
+        "before furniture and fixtures do - and if a reference picture of "
+        "the camera's normal scene was provided, whatever differs from it "
+        "comes first of all. Names only; the positions are somebody else's "
+        "job."
     )
 
 

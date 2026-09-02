@@ -7,6 +7,7 @@ sensor in wind fires constantly and a hosted model charges per picture.
 
 from __future__ import annotations
 
+import os
 from datetime import timedelta
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -911,6 +912,66 @@ async def test_the_runner_loads_references_into_the_request(
     assert len(request.references) == 1
     assert request.references[0].content == JPEG_UPLOAD
     assert "NOT the current camera frame" in request.references[0].preamble
+
+
+async def test_the_baseline_travels_first_among_the_references(
+    hass: HomeAssistant, setup_vision, analysed
+) -> None:
+    """The pinned normal-scene picture rides along every analysis, ahead of
+    the question references, and its preamble makes differences to it the
+    priority - that ordering is what the budget's back-cut protects."""
+    baseline_bytes = b"\xff\xd8\xff\xe0-the-normal-scene"
+    entry = await setup_vision(
+        [
+            profile(
+                baseline="1" * 32,
+                observations=[
+                    {
+                        "key": "tonne",
+                        "type": "boolean",
+                        "question": "Ist die gelbe Tonne zu sehen?",
+                        "references": [{"asset_id": "0" * 32}],
+                    }
+                ],
+            )
+        ]
+    )
+    references = Path(hass.config.path("kustos_vision")) / "references"
+    references.mkdir(parents=True, exist_ok=True)
+    (references / ("1" * 32 + ".jpg")).write_bytes(baseline_bytes)
+    (references / ("0" * 32 + ".jpg")).write_bytes(JPEG_UPLOAD)
+
+    await entry.runtime_data.vision.async_analyse("beispiel", force=True)
+    request = analysed[0]["request"]
+    assert len(request.references) == 2
+    assert request.references[0].content == baseline_bytes
+    assert "NORMAL scene" in request.references[0].preamble
+    assert "NOT the current frame" in request.references[0].preamble
+    assert request.references[1].content == JPEG_UPLOAD
+
+
+async def test_the_sweep_spares_a_pinned_baseline(
+    hass: HomeAssistant, setup_vision
+) -> None:
+    """Regression guard: the baseline is named by no observation, so the
+    orphan sweep must count profiles too - or any save would delete a
+    camera's normal scene once the grace period passed."""
+    import time as time_module
+
+    entry = await setup_vision([profile(baseline="2" * 32)])
+    references = Path(hass.config.path("kustos_vision")) / "references"
+    references.mkdir(parents=True, exist_ok=True)
+    pinned = references / ("2" * 32 + ".jpg")
+    orphan = references / ("3" * 32 + ".jpg")
+    pinned.write_bytes(JPEG_UPLOAD)
+    orphan.write_bytes(JPEG_UPLOAD)
+    old = time_module.time() - 7200  # both older than the grace period
+    os.utime(pinned, (old, old))
+    os.utime(orphan, (old, old))
+
+    await entry.runtime_data.async_prune_references()
+    assert pinned.is_file()
+    assert not orphan.is_file()
 
 
 async def test_a_missing_reference_never_fails_the_analysis(

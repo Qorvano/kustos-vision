@@ -280,6 +280,28 @@ def test_the_frame_sensor_flag_round_trips_and_defaults_off() -> None:
     assert VisionProfile.from_dict(stored_before_the_feature).frame_sensor is False
 
 
+def test_the_baseline_round_trips_and_a_garbled_one_is_refused() -> None:
+    """The normal-scene picture is addressed by asset id; anything else in
+    the field could address arbitrary paths at serving time, so the
+    configuration refuses it at the door."""
+    from kustos_vision.core.config import (
+        VisionBackend,
+        VisionBackendKind,
+        VisionProfile,
+    )
+
+    backend = VisionBackend(
+        kind=VisionBackendKind.OPENAI, endpoint_id="mini", model="m"
+    )
+    profile = VisionProfile(camera_slug="cam", backend=backend, baseline="c" * 32)
+    assert VisionProfile.from_dict(profile.as_dict()).baseline == "c" * 32
+    stored_before_the_feature = profile.as_dict()
+    del stored_before_the_feature["baseline"]
+    assert VisionProfile.from_dict(stored_before_the_feature).baseline == ""
+    with pytest.raises(ConfigError, match="asset id"):
+        VisionProfile(camera_slug="cam", backend=backend, baseline="../etc")
+
+
 def test_a_stored_config_without_a_persons_key_loads() -> None:
     """Every configuration stored before the feature lacks the key; the
     default covers that without a version bump."""

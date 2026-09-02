@@ -34,6 +34,7 @@ from .core.references import (
     ReferenceImage,
     asset_id_for,
     asset_path,
+    baseline_asset_ids,
     find_asset,
     referenced_asset_ids,
     sniff_image,
@@ -930,6 +931,7 @@ async def ws_timeline(
         vol.Optional("frame_sensor", default=False): bool,
         vol.Optional("mark_objects", default=False): bool,
         vol.Optional("marks_model", default=""): str,
+        vol.Optional("baseline", default=""): str,
     }
 )
 @websocket_api.async_response
@@ -951,6 +953,7 @@ async def ws_set_vision(
         "frame_sensor": msg["frame_sensor"],
         "mark_objects": msg["mark_objects"],
         "marks_model": msg["marks_model"],
+        "baseline": msg["baseline"],
     }
     for optional in ("cooldown_seconds", "daily_budget"):
         if optional in msg:
@@ -1015,7 +1018,7 @@ async def ws_delete_reference(
             ),
             *coordinator.config.persons.people,
         ]
-    )
+    ) | baseline_asset_ids(coordinator.config.vision)
     if asset_id in referenced:
         connection.send_error(
             msg["id"], "still_in_use", "a question still names this picture"

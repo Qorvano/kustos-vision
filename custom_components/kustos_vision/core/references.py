@@ -185,6 +185,20 @@ def referenced_asset_ids(observations: Sequence[Observation]) -> set[str]:
     return ids
 
 
+def baseline_asset_ids(profiles: Sequence[Any]) -> set[str]:
+    """The normal-scene pictures the given vision profiles pin.
+
+    A baseline is exactly as referenced as a question's picture: the sweep
+    and the delete guard must both count it, or saving any profile would
+    quietly delete another camera's normal scene an hour later.
+    """
+    return {
+        baseline
+        for profile in profiles
+        if (baseline := getattr(profile, "baseline", ""))
+    }
+
+
 def prune_unreferenced(
     directory: Path, referenced: set[str], now: float
 ) -> list[Path]:
@@ -215,6 +229,31 @@ def prune_unreferenced(
         except OSError:
             continue
     return fallen
+
+
+def plan_baseline(baseline: str) -> tuple[PlannedPicture, ...]:
+    """The normal-scene picture of one camera, as the request carries it.
+
+    Returned as a tuple so the caller can splice it in front of the question
+    references unconditionally; empty when the camera pins no baseline. It
+    travels FIRST among the references: it frames how every later picture
+    and the object list are to be read, and the budget cuts from the back.
+    """
+    if not baseline:
+        return ()
+    return (
+        PlannedPicture(
+            asset_id=baseline,
+            preamble=(
+                "Reference picture of this camera's NORMAL scene, captured "
+                "earlier when nothing was going on. It is NOT the current "
+                "frame and not evidence of anything being there now. Compare "
+                "the current frame against it: things that are new, missing "
+                "or moved relative to this picture are what matters most, "
+                "and they take priority in the object list."
+            ),
+        ),
+    )
 
 
 def plan_pictures(observations: Sequence[Observation]) -> tuple[PlannedPicture, ...]:

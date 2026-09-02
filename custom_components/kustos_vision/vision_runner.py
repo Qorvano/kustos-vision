@@ -47,6 +47,7 @@ from .core.persons import PersonProfile, plan_person_pictures
 from .core.references import (
     MAX_PICTURES_PER_REQUEST,
     find_asset,
+    plan_baseline,
     plan_pictures,
 )
 from .vision import (
@@ -435,6 +436,9 @@ class VisionRunner:
         """
         budget = MAX_PICTURES_PER_REQUEST - 1  # the frame occupies one slot
         planned = (
+            # The normal-scene picture first: it frames how everything after
+            # it is read, and the budget cuts from the back.
+            *plan_baseline(profile.baseline),
             *plan_pictures(list(profile.active_observations)),
             *plan_person_pictures(persons),
         )[:budget]

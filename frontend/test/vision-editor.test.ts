@@ -16,6 +16,7 @@ type EditorInternals = {
   camera: { slug: string };
   detectPersons: boolean;
   frameSensor: boolean;
+  sceneBaseline: string;
   saveBlocked(): boolean;
   observations: Observation[];
   baseline: string;
@@ -24,6 +25,7 @@ type EditorInternals = {
   appendReference(index: number, assetId: string): Promise<void>;
   patchReference(index: number, refIndex: number, patch: object): void;
   removeReference(index: number, refIndex: number): void;
+  captureSceneBaseline(): Promise<void>;
 };
 
 function editor(observations: Observation[]): EditorInternals {
@@ -81,6 +83,25 @@ describe("reference pictures are unsaved work until saved", () => {
     expect(el.payload().observations[0].references).toEqual([
       { asset_id: "a".repeat(32), caption: "" },
     ]);
+  });
+
+  it("the normal-scene picture is capture-only and counts as unsaved work", async () => {
+    // The baseline can never be uploaded: a photo from anywhere else would
+    // differ from the live frames everywhere, and "what differs" is the
+    // whole point. The editor only ever fills it from reference/capture.
+    const el = editor([{ ...QUESTION }]);
+    el.baseline = JSON.stringify(el.payload());
+    el.api = {
+      captureReference: vi.fn().mockResolvedValue({ asset_id: "f".repeat(32) }),
+    } as unknown as CamwatchApi;
+
+    await el.captureSceneBaseline();
+
+    expect(el.sceneBaseline).toBe("f".repeat(32));
+    expect(el.unsaved.isDirty()).toBe(true);
+    expect((el.payload() as { baseline?: string }).baseline).toBe(
+      "f".repeat(32),
+    );
   });
 
   it("refuses a third picture, mirroring the backend cap", async () => {
