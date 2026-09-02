@@ -557,6 +557,27 @@ export class CamwatchVisionEditor extends LitElement {
             automatisch ermitteln oder von Hand eintragen.
           </p>`
         : nothing}
+      <div class="fields">
+        <div>
+          <label>Zeitlimit in Sekunden</label>
+          <input
+            type="number"
+            min="1"
+            .value=${String(this.backend.timeout_seconds ?? 120)}
+            @change=${(e: Event) =>
+              (this.backend = {
+                ...this.backend,
+                timeout_seconds:
+                  Number((e.target as HTMLInputElement).value) || 120,
+              })}
+          />
+        </div>
+      </div>
+      <p class="hint">
+        Wie lange auf die Antwort des Modells gewartet wird. Muss ein Server
+        wie llama-swap das Modell erst laden, zählt auch die Ladezeit mit;
+        für Modellwechsel-Tests lohnt ein großzügiger Wert.
+      </p>
       <p class="hint">
         Das Modell muss Bilder verarbeiten können. Bei llama.cpp heißt das:
         mit einer mmproj-Datei geladen.
