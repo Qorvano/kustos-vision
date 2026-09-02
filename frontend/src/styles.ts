@@ -113,6 +113,7 @@ export const shared = css`
     color: var(--secondary-text-color);
   }
   input:not([type="checkbox"]),
+  textarea,
   select,
   .select-field {
     font: inherit;
@@ -166,7 +167,15 @@ export const shared = css`
     -webkit-appearance: none;
     margin: 0;
   }
+  textarea {
+    /* Vertically resizable for longer prompts; the floor is one field's
+       height, so the grab handle cannot fold the field away entirely. */
+    resize: vertical;
+    min-height: 38px;
+    line-height: 1.4;
+  }
   input:not([type="checkbox"]):focus,
+  textarea:focus,
   select:focus,
   .select-field:focus {
     outline: none;
@@ -200,6 +209,7 @@ export const shared = css`
      directly on a field fuses with it into one filled block, the small text
      inside its top edge. Labels captioning anything else keep their place. */
   label:has(+ input:not([type="checkbox"])),
+  label:has(+ textarea),
   label:has(+ select),
   label:has(+ kustos-vision-select) {
     background: var(
@@ -212,11 +222,13 @@ export const shared = css`
     font-size: 0.75em;
   }
   label:has(+ input:focus),
+  label:has(+ textarea:focus),
   label:has(+ select:focus),
   label:has(+ kustos-vision-select:focus-within) {
     color: var(--primary-color);
   }
   label:has(+ input:not([type="checkbox"])) + input,
+  label:has(+ textarea) + textarea,
   label:has(+ select) + select {
     border-top-left-radius: 0;
     border-top-right-radius: 0;

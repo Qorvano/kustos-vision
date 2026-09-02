@@ -561,18 +561,17 @@ export class CamwatchVisionEditor extends LitElement {
   private renderObservation(observation: Observation, index: number) {
     return html`
       <div class="divided">
+        <label>Frage an das Modell</label>
+        <textarea
+          rows="2"
+          placeholder="Liegt ein Paket vor der Haustür?"
+          .value=${observation.question}
+          @change=${(e: Event) =>
+            this.patchObservation(index, {
+              question: (e.target as HTMLTextAreaElement).value,
+            })}
+        ></textarea>
         <div class="fields">
-          <div>
-            <label>Frage an das Modell</label>
-            <input
-              placeholder="Liegt ein Paket vor der Haustür?"
-              .value=${observation.question}
-              @change=${(e: Event) =>
-                this.patchObservation(index, {
-                  question: (e.target as HTMLInputElement).value,
-                })}
-            />
-          </div>
           <div>
             <label>Antworttyp</label>
             <kustos-vision-select
@@ -906,11 +905,13 @@ export class CamwatchVisionEditor extends LitElement {
 
         <h3>Zusätzlicher Zusammenhang</h3>
         <label>Was das Modell nicht sehen kann</label>
-        <input
+        <textarea
+          rows="3"
           placeholder="Die Kamera zeigt den Gehweg vor dem Haus."
           .value=${this.context}
-          @change=${(e: Event) => (this.context = (e.target as HTMLInputElement).value)}
-        />
+          @change=${(e: Event) =>
+            (this.context = (e.target as HTMLTextAreaElement).value)}
+        ></textarea>
 
         <h3>Grenzen</h3>
         <div class="fields">
