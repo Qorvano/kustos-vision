@@ -780,11 +780,7 @@ async def test_the_split_flow_names_first_then_grounds_those_names(
                     }
                 )
             return FakeResponse(
-                {
-                    MARKS_FIELD: [
-                        {"label": "blaue Tonne", "box": [268, 119, 414, 334]}
-                    ]
-                }
+                {MARKS_FIELD: {"blaue Tonne": [268, 119, 414, 334]}}
             )
 
     with (
@@ -816,8 +812,12 @@ async def test_the_split_flow_names_first_then_grounds_those_names(
     ground = requests[1]
     assert ground["model"] == "qwen2.5-vl-3b"
     ground_schema = ground["response_format"]["json_schema"]["schema"]
-    labels = ground_schema["properties"][MARKS_FIELD]["items"]["properties"]["label"]
-    assert labels["enum"] == ["blaue Tonne", "Reifenstapel"]
+    # One optional property per name: the grammar itself forbids duplicate
+    # or foreign labels - the repetition loop of the array form cannot be
+    # written at all.
+    marks_schema = ground_schema["properties"][MARKS_FIELD]
+    assert list(marks_schema["properties"]) == ["blaue Tonne", "Reifenstapel"]
+    assert marks_schema["additionalProperties"] is False
 
     assert raw[MARKS_FIELD] == [
         {"label": "blaue Tonne", "box": [268, 119, 414, 334]}

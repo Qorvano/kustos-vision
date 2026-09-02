@@ -198,27 +198,47 @@ def test_the_prompt_asks_for_every_recognised_object() -> None:
 # ----------------------------------------------------------------------
 
 
-def test_object_names_are_trimmed_deduplicated_and_capped() -> None:
+def test_repeated_object_names_are_numbered_not_dropped() -> None:
+    """Regression: "Holzstuhl" three times means three chairs. The old
+    dedup silently unboxed two of them; numbering keeps a grounding slot
+    for each instance."""
     from kustos_vision.core.marks import parse_object_names
 
     names = parse_object_names(
         ["  blaue Tonne ", "blaue Tonne", "", None, "Reifenstapel"]
     )
-    assert names == ("blaue Tonne", "Reifenstapel")
+    assert names == ("blaue Tonne", "blaue Tonne 2", "Reifenstapel")
+    chairs = parse_object_names(["Holzstuhl", "Holzstuhl", "Holzstuhl"])
+    assert chairs == ("Holzstuhl", "Holzstuhl 2", "Holzstuhl 3")
     assert len(parse_object_names([f"n{i}" for i in range(20)])) == MAX_MARKS
 
 
-def test_the_grounding_schema_locks_labels_to_the_given_names() -> None:
-    """The locating model cannot even mislabel what it marks: the labels are
-    an enum over the names the main model reported - that split answers the
-    objection that a weak recogniser would caption the boxes wrongly."""
+def test_the_grounding_schema_makes_the_repetition_loop_unwritable() -> None:
+    """Regression: as an ARRAY of labelled entries, a grounding model once
+    filled every slot with one bucket's box under alternating labels - a
+    repetition loop the grammar happily permitted. One OPTIONAL property
+    per name forbids duplicates and out-of-list labels structurally, and
+    "cannot find it" becomes a plain omission."""
     from kustos_vision.core.marks import MARKS_FIELD, grounding_schema
 
     schema = grounding_schema(("blaue Tonne", "Reifenstapel"))
-    items = schema["properties"][MARKS_FIELD]["items"]
-    assert items["properties"]["label"]["enum"] == ["blaue Tonne", "Reifenstapel"]
-    assert schema["properties"][MARKS_FIELD]["maxItems"] == 2
-    assert items["properties"]["box"]["items"]["maximum"] == MARK_COORD_MAX
+    marks = schema["properties"][MARKS_FIELD]
+    assert marks["type"] == "object"
+    assert list(marks["properties"]) == ["blaue Tonne", "Reifenstapel"]
+    assert marks["additionalProperties"] is False
+    assert "required" not in marks  # skipping a name must stay legal
+    box = marks["properties"]["blaue Tonne"]
+    assert box["items"]["maximum"] == MARK_COORD_MAX
+    assert box["minItems"] == box["maxItems"] == 4
+
+
+def test_the_grounding_answer_converts_back_to_labelled_entries() -> None:
+    from kustos_vision.core.marks import grounding_to_marks
+
+    entries = grounding_to_marks({"blaue Tonne": [1, 2, 3, 4]})
+    assert entries == [{"label": "blaue Tonne", "box": [1, 2, 3, 4]}]
+    assert grounding_to_marks("nonsense") == []
+    assert grounding_to_marks(None) == []
 
 
 def test_the_grounding_prompt_names_the_targets_and_allows_skipping() -> None:
@@ -227,6 +247,7 @@ def test_the_grounding_prompt_names_the_targets_and_allows_skipping() -> None:
     text = grounding_prompt(("blaue Tonne", "Reifenstapel"))
     assert "blaue Tonne, Reifenstapel" in text
     assert "Skip every name you cannot actually find" in text
+    assert "differ only by a trailing number" in text
     assert "PIXELS" in text
 
 
@@ -234,6 +255,11 @@ def test_the_objects_field_asks_for_names_only() -> None:
     from kustos_vision.core.marks import objects_prompt, objects_schema_fragment
 
     assert "Names only" in objects_prompt()
+    # Regression: "graues Fahrrad" made the grounding model skip a plainly
+    # visible bicycle that did not look grey to it - a guessed adjective is
+    # worse than a repeated plain name, which the numbering handles anyway.
+    assert "plain kind name" in objects_prompt()
+    assert "guessed adjective" in objects_prompt()
     fragment = objects_schema_fragment()
     assert fragment["items"] == {"type": "string"}
     assert fragment["maxItems"] == MAX_MARKS

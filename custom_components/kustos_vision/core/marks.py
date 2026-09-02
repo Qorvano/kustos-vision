@@ -161,10 +161,13 @@ def objects_prompt() -> str:
         "in the current camera frame, in the language of the questions - "
         "everything your other answers mention, and likewise any other "
         "clearly recognisable thing (a person, an animal, a vehicle, a "
-        "package, a bin and the like). Each name must tell ITS object apart "
-        "from the others, by colour, kind or place: 'blaue Tonne' and "
-        "'braune Tonne', never five entries saying 'Tonne', because each "
-        "name is later used to point at exactly one thing in the picture. "
+        "package, a bin and the like). Prefer the thing's plain kind name "
+        "('Fahrrad', 'Tisch'); repeating one name for several things of the "
+        "same kind is fine. Add a colour or place ONLY when several of the "
+        "same kind differ obviously and the difference matters ('blaue "
+        "Tonne' next to 'braune Tonne') - each name is later used to point "
+        "at its object in the picture, and a guessed adjective makes that "
+        "pointing fail. "
         "Never name surfaces or fixed background such as hedges, walls or "
         "floors. List a thing even when it is ordinary, permanent or called "
         "unremarkable by the extra context: this field is an inventory of "
@@ -179,14 +182,26 @@ def objects_prompt() -> str:
 
 
 def parse_object_names(value: Any) -> tuple[str, ...]:
-    """Read the main model's name list: trimmed, deduplicated, capped."""
+    """Read the main model's name list: trimmed, disambiguated, capped.
+
+    A repeated name is NOT dropped: "Holzstuhl" three times means three
+    chairs, and dropping two of them silently unboxed two real objects in a
+    garden test. Repeats are numbered instead ("Holzstuhl 2", "Holzstuhl 3"),
+    so each instance keeps its own grounding slot.
+    """
     if not isinstance(value, list):
         return ()
     names: list[str] = []
     for entry in value:
         name = str(entry or "").strip()[:MAX_LABEL_CHARS]
-        if name and name not in names:
-            names.append(name)
+        if not name:
+            continue
+        if name in names:
+            counter = 2
+            while f"{name} {counter}" in names:
+                counter += 1
+            name = f"{name} {counter}"
+        names.append(name)
         if len(names) >= MAX_MARKS:
             break
     return tuple(names)
@@ -195,25 +210,20 @@ def parse_object_names(value: Any) -> tuple[str, ...]:
 def grounding_schema(names: tuple[str, ...]) -> dict[str, Any]:
     """The strict schema of the grounding request.
 
-    The labels are an enum OVER THE GIVEN NAMES: the locating model cannot
-    even mislabel what it marks, because naming already happened in the main
-    request - that split is the whole point of the two-stage flow.
+    One OPTIONAL property per given name, not an array of labelled entries:
+    the grammar itself then forbids naming anything twice, forbids labels
+    outside the list, and makes "cannot find it" a plain omission. The
+    array form allowed a repetition loop - a grounding model once filled
+    all its slots with one bucket's box under alternating labels, and no
+    prompt wording can forbid what the grammar permits.
     """
     return {
         "type": "object",
         "properties": {
             MARKS_FIELD: {
-                "type": "array",
-                "maxItems": len(names),
-                "items": {
-                    "type": "object",
-                    "properties": {
-                        "label": {"type": "string", "enum": list(names)},
-                        "box": _box_schema(),
-                    },
-                    "required": ["label", "box"],
-                    "additionalProperties": False,
-                },
+                "type": "object",
+                "properties": {name: _box_schema() for name in names},
+                "additionalProperties": False,
             }
         },
         "required": [MARKS_FIELD],
@@ -225,12 +235,25 @@ def grounding_prompt(names: tuple[str, ...]) -> str:
     return (
         "Locate each of the following named objects in this camera frame: "
         + ", ".join(names)
-        + ". Return at most ONE entry per name, with its bounding box "
-        "[x0, y0, x1, y1] in PIXELS of this image (x measured from the left "
-        "edge, y from the top edge; x0,y0 the top left corner, x1,y1 the "
-        "bottom right corner). Skip every name you cannot actually find in "
-        "the frame."
+        + ". For each name give its bounding box [x0, y0, x1, y1] in PIXELS "
+        "of this image (x measured from the left edge, y from the top edge; "
+        "x0,y0 the top left corner, x1,y1 the bottom right corner). Names "
+        "that differ only by a trailing number are DIFFERENT objects of the "
+        "same kind - give each its own box. Skip every name you cannot "
+        "actually find in the frame by leaving it out."
     )
+
+
+def grounding_to_marks(value: Any) -> list[dict[str, Any]]:
+    """The grounding answer's {name: box} object, as labelled entries.
+
+    Pure format conversion so everything downstream - the stored raw answer,
+    parse_marks, the panel's history - keeps seeing the one established
+    shape regardless of which flow produced the boxes.
+    """
+    if not isinstance(value, dict):
+        return []
+    return [{"label": name, "box": box} for name, box in value.items()]
 
 
 def parse_marks(value: Any) -> tuple[Mark, ...]:

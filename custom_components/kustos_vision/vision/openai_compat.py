@@ -26,6 +26,7 @@ from ..core.marks import (
     OBJECTS_FIELD,
     grounding_prompt,
     grounding_schema,
+    grounding_to_marks,
     marks_prompt,
     marks_schema_fragment,
     objects_prompt,
@@ -419,7 +420,10 @@ async def _async_ground(
     extracted = _extract(body)
     if not isinstance(extracted, dict):
         raise VisionError("the marks model answered no field set")
-    return extracted.get(MARKS_FIELD, [])
+    # The grounding answer is a {name: box} object (one optional property
+    # per name, so the grammar forbids duplicates); everything downstream
+    # keeps seeing the established labelled-entry shape.
+    return grounding_to_marks(extracted.get(MARKS_FIELD))
 
 
 def _extract(body: str) -> Any:
