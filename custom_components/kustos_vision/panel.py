@@ -13,13 +13,16 @@ import re
 from pathlib import Path
 
 from aiohttp import web
-from homeassistant.components import panel_custom
+from homeassistant.components import frontend, panel_custom
 from homeassistant.components.http import HomeAssistantView
 from homeassistant.core import HomeAssistant
 
 from .const import DOMAIN
 
 FRONTEND_DIR = Path(__file__).parent / "frontend" / "dist"
+# The module that registers the integration's own icon set, built from
+# frontend/public and served beside the bundle.
+ICONS_FILE = "kustos-icons.js"
 PANEL_URL_PATH = DOMAIN
 # Under /api on purpose. The Home Assistant front end runs a service worker
 # that caches every same-origin path EXCEPT /api and /auth with a
@@ -100,6 +103,21 @@ def bundle_fingerprint() -> str:
     return digest[:FINGERPRINT_LENGTH]
 
 
+def icons_fingerprint() -> str:
+    """A cache key for the icon-set module, by the bundle's rule.
+
+    Its own rather than the bundle's: the two files change independently,
+    and a key that follows the wrong file leaves a browser holding an old
+    icon set after an update.
+    """
+    module = FRONTEND_DIR / ICONS_FILE
+    try:
+        digest = hashlib.sha256(module.read_bytes()).hexdigest()
+    except OSError:
+        return "missing"
+    return digest[:FINGERPRINT_LENGTH]
+
+
 class FrontendView(HomeAssistantView):
     """Serve the built front-end so a browser always notices a new one.
 
@@ -170,13 +188,20 @@ async def async_register_panel(hass: HomeAssistant) -> None:
     )
 
     hass.http.register_view(FrontendView())
+    # The sidebar icon comes from the integration's own icon set, and the
+    # front end has to know that set before it draws the sidebar, which is
+    # long before anyone opens the panel and loads its bundle. So the small
+    # module defining the set is loaded on every page, the way HACS loads its
+    # own sidebar icon. Same view, same freshness rules as the bundle.
+    icons_key = await hass.async_add_executor_job(icons_fingerprint)
+    frontend.add_extra_js_url(hass, f"{FRONTEND_URL}/{ICONS_FILE}?v={icons_key}")
     await panel_custom.async_register_panel(
         hass,
         webcomponent_name="kustos-vision-panel",
         frontend_url_path=PANEL_URL_PATH,
         module_url=f"{FRONTEND_URL}/panel.js?v={fingerprint}",
         sidebar_title="Kustos Vision",
-        sidebar_icon="mdi:cctv",
+        sidebar_icon=f"{DOMAIN}:vision",
         # Recording configuration decides what is captured and kept, and the
         # live view shows every camera in the house.
         require_admin=True,

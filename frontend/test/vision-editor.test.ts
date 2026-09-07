@@ -63,6 +63,15 @@ describe("saving is blocked only when there is nothing to analyse", () => {
     expect(el.saveBlocked()).toBe(false);
   });
 
+  // Regression, the same lock again: a camera that should only deliver the
+  // picture, with or without object marking, could not be saved either.
+  it("the picture entity alone can be saved", () => {
+    const el = editor([]);
+    el.detectPersons = false;
+    el.frameSensor = true;
+    expect(el.saveBlocked()).toBe(false);
+  });
+
   it("the frame-entity switch travels in the payload", () => {
     const el = editor([{ ...QUESTION }]);
     el.frameSensor = true;

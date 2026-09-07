@@ -327,6 +327,8 @@ export interface HomeAssistant {
   };
   hassUrl(path?: string): string;
   language: string;
-  themes: unknown;
+  /** Only what the panel reads: whether the active theme is dark, which
+   *  decides how the logo's frame is drawn. */
+  themes?: { darkMode?: boolean };
   user?: { is_admin: boolean };
 }

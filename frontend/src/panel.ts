@@ -10,6 +10,10 @@ import "./version-guard";
 
 import { LitElement, css, html, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
+import { unsafeHTML } from "lit/directives/unsafe-html.js";
+// The one source of the logo, shared with the README and the brands
+// images; a copy in here would drift from it.
+import logo from "../../brand/kustos_vision.svg?raw";
 import { CamwatchApi, errorText } from "./api";
 import { EDGE_MARGIN, placeDrop, viewportSize } from "./components/select";
 import "./components/unsaved-dialog";
@@ -85,6 +89,35 @@ export class CamwatchPanel extends LitElement {
            title up over the tab labels. */
         padding: 0 32px;
         box-sizing: border-box;
+      }
+      .toolbar .logo {
+        flex: none;
+        width: 36px;
+        height: 36px;
+        margin-right: 12px;
+      }
+      .toolbar .logo svg {
+        display: block;
+        width: 100%;
+        height: 100%;
+      }
+      /* The logo's frame is a light metallic gradient, drawn for dark
+         backgrounds. On a light header it would all but vanish, so there the
+         frame takes the solid colour the logo's own source names for its
+         monochrome form; the coloured iris stays the same either way. */
+      .toolbar .logo .frame-left,
+      .toolbar .logo .frame-right,
+      .toolbar .logo .eye-frame {
+        fill: #161a22;
+      }
+      :host([dark]) .toolbar .logo .frame-left {
+        fill: url(#frameGradLeft);
+      }
+      :host([dark]) .toolbar .logo .frame-right {
+        fill: url(#frameGradRight);
+      }
+      :host([dark]) .toolbar .logo .eye-frame {
+        fill: url(#eyeGrad);
       }
       .toolbar .title {
         font-size: 20px;
@@ -344,6 +377,11 @@ export class CamwatchPanel extends LitElement {
   };
 
   override updated(changed: Map<string, unknown>): void {
+    if (changed.has("hass")) {
+      // Mirrors the theme onto the host so the styles can pick the logo's
+      // frame; the theme is the only reliable word on how dark the header is.
+      this.toggleAttribute("dark", Boolean(this.hass?.themes?.darkMode));
+    }
     if (changed.has("hass") && this.hass && !this.api) {
       this.api = new CamwatchApi(this.hass);
       void this.load();
@@ -461,7 +499,10 @@ export class CamwatchPanel extends LitElement {
   /** The identity above everything, shown even while loading or broken. */
   private renderHeader() {
     return html`<div class="header">
-      <div class="toolbar"><div class="title">Kustos Vision</div></div>
+      <div class="toolbar">
+        <div class="logo" aria-hidden="true">${unsafeHTML(logo)}</div>
+        <div class="title">Kustos Vision</div>
+      </div>
       ${this.snapshot ? this.renderTabs(this.snapshot) : nothing}
     </div>
     ${this.renderViewMenu()}`;

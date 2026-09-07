@@ -266,3 +266,55 @@ async def test_nothing_outside_the_built_front_end_is_served(
     response = await client.get(f"/api/{DOMAIN}/frontend/{path}")
     assert response.status in (400, 404)
 
+
+
+# ----------------------------------------------------------------------
+# The icon set
+# ----------------------------------------------------------------------
+
+
+async def test_the_icon_set_is_loaded_on_every_page(hass: HomeAssistant) -> None:
+    """The sidebar draws its icon before anyone opens the panel, so the
+    module defining the icon set cannot ride with the bundle: it has to be
+    one of the front end's own extra modules."""
+    await async_setup_component(hass, DOMAIN, {})
+    await hass.async_block_till_done()
+
+    urls = hass.data[frontend.DATA_EXTRA_MODULE_URL].urls
+    assert any(
+        url.startswith(f"/api/{DOMAIN}/frontend/kustos-icons.js?v=") for url in urls
+    )
+
+
+async def test_the_sidebar_icon_comes_from_the_own_icon_set(
+    hass: HomeAssistant,
+) -> None:
+    await async_setup_component(hass, DOMAIN, {})
+    await hass.async_block_till_done()
+    assert hass.data[frontend.DATA_PANELS][DOMAIN].sidebar_icon == f"{DOMAIN}:vision"
+
+
+def test_the_icon_set_module_is_committed() -> None:
+    """Like the bundle: HACS ships what is in the repository."""
+    module = panel_module.FRONTEND_DIR / panel_module.ICONS_FILE
+    assert module.is_file(), "frontend/dist/kustos-icons.js is missing; run the vite build"
+    source = module.read_text(encoding="utf-8")
+    assert f"customIconsets.{DOMAIN}" in source
+    assert "vision:" in source
+
+
+async def test_the_icon_set_module_is_served_fresh(
+    hass: HomeAssistant, hass_client
+) -> None:
+    """Same rule as the bundle: ask before using what you stored."""
+    from custom_components.kustos_vision.panel import icons_fingerprint
+
+    await async_setup_component(hass, DOMAIN, {})
+    await hass.async_block_till_done()
+
+    client = await hass_client()
+    response = await client.get(
+        f"/api/{DOMAIN}/frontend/kustos-icons.js?v={icons_fingerprint()}"
+    )
+    assert response.status == 200
+    assert response.headers.get("Cache-Control") == "no-cache"
