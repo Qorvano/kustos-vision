@@ -1961,7 +1961,7 @@ async function ne() {
       s.discard();
   return !0;
 }
-const De = "0.14.1", xs = "kustos-vision-built:0.14.1", _s = {
+const De = "0.15.0", xs = "kustos-vision-built:0.15.0", _s = {
   ptz_up: "Schwenken hoch",
   ptz_down: "Schwenken runter",
   ptz_left: "Schwenken links",
