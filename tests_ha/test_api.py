@@ -573,10 +573,13 @@ async def test_a_capability_can_be_triggered(
     async def _record(call):
         calls.append(call)
 
-    hass.services.async_register("button", "press", _record)
     await setup_kustos_vision(
         [camera_dict(capabilities={"ptz_up": {"entity_id": "button.hof_up"}})]
     )
+    # Registered after setup on purpose: kustos_vision's own button platform
+    # loads the real button.press service, which would replace a stand-in
+    # registered before it.
+    hass.services.async_register("button", "press", _record)
     client = await hass_ws_client(hass)
 
     result = await send(
@@ -1106,8 +1109,9 @@ async def test_a_custom_control_can_be_saved_and_triggered(
     async def _record(call):
         calls.append(call)
 
-    hass.services.async_register("button", "press", _record)
     await setup_kustos_vision()
+    # After setup, see test_a_capability_can_be_triggered.
+    hass.services.async_register("button", "press", _record)
     client = await hass_ws_client(hass)
 
     result = await send(

@@ -1566,3 +1566,90 @@ async def test_an_upload_is_shrunk_before_it_is_addressed(
 
     served = await client.get(f"/api/{DOMAIN}/reference/{body['asset_id']}")
     assert await served.read() == small
+
+
+# ----------------------------------------------------------------------
+# The button
+# ----------------------------------------------------------------------
+
+BUTTON = "button.beispiel_analyse_now"
+
+
+async def press(hass: HomeAssistant) -> None:
+    await hass.services.async_call(
+        "button", "press", {"entity_id": BUTTON}, blocking=True
+    )
+    await hass.async_block_till_done()
+
+
+async def test_the_button_runs_an_analysis(
+    hass: HomeAssistant, setup_vision, analysed: list
+) -> None:
+    await setup_vision()
+    await press(hass)
+    assert len(analysed) == 1
+    assert hass.states.get("binary_sensor.beispiel_paket").state == "on"
+
+
+async def test_the_button_works_while_the_profile_is_switched_off(
+    hass: HomeAssistant, setup_vision, analysed: list
+) -> None:
+    """The point of the button: one deliberate look at a camera whose own
+    triggers are off, so nobody has to switch permanent detection on for it."""
+    await setup_vision([profile(enabled=False)])
+    await fire(hass, "on")
+    assert analysed == []
+    await press(hass)
+    assert len(analysed) == 1
+
+
+async def test_the_button_ignores_the_cooldown(
+    hass: HomeAssistant, setup_vision, analysed: list
+) -> None:
+    await setup_vision()
+    await fire(hass, "on")
+    await press(hass)
+    assert len(analysed) == 2
+
+
+async def test_the_button_is_unavailable_without_a_profile(
+    hass: HomeAssistant, setup_vision
+) -> None:
+    await setup_vision([])
+    state = hass.states.get(BUTTON)
+    assert state is not None
+    assert state.state == "unavailable"
+
+
+async def test_the_button_does_not_fail_on_a_limit(
+    hass: HomeAssistant, setup_vision, analysed: list
+) -> None:
+    """A used-up budget must not raise, or an automation pressing this on
+    every doorbell ring would fill the log."""
+    await setup_vision([profile(daily_budget=1)])
+    await press(hass)
+    await press(hass)
+    assert len(analysed) == 1
+
+
+async def test_the_button_raises_when_nothing_can_be_analysed(
+    hass: HomeAssistant, hass_storage: dict, tmp_path: Path, vision_env
+) -> None:
+    """A limit is silent, a failure is not: an automation has to see in its
+    trace that the press could not produce a picture."""
+    from homeassistant.exceptions import HomeAssistantError
+
+    base = tmp_path / "recordings"
+    stored_config = stored(base)
+    stored_config["data"]["cameras"][0]["streams"] = []
+    hass_storage[STORAGE_KEY_CONFIG] = stored_config
+    entry = MockConfigEntry(domain=DOMAIN, data={CONF_BASE_PATH: str(base)})
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    with pytest.raises(HomeAssistantError, match="snapshot"):
+        await press(hass)
+
+    await hass.config_entries.async_unload(entry.entry_id)
+    await hass.async_block_till_done()

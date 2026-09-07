@@ -46,6 +46,11 @@
         "name": "Recording"
       }
     },
+    "button": {
+      "analyse_now": {
+        "name": "Analyse now"
+      }
+    },
     "image": {
       "analysed_frame": {
         "name": "Analysed frame"

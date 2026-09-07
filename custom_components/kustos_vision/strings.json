@@ -45,6 +45,11 @@
       "recording": {
         "name": "Recording"
       }
+    },
+    "button": {
+      "analyse_now": {
+        "name": "Analyse now"
+      }
     }
   },
   "services": {

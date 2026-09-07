@@ -131,7 +131,9 @@ honest answer.
 
 The `kustos_vision.analyze` service runs an analysis on demand and returns the
 answers, for trying a question out and for automations that know about a moment
-Kustos Vision's own triggers would miss.
+Kustos Vision's own triggers would miss. `button.<camera>_analyse_now` does the
+same without returning anything, for automations and dashboards that only need
+the sensors updated.
 
 ## Recording layout
 
@@ -193,6 +195,7 @@ Per camera:
 | `sensor.<camera>_used_storage` | Space this camera's recordings occupy. |
 | `sensor.<camera>_oldest_recording` | The day the oldest recording is from: how far back coverage actually reaches, which is not the same as the configured retention. A day rather than a timestamp, because once retention is active the oldest segment moves on every run, and each move would be a logbook line. |
 | `switch.<camera>_recording` | Pause and resume without changing the configuration. |
+| `button.<camera>_analyse_now` | Runs one analysis, the same way the panel's button does. Works while the profile's own triggers are switched off, so an automation can ask for a single look without permanent detection. Unavailable until the camera has a vision profile. |
 
 Overall: `sensor.kustos_vision_total_storage`, `sensor.kustos_vision_free_storage`,
 `sensor.kustos_vision_over_budget`.
