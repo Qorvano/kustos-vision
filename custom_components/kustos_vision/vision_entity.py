@@ -93,22 +93,37 @@ def async_setup_observations(
     """Add observation entities now, and again whenever one is added.
 
     Questions are edited in the panel while Home Assistant runs, so entities
-    have to appear afterwards. One removed leaves its entity behind as
-    unavailable rather than being deleted, so re-adding the same question keeps
-    its history.
+    have to appear afterwards. A question that is deleted, or whose answer
+    type moved it to another domain, loses its registry entry through the
+    coordinator's sweep, and Home Assistant takes the live entity down with
+    it; nothing is left behind as unavailable.
+
+    ``known`` holds only the keys THIS platform currently provides. It used
+    to record every key it was asked about, including the ones it built
+    nothing for because they belonged to the other domain, and then skipped
+    them for good: a question switched from yes/no to text never got its
+    sensor. Forgetting a key once the platform no longer provides it also
+    lets the question come back later.
     """
     known: set[tuple[str, str]] = set()
 
     @callback
     def _sync() -> None:
         entities: list[ObservationEntity] = []
+        present: set[tuple[str, str]] = set()
         for profile in coordinator.config.vision:
             for observation in profile.observations:
+                built = list(build(profile.camera_slug, observation))
+                if not built:
+                    # The other domain's question.
+                    continue
                 key = (profile.camera_slug, observation.key)
+                present.add(key)
                 if key in known:
                     continue
                 known.add(key)
-                entities.extend(build(profile.camera_slug, observation))
+                entities.extend(built)
+        known.intersection_update(present)
         if entities:
             async_add_entities(entities)
 

@@ -1731,3 +1731,125 @@ async def test_the_service_runs_a_picture_only_profile(
     assert result["ran"] is True
     assert result["values"] == {}
     assert analysed == []
+
+
+# ----------------------------------------------------------------------
+# A question's entity follows the question
+# ----------------------------------------------------------------------
+
+
+def registered_unique_ids(hass: HomeAssistant, entry) -> set[tuple[str, str]]:
+    from homeassistant.helpers import entity_registry as er
+
+    registry = er.async_get(hass)
+    return {
+        (e.domain, e.unique_id)
+        for e in er.async_entries_for_config_entry(registry, entry.entry_id)
+    }
+
+
+async def replace_profile(hass: HomeAssistant, entry, observations: list[dict]) -> None:
+    from custom_components.kustos_vision.core.config import VisionProfile
+
+    coordinator = entry.runtime_data
+    await coordinator.async_set_config(
+        coordinator.config.with_vision(
+            VisionProfile.from_dict(profile(observations=observations))
+        )
+    )
+    await hass.async_block_till_done()
+
+
+async def test_a_deleted_question_takes_its_entity_with_it(
+    hass: HomeAssistant, setup_vision
+) -> None:
+    """Regression: a key corrected in the panel left the old entity standing
+    as unavailable, without a word. Whatever is no longer a question is no
+    longer an entity either."""
+    entry = await setup_vision()
+    old = ("binary_sensor", f"{entry.entry_id}_beispiel_vision_paket")
+    assert old in registered_unique_ids(hass, entry)
+    assert hass.states.get("binary_sensor.beispiel_paket") is not None
+
+    await replace_profile(
+        hass, entry, [{"key": "wer", "type": "text", "question": "Wer ist zu sehen?"}]
+    )
+
+    assert old not in registered_unique_ids(hass, entry)
+    assert hass.states.get("binary_sensor.beispiel_paket") is None
+    assert ("sensor", f"{entry.entry_id}_beispiel_vision_wer") in registered_unique_ids(
+        hass, entry
+    )
+
+
+async def test_a_changed_answer_type_replaces_the_entity(
+    hass: HomeAssistant, setup_vision
+) -> None:
+    """The type decides the domain, so the same key in another type is a new
+    entity, and the old domain's entity must not linger."""
+    entry = await setup_vision()
+    await replace_profile(
+        hass,
+        entry,
+        [
+            {"key": "paket", "type": "text", "question": "Was liegt vor der Tür?"},
+            {"key": "wer", "type": "text", "question": "Wer ist zu sehen?"},
+        ],
+    )
+    ids = registered_unique_ids(hass, entry)
+    assert ("binary_sensor", f"{entry.entry_id}_beispiel_vision_paket") not in ids
+    assert ("sensor", f"{entry.entry_id}_beispiel_vision_paket") in ids
+
+
+async def test_a_dead_entity_from_before_the_sweep_goes_at_startup(
+    hass: HomeAssistant, hass_storage: dict, tmp_path: Path, vision_env
+) -> None:
+    """Questions deleted before this sweep existed left entities behind; the
+    first start with the sweep clears them."""
+    from homeassistant.helpers import entity_registry as er
+
+    base = tmp_path / "recordings"
+    hass_storage[STORAGE_KEY_CONFIG] = stored(base)
+    entry = MockConfigEntry(domain=DOMAIN, data={CONF_BASE_PATH: str(base)})
+    entry.add_to_hass(hass)
+    registry = er.async_get(hass)
+    stale = registry.async_get_or_create(
+        "binary_sensor",
+        DOMAIN,
+        f"{entry.entry_id}_beispiel_vision_blau_tonne",
+        config_entry=entry,
+    )
+    assert registry.async_get(stale.entity_id) is not None
+
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    assert registry.async_get(stale.entity_id) is None
+    assert ("binary_sensor", f"{entry.entry_id}_beispiel_vision_paket") in (
+        registered_unique_ids(hass, entry)
+    )
+
+
+async def test_the_sweep_leaves_every_other_entity_alone(
+    hass: HomeAssistant, setup_vision
+) -> None:
+    """A paused question, the camera's own entities and a person all keep
+    their registry entries; only a question that is gone loses its own."""
+    entry = await setup_vision()
+    await replace_profile(
+        hass,
+        entry,
+        [
+            {
+                "key": "paket",
+                "type": "boolean",
+                "question": "Liegt ein Paket vor der Tür?",
+                "enabled": False,
+            },
+            {"key": "wer", "type": "text", "question": "Wer ist zu sehen?"},
+        ],
+    )
+    ids = registered_unique_ids(hass, entry)
+    assert ("binary_sensor", f"{entry.entry_id}_beispiel_vision_paket") in ids
+    assert ("binary_sensor", f"{entry.entry_id}_beispiel_recording") in ids
+    assert ("sensor", f"{entry.entry_id}_beispiel_used_storage") in ids

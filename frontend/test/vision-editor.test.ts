@@ -18,6 +18,9 @@ type EditorInternals = {
   frameSensor: boolean;
   sceneBaseline: string;
   saveBlocked(): boolean;
+  markSaved(observations: Observation[]): void;
+  keyFrozen(observation: Observation): boolean;
+  typeChanged(observation: Observation): boolean;
   observations: Observation[];
   baseline: string;
   unsaved: { isDirty(): boolean };
@@ -78,6 +81,30 @@ describe("saving is blocked only when there is nothing to analyse", () => {
     expect(
       (el.payload() as { frame_sensor?: boolean }).frame_sensor,
     ).toBe(true);
+  });
+});
+
+describe("a saved key is the entity's identity", () => {
+  // Regression: correcting a typo in a saved key created a second entity
+  // and left the first one standing as unavailable, without a word.
+  it("freezes the key of a saved question", () => {
+    const el = editor([{ ...QUESTION }]);
+    el.markSaved(el.observations);
+    expect(el.keyFrozen(el.observations[0])).toBe(true);
+  });
+
+  it("leaves the key of a new question editable", () => {
+    const el = editor([{ ...QUESTION }]);
+    el.markSaved(el.observations);
+    const fresh: Observation = { key: "neu", type: "boolean", question: "?" };
+    expect(el.keyFrozen(fresh)).toBe(false);
+  });
+
+  it("notices when the answer type of a saved question changes", () => {
+    const el = editor([{ ...QUESTION }]);
+    el.markSaved(el.observations);
+    expect(el.typeChanged(el.observations[0])).toBe(false);
+    expect(el.typeChanged({ ...QUESTION, type: "text" })).toBe(true);
   });
 });
 

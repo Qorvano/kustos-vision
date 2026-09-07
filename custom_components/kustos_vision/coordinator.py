@@ -28,6 +28,7 @@ from .core.references import (
     references_dir,
 )
 from .maintenance import MaintenanceResult, MaintenanceRunner, interval_for
+from .observation_registry import async_prune_observation_entities
 from .persons import PersonPresenceTracker
 from .recorder import RecorderManager, StreamStatus
 from .storage import CamwatchStore
@@ -144,6 +145,8 @@ class CamwatchCoordinator(DataUpdateCoordinator[CamwatchData]):
         # Pictures orphaned while Home Assistant was off have no config save
         # coming that would sweep them; startup is that save's stand-in.
         self.hass.async_create_task(self.async_prune_references())
+        # Likewise for entities of questions deleted before this sweep existed.
+        async_prune_observation_entities(self.hass, self.entry, self.config)
         await self.async_config_entry_first_refresh()
 
     async def async_shutdown(self) -> None:
@@ -162,6 +165,10 @@ class CamwatchCoordinator(DataUpdateCoordinator[CamwatchData]):
         previous = self.config
         await self.store.async_save(config)
         self.config = config
+        # Before the entities are told: a question that is gone must not
+        # survive as a dead entity, and one whose answer type moved it to
+        # another domain must not leave its old self behind.
+        async_prune_observation_entities(self.hass, self.entry, config)
 
         # The panel validated the new location before this was called, so the
         # next cycle's probe is expected to agree; setting the state directly

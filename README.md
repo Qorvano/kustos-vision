@@ -94,6 +94,14 @@ both the entity and the shape the model has to answer in:
 | count | `sensor` | How many people are there? |
 | choice | `sensor` | What is in view: nothing, a person, a vehicle? |
 
+A question's identifier is its identity in Home Assistant: it becomes the
+entity's unique id and its default name, and it is fixed once the question is
+saved. What the entity is called is changed through the displayed name, and
+its entity id in Home Assistant's own entity settings, which also warn about
+automations that use it. Deleting a question, or changing its answer type,
+removes its entity from Home Assistant; pausing it keeps the entity with its
+last answer.
+
 Two backends, both first class:
 
 * **Home Assistant AI Task**, which covers every provider Home Assistant

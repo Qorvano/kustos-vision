@@ -67,6 +67,10 @@ export class CamwatchVisionEditor extends LitElement {
   @state() private budget = 100;
   @state() private enabled = true;
   @state() private detectPersons = false;
+  /** Keys and answer types as last saved. A saved key is the entity's
+   *  identity in Home Assistant and stays fixed; a saved type decides
+   *  the entity's domain, so changing it replaces the entity. */
+  @state() private saved = new Map<string, ObservationType>();
   @state() private frameSensor = false;
   @state() private markObjects = false;
   @state() private marksModel = "";
@@ -129,6 +133,7 @@ export class CamwatchVisionEditor extends LitElement {
     if (this.profile) {
       this.backend = { ...this.profile.backend };
       this.observations = this.profile.observations.map((o) => ({ ...o }));
+      this.markSaved(this.observations);
       this.triggers = [...this.profile.triggers];
       this.context = this.profile.context;
       this.cooldown = this.profile.cooldown_seconds;
@@ -232,6 +237,36 @@ export class CamwatchVisionEditor extends LitElement {
     return typeof name === "string" && name
       ? `${name} (${entityId})`
       : entityId;
+  }
+
+  /** Remember what Home Assistant now holds under which identity. */
+  private markSaved(observations: Observation[]): void {
+    this.saved = new Map(observations.map((o) => [o.key, o.type]));
+  }
+
+  /** Whether this question already exists in Home Assistant under its key. */
+  private keyFrozen(observation: Observation): boolean {
+    return this.saved.has(observation.key);
+  }
+
+  /** Whether the answer type differs from the saved one, which moves the
+   *  entity to another domain: a new entity, the old one removed. */
+  private typeChanged(observation: Observation): boolean {
+    const savedType = this.saved.get(observation.key);
+    return savedType !== undefined && savedType !== observation.type;
+  }
+
+  private removeObservation(index: number): void {
+    const observation = this.observations[index];
+    if (
+      this.keyFrozen(observation) &&
+      !confirm(
+        "Frage entfernen? Beim Speichern wird ihre Entity samt Historie aus Home Assistant entfernt.",
+      )
+    ) {
+      return;
+    }
+    this.observations = this.observations.filter((_, i) => i !== index);
   }
 
   private patchObservation(index: number, patch: Partial<Observation>): void {
@@ -395,6 +430,7 @@ export class CamwatchVisionEditor extends LitElement {
     try {
       await this.api.setVision(this.payload());
       this.baseline = JSON.stringify(this.payload());
+      this.markSaved(this.observations);
       this.dispatchEvent(new CustomEvent("saved", { bubbles: true, composed: true }));
       return true;
     } catch (err) {
@@ -692,6 +728,7 @@ export class CamwatchVisionEditor extends LitElement {
             <label>Kennung</label>
             <input
               .value=${observation.key}
+              ?readonly=${this.keyFrozen(observation)}
               @change=${(e: Event) =>
                 this.patchObservation(index, {
                   key: (e.target as HTMLInputElement).value,
@@ -710,6 +747,19 @@ export class CamwatchVisionEditor extends LitElement {
           </div>
         </div>
 
+        ${this.keyFrozen(observation)
+          ? html`<p class="hint">
+              Die Kennung ist die Identität der Entity in Home Assistant und
+              nach dem Anlegen fest. Den Namen ändern Sie im Feld daneben, die
+              Entity-ID in den Entity-Einstellungen von Home Assistant.
+            </p>`
+          : nothing}
+        ${this.typeChanged(observation)
+          ? html`<p class="hint">
+              Ein anderer Antworttyp ersetzt die Entity beim Speichern durch
+              eine neue; die bisherige wird aus Home Assistant entfernt.
+            </p>`
+          : nothing}
         ${observation.type === "select"
           ? html`<label>Mögliche Antworten, durch Komma getrennt</label>
               <input
@@ -770,11 +820,7 @@ export class CamwatchVisionEditor extends LitElement {
               </span>`
             : nothing}
           <span class="spacer"></span>
-          <button
-            class="danger"
-            @click=${() =>
-              (this.observations = this.observations.filter((_, i) => i !== index))}
-          >
+          <button class="danger" @click=${() => this.removeObservation(index)}>
             Frage entfernen
           </button>
         </div>
