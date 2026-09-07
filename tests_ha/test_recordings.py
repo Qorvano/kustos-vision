@@ -17,6 +17,7 @@ from custom_components.kustos_vision.const import (
     STORAGE_KEY_CONFIG,
     STORAGE_VERSION_CONFIG,
 )
+from custom_components.kustos_vision.core.index import Segment
 
 # The scan resolves a file name to UTC through Home Assistant's timezone, so
 # the fixture has to place its files with the same one. Using the system
@@ -687,9 +688,7 @@ async def test_fragments_refuse_paths_the_index_does_not_know(
     assert result["error"]["code"] == "unknown_segment"
 
 
-def _segment(start: int, duration: float, key: str = "hd") -> "Segment":
-    from custom_components.kustos_vision.core.index import Segment
-
+def _segment(start: int, duration: float, key: str = "hd") -> Segment:
     return Segment(
         rel_path=f"kamera/{start}.mp4",
         camera_slug="beispiel",

@@ -8,6 +8,7 @@ entities and the panel then show, with no second schedule to drift against it.
 from __future__ import annotations
 
 import logging
+import time
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -15,8 +16,6 @@ from pathlib import Path
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
-
-import time
 
 from .const import DOMAIN, LOCAL_STATE_DIR
 from .core.config import CamwatchConfig

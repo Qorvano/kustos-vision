@@ -224,15 +224,15 @@ def fields_prompt(fields) -> str:
     Duck-typed over Observation and PersonField, like the serialisers.
     """
     blocks: list[str] = []
-    for field in fields:
-        lines = [f'Field "{field.key}": {field.question}']
-        if field.type is ObservationType.SELECT:
-            lines.append("Allowed answers: " + ", ".join(field.options))
-        if field.type is ObservationType.NUMBER:
+    for entry in fields:
+        lines = [f'Field "{entry.key}": {entry.question}']
+        if entry.type is ObservationType.SELECT:
+            lines.append("Allowed answers: " + ", ".join(entry.options))
+        if entry.type is ObservationType.NUMBER:
             lines.append(
-                f"Answer an integer between {field.minimum} and {field.maximum}."
+                f"Answer an integer between {entry.minimum} and {entry.maximum}."
             )
-        lines.append(ANSWER_GUIDANCE[field.type])
+        lines.append(ANSWER_GUIDANCE[entry.type])
         blocks.append("\n".join(lines))
     return "These are the fields to answer:\n\n" + "\n\n".join(blocks)
 

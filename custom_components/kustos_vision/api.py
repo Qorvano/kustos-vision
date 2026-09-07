@@ -26,20 +26,9 @@ from homeassistant.util import dt as dt_util
 from homeassistant.util import slugify
 
 from .actions import CapabilityError, async_trigger
-from .config_flow import async_validate_base_path
 from .capture import async_capture_frame
+from .config_flow import async_validate_base_path
 from .const import DATA_STAMP_AVAILABLE, DOMAIN, LOCAL_STATE_DIR
-from .core.persons import PersonProfile
-from .core.references import (
-    ReferenceImage,
-    asset_id_for,
-    asset_path,
-    baseline_asset_ids,
-    find_asset,
-    referenced_asset_ids,
-    sniff_image,
-    write_asset,
-)
 from .coordinator import CamwatchCoordinator
 from .core.capabilities import (
     CAPABILITY_KEYS,
@@ -62,6 +51,17 @@ from .core.config import (
 from .core.index import blocks_from_segments
 from .core.mp4 import fragment_index
 from .core.observations import ObservationError
+from .core.persons import PersonProfile
+from .core.references import (
+    ReferenceImage,
+    asset_id_for,
+    asset_path,
+    baseline_asset_ids,
+    find_asset,
+    referenced_asset_ids,
+    sniff_image,
+    write_asset,
+)
 from .panel import bundle_version, disk_fingerprint, registered_fingerprint
 from .version import integration_version
 from .vision import VisionError

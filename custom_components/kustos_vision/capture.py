@@ -280,9 +280,8 @@ async def _async_run_draw(
 
 
 def _temp_jpeg() -> Path:
-    handle = tempfile.NamedTemporaryFile(suffix=".jpg", delete=False)
-    handle.close()
-    return Path(handle.name)
+    with tempfile.NamedTemporaryFile(suffix=".jpg", delete=False) as handle:
+        return Path(handle.name)
 
 
 def _ensure_parent(target: Path) -> None:

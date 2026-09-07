@@ -19,8 +19,8 @@ from enum import StrEnum
 from typing import Any, Self
 
 from .observations import Observation, ObservationError
-from .persons import PersonProfile, PersonsConfig
 from .paths import is_valid_slug
+from .persons import PersonProfile, PersonsConfig
 from .recorder import AudioMode
 from .references import is_asset_id
 

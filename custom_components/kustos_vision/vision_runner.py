@@ -34,7 +34,6 @@ from homeassistant.util import dt as dt_util
 
 from .capture import async_capture_frame, async_draw_marks
 from .const import DATA_STAMP_AVAILABLE, LOCAL_STATE_DIR
-from .core.marks import marked_name
 from .core.capture import (
     FRAME_DIR_NAME,
     CapturedFrame,
@@ -43,6 +42,7 @@ from .core.capture import (
     frames_dir,
 )
 from .core.config import CamwatchConfig, VisionBackendKind, VisionProfile
+from .core.marks import marked_name
 from .core.persons import PersonProfile, plan_person_pictures
 from .core.references import (
     MAX_PICTURES_PER_REQUEST,

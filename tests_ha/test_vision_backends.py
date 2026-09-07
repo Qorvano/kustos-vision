@@ -245,6 +245,8 @@ async def test_the_frame_travels_first_and_references_after(
     import json as jsonlib
     from unittest.mock import patch
 
+    from homeassistant.util import dt as dt_util
+
     from custom_components.kustos_vision.core.capture import (
         CapturedFrame,
         FrameSource,
@@ -252,9 +254,8 @@ async def test_the_frame_travels_first_and_references_after(
     from custom_components.kustos_vision.vision import (
         ReferencePicture,
         VisionRequest,
+        openai_compat,
     )
-    from custom_components.kustos_vision.vision import openai_compat
-    from homeassistant.util import dt as dt_util
 
     captured: dict = {}
 
@@ -371,6 +372,8 @@ async def test_without_references_the_message_is_prompt_fields_and_image(
 def _request_with_frame_and_reference():
     from pathlib import Path
 
+    from homeassistant.util import dt as dt_util
+
     from custom_components.kustos_vision.core.capture import (
         CapturedFrame,
         FrameSource,
@@ -379,7 +382,6 @@ def _request_with_frame_and_reference():
         ReferencePicture,
         VisionRequest,
     )
-    from homeassistant.util import dt as dt_util
 
     return VisionRequest(
         frame=CapturedFrame(
@@ -445,6 +447,8 @@ async def test_a_person_only_analysis_passes_the_asks_nothing_guard(
     import json as jsonlib
     from unittest.mock import patch
 
+    from homeassistant.util import dt as dt_util
+
     from custom_components.kustos_vision.core.capture import (
         CapturedFrame,
         FrameSource,
@@ -453,9 +457,8 @@ async def test_a_person_only_analysis_passes_the_asks_nothing_guard(
     from custom_components.kustos_vision.vision import (
         VisionRequest,
         async_analyse,
+        openai_compat,  # noqa: F401
     )
-    from custom_components.kustos_vision.vision import openai_compat  # noqa: F401
-    from homeassistant.util import dt as dt_util
 
     class FakeResponse:
         status = 200
@@ -573,9 +576,8 @@ async def test_a_listing_that_is_not_a_model_list_is_an_error(
         "custom_components.kustos_vision.vision.openai_compat."
         "async_get_clientsession",
         return_value=FakeSession(),
-    ):
-        with pytest.raises(VisionError, match="model list"):
-            await async_list_models(hass, "http://mini.local:8080")
+    ), pytest.raises(VisionError, match="model list"):
+        await async_list_models(hass, "http://mini.local:8080")
 
 
 async def test_the_probe_reports_the_answer_time_or_the_refusal(
@@ -619,9 +621,8 @@ async def test_the_probe_reports_the_answer_time_or_the_refusal(
         "custom_components.kustos_vision.vision.openai_compat."
         "async_get_clientsession",
         return_value=FakeSession(RefusingResponse()),
-    ):
-        with pytest.raises(VisionError, match="HTTP 404"):
-            await async_probe_model(hass, "http://x", "tippfehler")
+    ), pytest.raises(VisionError, match="HTTP 404"):
+        await async_probe_model(hass, "http://x", "tippfehler")
 
 
 async def test_marks_travel_in_schema_and_prompt_when_asked(
@@ -633,8 +634,7 @@ async def test_marks_travel_in_schema_and_prompt_when_asked(
     from unittest.mock import AsyncMock, patch
 
     from custom_components.kustos_vision.core.marks import MARKS_FIELD
-    from custom_components.kustos_vision.vision import VisionRequest
-    from custom_components.kustos_vision.vision import openai_compat
+    from custom_components.kustos_vision.vision import VisionRequest, openai_compat
 
     captured: dict = {}
 
@@ -754,8 +754,7 @@ async def test_the_split_flow_names_first_then_grounds_those_names(
         MARKS_FIELD,
         OBJECTS_FIELD,
     )
-    from custom_components.kustos_vision.vision import VisionRequest
-    from custom_components.kustos_vision.vision import openai_compat
+    from custom_components.kustos_vision.vision import VisionRequest, openai_compat
 
     requests: list[dict] = []
 
@@ -834,8 +833,7 @@ async def test_a_failed_grounding_never_fails_the_analysis(
         MARKS_FIELD,
         OBJECTS_FIELD,
     )
-    from custom_components.kustos_vision.vision import VisionRequest
-    from custom_components.kustos_vision.vision import openai_compat
+    from custom_components.kustos_vision.vision import VisionRequest, openai_compat
 
     calls = {"n": 0}
 

@@ -298,7 +298,7 @@ class ReferenceUploadView(HomeAssistantView):
         # aiohttp enforces this itself and refuses an oversized body with 413
         # before holding a byte of it; checking Content-Length afterwards
         # would trust the sender about the size of what they sent.
-        request._client_max_size = MAX_REFERENCE_BYTES  # noqa: SLF001
+        request._client_max_size = MAX_REFERENCE_BYTES
         try:
             data = await request.post()
         except web.HTTPRequestEntityTooLarge:
