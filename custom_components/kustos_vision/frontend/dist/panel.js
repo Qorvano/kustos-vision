@@ -277,8 +277,8 @@ ie.elementStyles = [], ie.shadowRootOptions = { mode: "open" }, ie[me("elementPr
  * Copyright 2017 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
  */
-const Ue = globalThis, Ze = (t) => t, Se = Ue.trustedTypes, Je = Se ? Se.createPolicy("lit-html", { createHTML: (t) => t }) : void 0, _t = "$lit$", K = `lit$${Math.random().toFixed(9).slice(2)}$`, St = "?" + K, Gt = `<${St}>`, te = document, fe = () => te.createComment(""), be = (t) => t === null || typeof t != "object" && typeof t != "function", Ie = Array.isArray, Zt = (t) => Ie(t) || typeof t?.[Symbol.iterator] == "function", Pe = `[ 	
-\f\r]`, he = /<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g, Ye = /-->/g, Xe = />/g, J = RegExp(`>|${Pe}(?:([^\\s"'>=/]+)(${Pe}*=${Pe}*(?:[^ 	
+const Ue = globalThis, Ze = (t) => t, Se = Ue.trustedTypes, Je = Se ? Se.createPolicy("lit-html", { createHTML: (t) => t }) : void 0, _t = "$lit$", K = `lit$${Math.random().toFixed(9).slice(2)}$`, St = "?" + K, Gt = `<${St}>`, te = document, fe = () => te.createComment(""), be = (t) => t === null || typeof t != "object" && typeof t != "function", Ie = Array.isArray, Zt = (t) => Ie(t) || typeof t?.[Symbol.iterator] == "function", Te = `[ 	
+\f\r]`, he = /<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g, Ye = /-->/g, Xe = />/g, J = RegExp(`>|${Te}(?:([^\\s"'>=/]+)(${Te}*=${Te}*(?:[^ 	
 \f\r"'\`<>=]|("|')|))|$)`, "g"), Qe = /'/g, et = /"/g, At = /^(?:script|style|textarea|title)$/i, Jt = (t) => (e, ...s) => ({ _$litType$: t, strings: e, values: s }), o = Jt(1), se = Symbol.for("lit-noChange"), c = Symbol.for("lit-nothing"), tt = /* @__PURE__ */ new WeakMap(), ee = te.createTreeWalker(te, 129);
 function Et(t, e) {
   if (!Ie(t) || !t.hasOwnProperty("raw")) throw Error("invalid template strings array");
@@ -310,7 +310,7 @@ class ve {
       if (n.nodeType === 1) {
         if (n.hasAttributes()) for (const p of n.getAttributeNames()) if (p.endsWith(_t)) {
           const b = f[a++], g = n.getAttribute(p).split(K), w = /([.?@])?(.*)/.exec(b);
-          d.push({ type: 1, index: r, name: w[2], strings: g, ctor: w[1] === "." ? Qt : w[1] === "?" ? es : w[1] === "@" ? ts : Te }), n.removeAttribute(p);
+          d.push({ type: 1, index: r, name: w[2], strings: g, ctor: w[1] === "." ? Qt : w[1] === "?" ? es : w[1] === "@" ? ts : Pe }), n.removeAttribute(p);
         } else p.startsWith(K) && (d.push({ type: 6, index: r }), n.removeAttribute(p));
         if (At.test(n.tagName)) {
           const p = n.textContent.split(K), b = p.length - 1;
@@ -426,7 +426,7 @@ class ae {
     this._$AM === void 0 && (this._$Cv = e, this._$AP?.(e));
   }
 }
-class Te {
+class Pe {
   get tagName() {
     return this.element.tagName;
   }
@@ -451,7 +451,7 @@ class Te {
     e === c ? this.element.removeAttribute(this.name) : this.element.setAttribute(this.name, e ?? "");
   }
 }
-class Qt extends Te {
+class Qt extends Pe {
   constructor() {
     super(...arguments), this.type = 3;
   }
@@ -459,7 +459,7 @@ class Qt extends Te {
     this.element[this.name] = e === c ? void 0 : e;
   }
 }
-class es extends Te {
+class es extends Pe {
   constructor() {
     super(...arguments), this.type = 4;
   }
@@ -467,7 +467,7 @@ class es extends Te {
     this.element.toggleAttribute(this.name, !!e && e !== c);
   }
 }
-class ts extends Te {
+class ts extends Pe {
   constructor(e, s, i, n, r) {
     super(e, s, i, n, r), this.type = 5;
   }
@@ -1423,7 +1423,7 @@ function ps(t, e) {
   const s = e.trim().toLowerCase();
   return s ? t.filter((i) => i.label.toLowerCase().includes(s)) : t;
 }
-const Tt = 8, us = 200;
+const Pt = 8, us = 200;
 function ge() {
   const t = window.visualViewport;
   return {
@@ -1431,7 +1431,7 @@ function ge() {
     height: t?.height ?? window.innerHeight
   };
 }
-function Pt(t, e, s, i = us) {
+function Tt(t, e, s, i = us) {
   const n = e.height - t.bottom - s, r = t.top - s, a = r > n, l = Math.max(e.width - 2 * s, 0), d = Math.min(
     Math.max(t.width, Math.min(i, l)),
     l
@@ -1475,7 +1475,7 @@ let L = class extends D {
       return;
     }
     this.drop = {
-      ...Pt(e, s, Tt),
+      ...Tt(e, s, Pt),
       anchorTop: e.top,
       anchorBottom: e.bottom,
       viewportHeight: s.height
@@ -1928,10 +1928,10 @@ function Ct(t, e) {
       return a;
   return -1;
 }
-function Ts(t) {
+function Ps(t) {
   return Ct(t, "mp4a") !== -1;
 }
-function Ps(t) {
+function Ts(t) {
   const e = Ct(t, "avcC");
   if (e === -1) return null;
   const s = t[e + 5], i = t[e + 6], n = t[e + 7];
@@ -2162,7 +2162,7 @@ let N = class extends D {
         `Die Aufnahme konnte nicht geladen werden (HTTP ${e.status}).`
       );
     const s = new Uint8Array(await e.arrayBuffer());
-    return this.withAudio = Ts(s), Ps(s);
+    return this.withAudio = Ps(s), Ts(s);
   }
   urlFor(t) {
     return `${this.segmentUrlBase}/${t.path}`;
@@ -4375,7 +4375,7 @@ class Lt {
     }
   }
 }
-var ti = Object.defineProperty, si = Object.getOwnPropertyDescriptor, P = (t, e, s, i) => {
+var ti = Object.defineProperty, si = Object.getOwnPropertyDescriptor, T = (t, e, s, i) => {
   for (var n = i > 1 ? void 0 : i ? si(e, s) : e, r = t.length - 1, a; r >= 0; r--)
     (a = t[r]) && (n = (i ? a(e, s, n) : a(n)) || n);
   return i && n && ti(e, s, n), n;
@@ -5038,58 +5038,58 @@ E.styles = [
       }
     `
 ];
-P([
+T([
   u({ attribute: !1 })
 ], E.prototype, "api", 2);
-P([
+T([
   u({ attribute: !1 })
 ], E.prototype, "camera", 2);
-P([
+T([
   u({ attribute: !1 })
 ], E.prototype, "capabilityKeys", 2);
-P([
+T([
   u({ attribute: !1 })
 ], E.prototype, "available", 2);
-P([
+T([
   u({ attribute: !1 })
 ], E.prototype, "views", 2);
-P([
+T([
   u({ attribute: !1 })
 ], E.prototype, "allCameras", 2);
-P([
+T([
   h()
 ], E.prototype, "slug", 2);
-P([
+T([
   h()
 ], E.prototype, "name", 2);
-P([
+T([
   h()
 ], E.prototype, "streams", 2);
-P([
+T([
   h()
 ], E.prototype, "capabilities", 2);
-P([
+T([
   h()
 ], E.prototype, "retentionDays", 2);
-P([
+T([
   h()
 ], E.prototype, "enabled", 2);
-P([
+T([
   h()
 ], E.prototype, "viewSettings", 2);
-P([
+T([
   h()
 ], E.prototype, "controls", 2);
-P([
+T([
   h()
 ], E.prototype, "candidates", 2);
-P([
+T([
   h()
 ], E.prototype, "busy", 2);
-P([
+T([
   h()
 ], E.prototype, "error", 2);
-E = P([
+E = T([
   z("kustos-vision-camera-editor")
 ], E);
 const ni = 1 / 300, ri = 1 / 32, vt = 0.02, yt = "#e53935", ai = 0.9;
@@ -5428,13 +5428,16 @@ let y = class extends D {
       this.aiTasks = [];
     }
   }
-  /** A profile that would have nothing to analyse cannot be saved.
+  /** A profile that would have nothing to do cannot be saved.
   
-        Regression: this used to demand at least one question, which locked
-        the Speichern button for a camera that should ONLY recognise persons -
-        while the navigation guard's save happily stored exactly that. */
+        Mirrors the backend's rule: questions, person recognition or the
+        picture entity. Regression, twice: this used to demand at least one
+        question, which locked the Speichern button for a camera that should
+        ONLY recognise persons - while the navigation guard's save happily
+        stored exactly that - and then again for a camera that should only
+        deliver the picture. */
   saveBlocked() {
-    return this.observations.length === 0 && !this.detectPersons;
+    return this.observations.length === 0 && !this.detectPersons && !this.frameSensor;
   }
   /** What save() sends, and the yardstick unsaved work is measured by. */
   payload() {
@@ -6193,7 +6196,11 @@ let y = class extends D {
         <p class="hint">
           Stellt das Bild der jeweils letzten Analyse als Bild-Entität an der
           Kamera bereit. Damit können Automationen den analysierten Screenshot
-          zum Beispiel an eine Push-Benachrichtigung anhängen.
+          zum Beispiel an eine Push-Benachrichtigung anhängen. Auch ohne Frage
+          und ohne Personenerkennung nutzbar: Dann wird beim Auslöser nur das
+          Bild aufgenommen, ohne Modellaufruf. Mit „Erkannte Objekte
+          markieren" fragt das Modell allein nach den Objekten und ihren
+          Positionen.
         </p>
 
         ${this.frameSensor ? o`
@@ -6236,9 +6243,9 @@ ${JSON.stringify(this.lastRun.raw, null, 2)}</pre
         ${this.renderHistory()}
 
         ${this.saveBlocked() && !this.busy ? o`<p class="hint">
-              Ohne Frage und ohne Personenerkennung gäbe es nichts zu
-              analysieren. Legen Sie eine Frage an oder schalten Sie die
-              Personenerkennung ein.
+              Ohne Frage, ohne Personenerkennung und ohne Bild-Entität gäbe
+              es nichts zu tun. Legen Sie eine Frage an, schalten Sie die
+              Personenerkennung ein oder aktivieren Sie die Bild-Entität.
             </p>` : c}
         <div class="row" style="margin-top:16px">
           <button ?disabled=${this.busy || this.saveBlocked()} @click=${this.save}>
@@ -6381,7 +6388,7 @@ $([
 y = $([
   z("kustos-vision-vision-editor")
 ], y);
-var bi = Object.defineProperty, vi = Object.getOwnPropertyDescriptor, T = (t, e, s, i) => {
+var bi = Object.defineProperty, vi = Object.getOwnPropertyDescriptor, P = (t, e, s, i) => {
   for (var n = i > 1 ? void 0 : i ? vi(e, s) : e, r = t.length - 1, a; r >= 0; r--)
     (a = t[r]) && (n = (i ? a(e, s, n) : a(n)) || n);
   return i && n && bi(e, s, n), n;
@@ -7475,61 +7482,61 @@ Was bereits unter ${this.snapshot.storage.base_path} liegt, bleibt unverändert 
   }
 };
 A.styles = j;
-T([
+P([
   u({ attribute: !1 })
 ], A.prototype, "api", 2);
-T([
+P([
   u({ attribute: !1 })
 ], A.prototype, "snapshot", 2);
-T([
+P([
   u({ attribute: !1 })
 ], A.prototype, "hass", 2);
-T([
+P([
   h()
 ], A.prototype, "section", 2);
-T([
+P([
   h()
 ], A.prototype, "editing", 2);
-T([
+P([
   h()
 ], A.prototype, "adding", 2);
-T([
+P([
   h()
 ], A.prototype, "available", 2);
-T([
+P([
   h()
 ], A.prototype, "visionFor", 2);
-T([
+P([
   h()
 ], A.prototype, "busy", 2);
-T([
+P([
   h()
 ], A.prototype, "error", 2);
-T([
+P([
   h()
 ], A.prototype, "viewsDraft", 2);
-T([
+P([
   h()
 ], A.prototype, "endpointsDraft", 2);
-T([
+P([
   h()
 ], A.prototype, "endpointTestModel", 2);
-T([
+P([
   h()
 ], A.prototype, "endpointTestResult", 2);
-T([
+P([
   h()
 ], A.prototype, "personsDraft", 2);
-T([
+P([
   h()
 ], A.prototype, "absenceInput", 2);
-T([
+P([
   h()
 ], A.prototype, "personPhotoUrls", 2);
-T([
+P([
   h()
 ], A.prototype, "viewDrag", 2);
-A = T([
+A = P([
   z("kustos-vision-settings")
 ], A);
 var wi = Object.defineProperty, $i = Object.getOwnPropertyDescriptor, H = (t, e, s, i) => {
@@ -7585,7 +7592,7 @@ let B = class extends D {
     }
     const i = t.currentTarget.getBoundingClientRect(), n = ge();
     this.menuOpenWidth = n.width;
-    const r = Pt(i, n, Tt);
+    const r = Tt(i, n, Pt);
     this.viewMenu = {
       left: r.left,
       minWidth: r.width,

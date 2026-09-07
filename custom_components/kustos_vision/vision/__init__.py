@@ -165,9 +165,7 @@ async def async_analyse(
     request: VisionRequest | None = None,
 ) -> VisionResult:
     """Run one analysis through whichever backend the profile names."""
-    # Fields, not observations: a profile without questions still asks
-    # something when the request carries people to recognise.
-    if not analysis_fields(profile, request):
+    if not asks_model(profile, request):
         raise VisionError(f"vision profile for {camera.slug!r} asks nothing")
 
     if profile.backend.kind is VisionBackendKind.AI_TASK:
@@ -206,6 +204,34 @@ async def async_analyse(
         duration_s=duration,
         persons=persons,
         marks=marks,
+    )
+
+
+def backend_can_mark(kind: VisionBackendKind) -> bool:
+    """Whether a backend of this kind can be asked WHERE objects are.
+
+    The marks travel as extra fields in the OpenAI-compatible request's
+    schema and prompt. AI Task's structured output carries the user's fields
+    only, so asking it for positions would be asking for nothing.
+    """
+    return kind is VisionBackendKind.OPENAI
+
+
+def asks_model(profile: VisionProfile, request: VisionRequest | None) -> bool:
+    """Whether this analysis has anything to put to a model at all.
+
+    The user's questions and the person fields are the obvious part. A
+    request that only wants the object positions for the picture is the
+    other: it carries no field of its own, yet the model is still asked
+    something. A profile with none of these is not an error any more; it is
+    a run that stops at the frame, which is the runner's business.
+    """
+    if analysis_fields(profile, request):
+        return True
+    return (
+        request is not None
+        and request.mark_objects
+        and backend_can_mark(profile.backend.kind)
     )
 
 

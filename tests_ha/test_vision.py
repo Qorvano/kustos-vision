@@ -1653,3 +1653,81 @@ async def test_the_button_raises_when_nothing_can_be_analysed(
 
     await hass.config_entries.async_unload(entry.entry_id)
     await hass.async_block_till_done()
+
+
+# ----------------------------------------------------------------------
+# Picture-only profiles
+# ----------------------------------------------------------------------
+
+
+def frame_entity_id(hass: HomeAssistant, entry) -> str:
+    from homeassistant.helpers import entity_registry as er
+
+    registry = er.async_get(hass)
+    return next(
+        e.entity_id
+        for e in registry.entities.values()
+        if e.unique_id == f"{entry.entry_id}_beispiel_analysed_frame"
+    )
+
+
+async def test_the_picture_entity_alone_runs_without_a_model(
+    hass: HomeAssistant, setup_vision, analysed: list
+) -> None:
+    """No question, no person, no marks: the trigger is still worth the frame
+    of that moment, and nothing is sent to a model for it."""
+    from homeassistant.components.image import async_get_image
+
+    entry = await setup_vision([profile(observations=[], frame_sensor=True)])
+    await fire(hass, "on")
+
+    assert analysed == []
+    run = entry.runtime_data.vision.state_for("beispiel").history[0]
+    assert run["error"] is None
+    assert run["frame"] is not None
+    served = await async_get_image(hass, frame_entity_id(hass, entry))
+    assert served.content == FRAME_BYTES
+
+
+async def test_marks_alone_ask_the_model_for_positions_only(
+    hass: HomeAssistant, setup_vision, analysed: list
+) -> None:
+    await setup_vision(
+        [profile(observations=[], frame_sensor=True, mark_objects=True)]
+    )
+    await fire(hass, "on")
+    assert len(analysed) == 1
+    assert analysed[0]["request"].mark_objects is True
+
+
+async def test_marks_alone_never_reach_a_backend_that_cannot_mark(
+    hass: HomeAssistant, setup_vision, analysed: list
+) -> None:
+    """AI Task's structured output carries the user's fields only, so a
+    picture-only profile on it is a capture, not a request."""
+    entry = await setup_vision(
+        [
+            profile(
+                observations=[],
+                frame_sensor=True,
+                mark_objects=True,
+                backend={"kind": "ai_task", "entity_id": "ai_task.modell"},
+            )
+        ]
+    )
+    await fire(hass, "on")
+    assert analysed == []
+    run = entry.runtime_data.vision.state_for("beispiel").history[0]
+    assert run["frame"] is not None
+
+
+async def test_the_service_runs_a_picture_only_profile(
+    hass: HomeAssistant, setup_vision, analysed: list
+) -> None:
+    await setup_vision([profile(observations=[], frame_sensor=True)])
+    result = await hass.services.async_call(
+        DOMAIN, "analyze", {"camera": "beispiel"}, blocking=True, return_response=True
+    )
+    assert result["ran"] is True
+    assert result["values"] == {}
+    assert analysed == []

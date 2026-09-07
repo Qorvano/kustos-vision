@@ -129,6 +129,14 @@ configurable off-delay after the last sighting does. Presence deliberately
 does not survive a restart: after one, "not seen since the restart" is the
 honest answer.
 
+**Picture only**: a profile may consist of nothing but the picture entity
+(`image.<camera>_analysed_frame`). With object marking switched on, the model
+is asked only where things are, and the boxes go into the picture. Without it
+no model is called at all: the entity simply carries the frame of the trigger
+moment, which is a free way to attach the right picture to a notification.
+Cooldown and daily budget apply as always. An AI Task backend cannot be asked
+for positions, so with it a picture-only profile never calls a model.
+
 The `kustos_vision.analyze` service runs an analysis on demand and returns the
 answers, for trying a question out and for automations that know about a moment
 Kustos Vision's own triggers would miss. `button.<camera>_analyse_now` does the
@@ -196,6 +204,7 @@ Per camera:
 | `sensor.<camera>_oldest_recording` | The day the oldest recording is from: how far back coverage actually reaches, which is not the same as the configured retention. A day rather than a timestamp, because once retention is active the oldest segment moves on every run, and each move would be a logbook line. |
 | `switch.<camera>_recording` | Pause and resume without changing the configuration. |
 | `button.<camera>_analyse_now` | Runs one analysis, the same way the panel's button does. Works while the profile's own triggers are switched off, so an automation can ask for a single look without permanent detection. Unavailable until the camera has a vision profile. |
+| `image.<camera>_analysed_frame` | The frame of the latest run, with the reported boxes burned in when object marking is on. Only present while the profile's picture entity is switched on. |
 
 Overall: `sensor.kustos_vision_total_storage`, `sensor.kustos_vision_free_storage`,
 `sensor.kustos_vision_over_budget`.

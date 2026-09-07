@@ -55,6 +55,7 @@ from .vision import (
     VisionError,
     VisionRequest,
     VisionResult,
+    asks_model,
     async_analyse,
 )
 
@@ -111,19 +112,24 @@ def _resolve_backend(profile: VisionProfile, config: CamwatchConfig) -> VisionPr
     )
 
 
-def _asks_anything(profile: VisionProfile, config: CamwatchConfig) -> bool:
-    """Whether an analysis of this profile would have any field at all.
+def _has_something_to_do(profile: VisionProfile, config: CamwatchConfig) -> bool:
+    """Whether a run of this profile would produce anything at all.
 
-    Before persons existed, "no questions" was the whole definition of a
-    pointless profile. A profile without questions is meaningful now when it
-    recognises the configured people - the person fields are synthesised at
-    request time, so they never show up in active_observations.
+    Questions and person recognition are the obvious reasons (the person
+    fields are synthesised at request time, so they never show up in
+    active_observations). The picture entity is the third: switched on,
+    every trigger is worth at least the frame of that moment, and with
+    object marking the model is asked where things are even when no question
+    exists. Which of these actually involves a model is asks_model's call,
+    at request time.
     """
     if profile.active_observations:
         return True
-    return profile.detect_persons and any(
+    if profile.detect_persons and any(
         person.enabled for person in config.persons.people
-    )
+    ):
+        return True
+    return profile.frame_sensor
 
 
 def _unlink_quietly(path: Path) -> None:
@@ -185,7 +191,7 @@ class VisionRunner:
 
         watched: dict[str, list[str]] = {}
         for profile in config.vision:
-            if not profile.enabled or not _asks_anything(profile, config):
+            if not profile.enabled or not _has_something_to_do(profile, config):
                 continue
             for entity_id in profile.triggers:
                 watched.setdefault(entity_id, []).append(profile.camera_slug)
@@ -258,8 +264,8 @@ class VisionRunner:
         """Return why an analysis must not run now, or None when it may."""
         if not profile.enabled:
             return "the profile is switched off"
-        if not _asks_anything(profile, self._coordinator.config):
-            return "the profile asks nothing"
+        if not _has_something_to_do(profile, self._coordinator.config):
+            return "the profile has nothing to do"
 
         today = dt_util.now().date()
         if state.count_for(today) >= profile.daily_budget:
@@ -331,10 +337,21 @@ class VisionRunner:
             # WHERE things are is only worth asking when there is a picture
             # entity to draw it into.
             want_marks = profile.frame_sensor and profile.mark_objects
+            # Whether a model is involved at all. Without a question, a person
+            # or positions to ask for, the run belongs to the picture entity
+            # alone: the frame of this moment, captured and kept, and no
+            # request sent anywhere.
+            needs_model = asks_model(
+                profile, VisionRequest(persons=persons, mark_objects=want_marks)
+            )
             try:
                 # References first - they are static files and must not sit
                 # between the frame grab and the request.
-                references = await self._async_load_references(profile, persons)
+                references = (
+                    await self._async_load_references(profile, persons)
+                    if needs_model
+                    else ()
+                )
                 # The picture is taken here and nowhere earlier. The distance
                 # between the grab and the request is what "current" means;
                 # everything before this point is bookkeeping that must not
@@ -343,19 +360,22 @@ class VisionRunner:
                 # waits - and it removes the one case where a frame could age
                 # while a queued run held it.
                 frame = await self._async_capture(camera_slug, state, entity_id)
-                result = await async_analyse(
-                    self._hass,
-                    camera,
-                    profile,
-                    entity_id,
-                    request=VisionRequest(
-                        frame=frame,
-                        references=references,
-                        persons=persons,
-                        mark_objects=want_marks,
-                        marks_model=profile.marks_model if want_marks else "",
-                    ),
-                )
+                if needs_model:
+                    result = await async_analyse(
+                        self._hass,
+                        camera,
+                        profile,
+                        entity_id,
+                        request=VisionRequest(
+                            frame=frame,
+                            references=references,
+                            persons=persons,
+                            mark_objects=want_marks,
+                            marks_model=profile.marks_model if want_marks else "",
+                        ),
+                    )
+                else:
+                    result = VisionResult()
             except VisionError as err:
                 state.last_error = str(err)
                 state.last_run = dt_util.utcnow()

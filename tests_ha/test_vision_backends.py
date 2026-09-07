@@ -230,6 +230,27 @@ async def test_analysing_without_questions_is_refused(hass: HomeAssistant) -> No
         await async_analyse(hass, CAMERA, empty, "camera.vg")
 
 
+def test_marks_alone_are_a_request_where_the_backend_can_mark() -> None:
+    """A picture-only profile with object marking still asks the model
+    something: where things are."""
+    from custom_components.kustos_vision.vision import VisionRequest, asks_model
+
+    empty = VisionProfile(camera_slug="beispiel", backend=PROFILE.backend)
+    assert asks_model(empty, None) is False
+    assert asks_model(empty, VisionRequest(mark_objects=True)) is True
+
+
+def test_marks_alone_are_no_request_for_ai_task() -> None:
+    """AI Task's structured output carries the user's fields only."""
+    from custom_components.kustos_vision.vision import VisionRequest, asks_model
+
+    empty = VisionProfile(
+        camera_slug="beispiel",
+        backend=VisionBackend(kind=VisionBackendKind.AI_TASK, entity_id="ai_task.m"),
+    )
+    assert asks_model(empty, VisionRequest(mark_objects=True)) is False
+
+
 # ----------------------------------------------------------------------
 # The message a request carries
 # ----------------------------------------------------------------------

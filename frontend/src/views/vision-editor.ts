@@ -157,13 +157,18 @@ export class CamwatchVisionEditor extends LitElement {
     }
   }
 
-  /** A profile that would have nothing to analyse cannot be saved.
+  /** A profile that would have nothing to do cannot be saved.
 
-      Regression: this used to demand at least one question, which locked
-      the Speichern button for a camera that should ONLY recognise persons -
-      while the navigation guard's save happily stored exactly that. */
+      Mirrors the backend's rule: questions, person recognition or the
+      picture entity. Regression, twice: this used to demand at least one
+      question, which locked the Speichern button for a camera that should
+      ONLY recognise persons - while the navigation guard's save happily
+      stored exactly that - and then again for a camera that should only
+      deliver the picture. */
   private saveBlocked(): boolean {
-    return this.observations.length === 0 && !this.detectPersons;
+    return (
+      this.observations.length === 0 && !this.detectPersons && !this.frameSensor
+    );
   }
 
   /** What save() sends, and the yardstick unsaved work is measured by. */
@@ -1109,7 +1114,11 @@ export class CamwatchVisionEditor extends LitElement {
         <p class="hint">
           Stellt das Bild der jeweils letzten Analyse als Bild-Entität an der
           Kamera bereit. Damit können Automationen den analysierten Screenshot
-          zum Beispiel an eine Push-Benachrichtigung anhängen.
+          zum Beispiel an eine Push-Benachrichtigung anhängen. Auch ohne Frage
+          und ohne Personenerkennung nutzbar: Dann wird beim Auslöser nur das
+          Bild aufgenommen, ohne Modellaufruf. Mit „Erkannte Objekte
+          markieren" fragt das Modell allein nach den Objekten und ihren
+          Positionen.
         </p>
 
         ${this.frameSensor
@@ -1159,9 +1168,9 @@ ${JSON.stringify(this.lastRun.raw, null, 2)}</pre
 
         ${this.saveBlocked() && !this.busy
           ? html`<p class="hint">
-              Ohne Frage und ohne Personenerkennung gäbe es nichts zu
-              analysieren. Legen Sie eine Frage an oder schalten Sie die
-              Personenerkennung ein.
+              Ohne Frage, ohne Personenerkennung und ohne Bild-Entität gäbe
+              es nichts zu tun. Legen Sie eine Frage an, schalten Sie die
+              Personenerkennung ein oder aktivieren Sie die Bild-Entität.
             </p>`
           : nothing}
         <div class="row" style="margin-top:16px">

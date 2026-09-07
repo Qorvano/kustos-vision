@@ -250,7 +250,13 @@ async def async_run(
     # alone. See fields_prompt.
     fields_text = fields_prompt(asked)
     if request is not None and request.mark_objects:
-        fields_text += "\n\n" + (objects_prompt() if split_marks else marks_prompt())
+        # rstrip: with no field of its own, the header already ends in the
+        # blank line that would otherwise double up before the marks block.
+        fields_text = (
+            fields_text.rstrip()
+            + "\n\n"
+            + (objects_prompt() if split_marks else marks_prompt())
+        )
     parts: list[dict[str, Any]] = [
         {"type": "text", "text": build_prompt(camera, profile)},
         {"type": "text", "text": fields_text},
