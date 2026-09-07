@@ -191,7 +191,7 @@ Per camera:
 |---|---|
 | `binary_sensor.<camera>_recording` | Whether ffmpeg is actually running. Off means something is wrong, and the attributes say which stream and what it reported. |
 | `sensor.<camera>_used_storage` | Space this camera's recordings occupy. |
-| `sensor.<camera>_oldest_recording` | How far back coverage actually reaches, which is not the same as the configured retention. |
+| `sensor.<camera>_oldest_recording` | The day the oldest recording is from: how far back coverage actually reaches, which is not the same as the configured retention. A day rather than a timestamp, because once retention is active the oldest segment moves on every run, and each move would be a logbook line. |
 | `switch.<camera>_recording` | Pause and resume without changing the configuration. |
 
 Overall: `sensor.kustos_vision_total_storage`, `sensor.kustos_vision_free_storage`,

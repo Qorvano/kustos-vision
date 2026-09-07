@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import date, datetime
 
 from homeassistant.components.sensor import (
     SensorDeviceClass,
@@ -15,6 +15,7 @@ from homeassistant.components.sensor import (
 from homeassistant.const import UnitOfInformation
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
+from homeassistant.util import dt as dt_util
 
 from . import CamwatchEntry
 from .coordinator import CameraState, CamwatchCoordinator, CamwatchData
@@ -27,7 +28,7 @@ from .vision_entity import ObservationEntity, async_setup_observations, shorten
 class CameraSensorDescription(SensorEntityDescription):
     """A per-camera sensor and how to read it."""
 
-    value: Callable[[CameraState], int | float | datetime | None]
+    value: Callable[[CameraState], int | float | date | None]
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -35,6 +36,22 @@ class InstanceSensorDescription(SensorEntityDescription):
     """A whole-installation sensor and how to read it."""
 
     value: Callable[[CamwatchData], int | float | None]
+
+
+def oldest_recording_day(start: datetime | None) -> date | None:
+    """The local day the oldest recording is from.
+
+    A day rather than the exact moment, on purpose. Once retention has caught
+    up with a camera, the oldest segment moves on every housekeeping run, and
+    as a timestamp this sensor turned each of those moves into a logbook
+    line: one per segment length, all day, burying every other entry of the
+    camera's device. Measured live on 2026-09-07 with a 7-day age limit. The
+    day is also the resolution the recording tree and the recordings tab are
+    organised by, and local time is how the user reads both.
+    """
+    if start is None:
+        return None
+    return dt_util.as_local(start).date()
 
 
 CAMERA_SENSORS: tuple[CameraSensorDescription, ...] = (
@@ -51,11 +68,11 @@ CAMERA_SENSORS: tuple[CameraSensorDescription, ...] = (
     CameraSensorDescription(
         key="oldest_recording",
         translation_key="oldest_recording",
-        device_class=SensorDeviceClass.TIMESTAMP,
+        device_class=SensorDeviceClass.DATE,
         # This is the honest answer to "how far back can I look", which is not
         # the configured retention: it is shorter after a fresh start, and
         # shorter again whenever the size budget bit before the age limit did.
-        value=lambda state: state.oldest_start,
+        value=lambda state: oldest_recording_day(state.oldest_start),
     ),
 )
 
@@ -142,7 +159,7 @@ class CameraSensor(CamwatchCameraEntity, SensorEntity):
         self.entity_description = description
 
     @property
-    def native_value(self) -> int | float | datetime | None:
+    def native_value(self) -> int | float | date | None:
         state = self.camera_state
         return None if state is None else self.entity_description.value(state)
 
