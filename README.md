@@ -1,8 +1,5 @@
 <p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Qorvano/kustos-vision/main/brand/kustos_vision.svg">
-    <img alt="Kustos Vision" width="160" src="https://raw.githubusercontent.com/Qorvano/kustos-vision/main/brand/kustos_vision_on_light.svg">
-  </picture>
+  <img alt="Kustos Vision" width="160" src="https://raw.githubusercontent.com/Qorvano/kustos-vision/main/brand/kustos_vision_tile.svg">
 </p>
 
 # Kustos Vision

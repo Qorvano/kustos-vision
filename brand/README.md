@@ -2,8 +2,9 @@
 
 | File | What it is |
 |---|---|
-| `kustos_vision.svg` | The logo: light metallic frame, blue lens. Drawn for dark backgrounds. The panel header embeds this file; the README shows it in dark mode. |
-| `kustos_vision_on_light.svg` | The same logo with a solid dark frame (`#161A22`, the colour the logo's source names for its monochrome form), for light backgrounds. The README shows it in light mode. |
+| `kustos_vision.svg` | The logo: light metallic frame, blue lens. Drawn for dark backgrounds. The panel header embeds this file. |
+| `kustos_vision_on_light.svg` | The same logo with a solid dark frame (`#161A22`, the colour the logo's source names for its monochrome form), for light backgrounds. Source of the light-theme brand icon. |
+| `kustos_vision_tile.svg` | The logo on a dark rounded tile. The README uses this one, because it has to be a single image: GitHub would honour a light/dark `<picture>` switch, HACS's README view prints the tags as text and shows only the inner image. |
 | `kustos_sidebar_vision.svg` | The monochrome form the sidebar icon is made of. `frontend/public/kustos-icons.js` carries it as one path string and registers it as `kustos_vision:vision`. |
 
 The images Home Assistant's integration pages show live inside the
