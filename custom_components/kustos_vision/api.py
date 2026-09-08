@@ -13,6 +13,7 @@ requires an admin, because it changes what gets recorded and where.
 from __future__ import annotations
 
 import logging
+from dataclasses import replace
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
@@ -121,6 +122,47 @@ def _require(hass: HomeAssistant, connection: websocket_api.ActiveConnection, ms
     return coordinator
 
 
+def _public(data: dict[str, Any]) -> dict[str, Any]:
+    """A configuration dict as the panel may see it.
+
+    The key itself never leaves the server; the panel only learns whether one
+    is set, which is all it needs to render the field. Measured live on
+    2026-09-09: the snapshot handed an OpenAI key in clear text to every
+    admin websocket client that asked for the configuration.
+    """
+    public = {key: value for key, value in data.items() if key != "api_key"}
+    public["api_key_set"] = bool(data.get("api_key"))
+    return public
+
+
+def _stored_key(coordinator: CamwatchCoordinator, endpoint_id: str | None) -> str:
+    """The key of a configured endpoint, for requests the panel makes on its
+    behalf without ever having held the key itself."""
+    if not endpoint_id:
+        return ""
+    endpoint = coordinator.config.endpoint(endpoint_id)
+    return endpoint.api_key if endpoint else ""
+
+
+def _with_kept_backend_key(
+    coordinator: CamwatchCoordinator, profile: VisionProfile
+) -> VisionProfile:
+    """Keep a direct-URL backend's stored key when the panel saves the profile
+    back without one: the panel never had the key, so an empty field is not
+    a request to drop it."""
+    backend = profile.backend
+    if backend.api_key or backend.endpoint_id or not backend.url:
+        return profile
+    existing = coordinator.config.vision_for(profile.camera_slug)
+    if (
+        existing is None
+        or not existing.backend.api_key
+        or existing.backend.url != backend.url
+    ):
+        return profile
+    return replace(profile, backend=replace(backend, api_key=existing.backend.api_key))
+
+
 def _snapshot(coordinator: CamwatchCoordinator) -> dict[str, Any]:
     """Everything the panel needs to render, in one message.
 
@@ -164,6 +206,7 @@ def _snapshot(coordinator: CamwatchCoordinator) -> dict[str, Any]:
         vision.append(
             {
                 **profile.as_dict(),
+                "backend": _public(profile.backend.as_dict()),
                 "state": {
                     "values": dict(state.values),
                     "last_run": state.last_run.isoformat() if state.last_run else None,
@@ -199,7 +242,7 @@ def _snapshot(coordinator: CamwatchCoordinator) -> dict[str, Any]:
         "cameras": cameras,
         "vision": vision,
         "persons": persons,
-        "endpoints": [e.as_dict() for e in coordinator.config.endpoints],
+        "endpoints": [_public(e.as_dict()) for e in coordinator.config.endpoints],
         "views": [
             {
                 **view.as_dict(),
@@ -960,7 +1003,7 @@ async def ws_set_vision(
             payload[optional] = msg[optional]
 
     try:
-        profile = VisionProfile.from_dict(payload)
+        profile = _with_kept_backend_key(coordinator, VisionProfile.from_dict(payload))
         updated = coordinator.config.with_vision(profile)
     except (ConfigError, ObservationError) as err:
         connection.send_error(msg["id"], "invalid_config", str(err))
@@ -1129,6 +1172,7 @@ async def ws_persons_options(
         vol.Required("name"): str,
         vol.Required("url"): str,
         vol.Optional("api_key", default=""): str,
+        vol.Optional("clear_api_key", default=False): bool,
         vol.Optional("models", default=[]): [str],
     }
 )
@@ -1151,12 +1195,18 @@ async def ws_set_endpoint(
             f"an endpoint with the identifier {endpoint_id!r} already exists",
         )
         return
+    # The panel never holds a stored key, so an empty field on an existing
+    # endpoint means "keep it"; dropping a key is a separate, explicit request.
+    api_key = msg["api_key"]
+    existing = coordinator.config.endpoint(endpoint_id) if msg.get("endpoint_id") else None
+    if not api_key and existing is not None and not msg["clear_api_key"]:
+        api_key = existing.api_key
     try:
         endpoint = EndpointConfig(
             id=endpoint_id,
             name=name,
             url=msg["url"].strip(),
-            api_key=msg["api_key"],
+            api_key=api_key,
             models=tuple(msg["models"]),
         )
         updated = coordinator.config.with_endpoint(endpoint)
@@ -1209,6 +1259,7 @@ async def ws_delete_endpoint(
         vol.Required("type"): f"{DOMAIN}/endpoint/models",
         vol.Required("url"): str,
         vol.Optional("api_key", default=""): str,
+        vol.Optional("endpoint_id"): str,
     }
 )
 @websocket_api.async_response
@@ -1221,13 +1272,14 @@ async def ws_endpoint_models(
     on almost every runner, and the server is the one whose network can
     reach a LAN endpoint anyway.
     """
-    if _require(hass, connection, msg) is None:
+    if (coordinator := _require(hass, connection, msg)) is None:
         return
     from .vision import VisionError
     from .vision.openai_compat import async_list_models
 
+    api_key = msg["api_key"] or _stored_key(coordinator, msg.get("endpoint_id"))
     try:
-        models = await async_list_models(hass, msg["url"], msg["api_key"])
+        models = await async_list_models(hass, msg["url"], api_key)
     except VisionError as err:
         connection.send_error(msg["id"], "endpoint_error", str(err))
         return
@@ -1241,6 +1293,7 @@ async def ws_endpoint_models(
         vol.Required("url"): str,
         vol.Required("model"): str,
         vol.Optional("api_key", default=""): str,
+        vol.Optional("endpoint_id"): str,
     }
 )
 @websocket_api.async_response
@@ -1249,15 +1302,14 @@ async def ws_endpoint_test(
 ) -> None:
     """One tiny completion against one model, so a typo fails here and not
     silently at the next motion event."""
-    if _require(hass, connection, msg) is None:
+    if (coordinator := _require(hass, connection, msg)) is None:
         return
     from .vision import VisionError
     from .vision.openai_compat import async_probe_model
 
+    api_key = msg["api_key"] or _stored_key(coordinator, msg.get("endpoint_id"))
     try:
-        duration = await async_probe_model(
-            hass, msg["url"], msg["model"], msg["api_key"]
-        )
+        duration = await async_probe_model(hass, msg["url"], msg["model"], api_key)
     except VisionError as err:
         connection.send_error(msg["id"], "endpoint_error", str(err))
         return

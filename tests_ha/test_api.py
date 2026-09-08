@@ -1318,3 +1318,161 @@ def test_the_built_version_is_read_from_the_bundles_tag(
 
     (tmp_path / "panel.js").unlink()
     assert panel_module.bundle_built_version() is None
+
+
+# ----------------------------------------------------------------------
+# Secrets never leave the server
+# ----------------------------------------------------------------------
+
+
+async def test_the_snapshot_never_carries_an_api_key(
+    hass: HomeAssistant, hass_ws_client, setup_kustos_vision
+) -> None:
+    """Regression: the snapshot handed an OpenAI key in clear text to every
+    admin websocket client that asked for the configuration. The panel only
+    learns whether a key is set."""
+    import json
+
+    entry = await setup_kustos_vision([camera_dict()])
+    client = await hass_ws_client(hass)
+
+    result = await send(
+        client,
+        type=f"{DOMAIN}/endpoint/set",
+        name="OpenAI",
+        url="https://api.openai.com/v1",
+        api_key="sk-geheim-123",
+        models=["gpt-4o"],
+    )
+    assert result["success"]
+    assert "sk-geheim-123" not in json.dumps(result)
+    (endpoint,) = result["result"]["endpoints"]
+    assert "api_key" not in endpoint
+    assert endpoint["api_key_set"] is True
+
+    snapshot = await send(client, type=f"{DOMAIN}/config/get")
+    assert "sk-geheim-123" not in json.dumps(snapshot)
+    # Stored all the same, for the requests the server makes itself.
+    assert entry.runtime_data.config.endpoint(endpoint["id"]).api_key == "sk-geheim-123"
+
+
+async def test_saving_an_endpoint_without_a_key_keeps_the_stored_one(
+    hass: HomeAssistant, hass_ws_client, setup_kustos_vision
+) -> None:
+    """The panel never holds the key, so an empty field is not a request to
+    drop it; dropping is explicit."""
+    entry = await setup_kustos_vision([camera_dict()])
+    client = await hass_ws_client(hass)
+    result = await send(
+        client,
+        type=f"{DOMAIN}/endpoint/set",
+        name="OpenAI",
+        url="https://api.openai.com/v1",
+        api_key="sk-geheim-123",
+    )
+    endpoint_id = result["result"]["endpoints"][0]["id"]
+
+    result = await send(
+        client,
+        type=f"{DOMAIN}/endpoint/set",
+        endpoint_id=endpoint_id,
+        name="OpenAI umbenannt",
+        url="https://api.openai.com/v1",
+        api_key="",
+    )
+    assert result["success"]
+    assert entry.runtime_data.config.endpoint(endpoint_id).api_key == "sk-geheim-123"
+    assert result["result"]["endpoints"][0]["api_key_set"] is True
+
+    result = await send(
+        client,
+        type=f"{DOMAIN}/endpoint/set",
+        endpoint_id=endpoint_id,
+        name="OpenAI umbenannt",
+        url="https://api.openai.com/v1",
+        api_key="",
+        clear_api_key=True,
+    )
+    assert result["success"]
+    assert entry.runtime_data.config.endpoint(endpoint_id).api_key == ""
+    assert result["result"]["endpoints"][0]["api_key_set"] is False
+
+
+async def test_model_discovery_uses_the_stored_key_on_the_server(
+    hass: HomeAssistant, hass_ws_client, setup_kustos_vision
+) -> None:
+    """Listing models and probing one happen with the stored key, which the
+    panel never had; naming the endpoint is enough."""
+    await setup_kustos_vision([camera_dict()])
+    client = await hass_ws_client(hass)
+    result = await send(
+        client,
+        type=f"{DOMAIN}/endpoint/set",
+        name="OpenAI",
+        url="https://api.openai.com/v1",
+        api_key="sk-geheim-123",
+    )
+    endpoint_id = result["result"]["endpoints"][0]["id"]
+
+    with patch(
+        "custom_components.kustos_vision.vision.openai_compat.async_list_models",
+        AsyncMock(return_value=["gpt-4o"]),
+    ) as listed:
+        result = await send(
+            client,
+            type=f"{DOMAIN}/endpoint/models",
+            url="https://api.openai.com/v1",
+            api_key="",
+            endpoint_id=endpoint_id,
+        )
+    assert result["success"]
+    assert listed.call_args.args[2] == "sk-geheim-123"
+
+    with patch(
+        "custom_components.kustos_vision.vision.openai_compat.async_probe_model",
+        AsyncMock(return_value=0.5),
+    ) as probed:
+        result = await send(
+            client,
+            type=f"{DOMAIN}/endpoint/test",
+            url="https://api.openai.com/v1",
+            model="gpt-4o",
+            api_key="",
+            endpoint_id=endpoint_id,
+        )
+    assert result["success"]
+    assert probed.call_args.args[3] == "sk-geheim-123"
+
+
+async def test_a_direct_url_profile_keeps_its_key_when_saved_back(
+    hass: HomeAssistant, hass_ws_client, setup_kustos_vision
+) -> None:
+    """Profiles from before endpoints existed carry their own key; the
+    snapshot hides it and a save without one keeps it."""
+    import json
+
+    entry = await setup_kustos_vision([camera_dict()])
+    client = await hass_ws_client(hass)
+    backend = {"kind": "openai", "url": "http://mini:8080/v1", "model": "vision"}
+    observations = [{"key": "paket", "type": "boolean", "question": "Paket da?"}]
+
+    result = await send(
+        client,
+        type=f"{DOMAIN}/vision/set",
+        camera_slug="beispiel",
+        backend={**backend, "api_key": "sk-direkt"},
+        observations=observations,
+    )
+    assert result["success"]
+    assert "sk-direkt" not in json.dumps(result)
+    assert result["result"]["vision"][0]["backend"]["api_key_set"] is True
+
+    result = await send(
+        client,
+        type=f"{DOMAIN}/vision/set",
+        camera_slug="beispiel",
+        backend=backend,
+        observations=observations,
+    )
+    assert result["success"]
+    assert entry.runtime_data.config.vision_for("beispiel").backend.api_key == "sk-direkt"

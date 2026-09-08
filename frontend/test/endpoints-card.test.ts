@@ -16,6 +16,8 @@ type EndpointDraft = {
   name: string;
   url: string;
   api_key: string;
+  api_key_set: boolean;
+  clear_api_key: boolean;
   models: string[];
 };
 
@@ -60,6 +62,8 @@ const MINI = {
   name: "Mac mini",
   url: "http://mini:8080/v1",
   api_key: "",
+  api_key_set: false,
+  clear_api_key: false,
   models: ["gemma4-vision"],
 };
 
@@ -74,7 +78,7 @@ describe("the endpoints card is a draft until saved", () => {
   it("saving sends deletions and changed endpoints", async () => {
     const { el, calls } = card([
       MINI,
-      { id: "alt", name: "Alt", url: "http://alt:1/v1", api_key: "", models: [] },
+      { id: "alt", name: "Alt", url: "http://alt:1/v1", models: [] },
     ]);
     el.endpointsDraft = [{ ...MINI, name: "Mini neu" }];
 
@@ -131,5 +135,42 @@ describe("the endpoints card is a draft until saved", () => {
     // Discovered, not stored: the models are part of the draft and travel
     // with the next Speichern.
     expect(el.endpointsDirty()).toBe(true);
+  });
+});
+
+describe("a stored key never reaches the panel", () => {
+  // Regression: the snapshot carried the key itself, so every admin
+  // websocket client that asked for the configuration got it in clear text.
+  it("the draft only knows that a key is set", () => {
+    const { el } = card([{ id: "oa", name: "OpenAI", url: "https://x/v1", api_key_set: true }]);
+    const draft = el.draftEndpoints()[0];
+    expect(draft.api_key).toBe("");
+    expect(draft.api_key_set).toBe(true);
+  });
+
+  it("saving with the field left empty keeps the stored key", async () => {
+    const { el, calls } = card([{ id: "oa", name: "OpenAI", url: "https://x/v1", api_key_set: true }]);
+    el.patchEndpoint(0, { name: "OpenAI neu" });
+    await el.commitEndpoints();
+    expect(calls).toEqual([
+      {
+        kind: "set",
+        payload: {
+          endpoint_id: "oa",
+          name: "OpenAI neu",
+          url: "https://x/v1",
+          api_key: "",
+          models: [],
+        },
+      },
+    ]);
+  });
+
+  it("dropping the key is an explicit request", async () => {
+    const { el, calls } = card([{ id: "oa", name: "OpenAI", url: "https://x/v1", api_key_set: true }]);
+    el.patchEndpoint(0, { clear_api_key: true });
+    expect(el.endpointsDirty()).toBe(true);
+    await el.commitEndpoints();
+    expect(calls[0].payload).toMatchObject({ endpoint_id: "oa", api_key: "", clear_api_key: true });
   });
 });

@@ -47,7 +47,13 @@ type EndpointDraft = {
   id: string;
   name: string;
   url: string;
+  /** Only what was typed in this session; the stored key never arrives. */
   api_key: string;
+  /** Whether the server holds a key for this endpoint. */
+  api_key_set: boolean;
+  /** Drop the stored key on save. Explicit, because an empty field means
+   *  "keep it". */
+  clear_api_key: boolean;
   models: string[];
 };
 
@@ -386,7 +392,9 @@ export class CamwatchSettings extends LitElement {
       id: endpoint.id,
       name: endpoint.name,
       url: endpoint.url,
-      api_key: endpoint.api_key ?? "",
+      api_key: "",
+      api_key_set: endpoint.api_key_set ?? false,
+      clear_api_key: false,
       models: endpoint.models ?? [],
     }));
   }
@@ -427,6 +435,7 @@ export class CamwatchSettings extends LitElement {
           name: endpoint.name.trim(),
           url: endpoint.url.trim(),
           api_key: endpoint.api_key,
+          ...(endpoint.clear_api_key ? { clear_api_key: true } : {}),
           models: endpoint.models,
         }),
       );
@@ -447,7 +456,15 @@ export class CamwatchSettings extends LitElement {
     // profiles reference endpoints by that id forever.
     this.endpointsDraft = [
       ...this.draftEndpoints(),
-      { id: "", name: "", url: "", api_key: "", models: [] },
+      {
+        id: "",
+        name: "",
+        url: "",
+        api_key: "",
+        api_key_set: false,
+        clear_api_key: false,
+        models: [],
+      },
     ];
   }
 
@@ -461,6 +478,7 @@ export class CamwatchSettings extends LitElement {
       const { models } = await this.api.endpointModels(
         endpoint.url.trim(),
         endpoint.api_key,
+        endpoint.id || undefined,
       );
       this.patchEndpoint(index, { models });
       this.endpointTestResult = new Map(this.endpointTestResult).set(
@@ -493,6 +511,7 @@ export class CamwatchSettings extends LitElement {
         endpoint.url.trim(),
         model,
         endpoint.api_key,
+        endpoint.id || undefined,
       );
       this.endpointTestResult = new Map(this.endpointTestResult).set(
         index,
@@ -540,12 +559,26 @@ export class CamwatchSettings extends LitElement {
             <label>Schlüssel (bei lokalen Modellen meist leer)</label>
             <input
               type="password"
+              autocomplete="off"
+              placeholder=${endpoint.api_key_set && !endpoint.clear_api_key
+                ? "gesetzt, leer lassen zum Behalten"
+                : ""}
               .value=${endpoint.api_key}
               @change=${(e: Event) =>
                 this.patchEndpoint(index, {
                   api_key: (e.target as HTMLInputElement).value,
+                  clear_api_key: false,
                 })}
             />
+            ${endpoint.api_key_set && !endpoint.clear_api_key
+              ? html`<button
+                  class="secondary"
+                  style="margin-top:4px"
+                  @click=${() => this.patchEndpoint(index, { clear_api_key: true })}
+                >
+                  Schlüssel entfernen
+                </button>`
+              : nothing}
           </div>
         </div>
         <label>Modelle, durch Komma getrennt</label>

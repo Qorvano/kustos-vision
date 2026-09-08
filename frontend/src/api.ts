@@ -287,7 +287,9 @@ export class CamwatchApi {
     endpoint_id?: string;
     name: string;
     url: string;
+    /** Empty keeps a stored key; a key is only dropped with clear_api_key. */
     api_key: string;
+    clear_api_key?: boolean;
     models: string[];
   }): Promise<Snapshot> {
     return this.hass.callWS({ type: `${DOMAIN}/endpoint/set`, ...endpoint });
@@ -301,11 +303,18 @@ export class CamwatchApi {
   }
 
   /** Ask an endpoint for its models (server-side, past any CORS). */
-  endpointModels(url: string, apiKey: string): Promise<{ models: string[] }> {
+  endpointModels(
+    url: string,
+    apiKey: string,
+    endpointId?: string,
+  ): Promise<{ models: string[] }> {
     return this.hass.callWS({
       type: `${DOMAIN}/endpoint/models`,
       url,
       api_key: apiKey,
+      // The stored key stays on the server; naming the endpoint lets the
+      // server use it when the field here is empty.
+      ...(endpointId ? { endpoint_id: endpointId } : {}),
     });
   }
 
@@ -315,12 +324,14 @@ export class CamwatchApi {
     url: string,
     model: string,
     apiKey: string,
+    endpointId?: string,
   ): Promise<{ ok: boolean; duration: number }> {
     return this.hass.callWS({
       type: `${DOMAIN}/endpoint/test`,
       url,
       model,
       api_key: apiKey,
+      ...(endpointId ? { endpoint_id: endpointId } : {}),
     });
   }
 

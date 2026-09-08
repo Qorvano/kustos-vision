@@ -608,6 +608,10 @@ export class CamwatchVisionEditor extends LitElement {
         ? html`<label>Schlüssel (bei lokalen Modellen meist leer)</label>
             <input
               type="password"
+              autocomplete="off"
+              placeholder=${this.backend.api_key_set
+                ? "gesetzt, leer lassen zum Behalten"
+                : ""}
               .value=${this.backend.api_key ?? ""}
               @change=${(e: Event) =>
                 (this.backend = {

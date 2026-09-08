@@ -114,6 +114,8 @@ export interface VisionBackend {
   url?: string;
   model?: string;
   api_key?: string;
+  /** Whether a key is stored. The key itself never leaves the server. */
+  api_key_set?: boolean;
   timeout_seconds?: number;
   /** A configured endpoint to take url and api_key from at request time;
    *  the direct url stays supported for profiles from before endpoints. */
@@ -125,7 +127,10 @@ export interface EndpointConfig {
   id: string;
   name: string;
   url: string;
+  /** Never filled by the server; only sent when a new key is entered. */
   api_key?: string;
+  /** Whether a key is stored. The key itself never leaves the server. */
+  api_key_set?: boolean;
   models?: string[];
 }
 
