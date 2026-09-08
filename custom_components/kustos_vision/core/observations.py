@@ -239,7 +239,12 @@ def fields_prompt(fields) -> str:
             lines.append(
                 f"Answer an integer between {entry.minimum} and {entry.maximum}."
             )
-        lines.append(ANSWER_GUIDANCE[entry.type])
+        # The field's own guidance where it has one, exactly as in the
+        # schema: llama.cpp never shows the model the schema text, so this
+        # is the only place a per-field guidance reaches it. Measured live
+        # on 2026-09-09: an ad-hoc question answered with the sensors'
+        # rules until this line read the field.
+        lines.append(getattr(entry, "guidance", None) or ANSWER_GUIDANCE[entry.type])
         blocks.append("\n".join(lines))
     return "These are the fields to answer:\n\n" + "\n\n".join(blocks)
 

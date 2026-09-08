@@ -446,3 +446,22 @@ def test_a_field_may_carry_its_own_guidance() -> None:
     assert field_description(own).endswith("Nenne alles.")
     assert ANSWER_GUIDANCE[ObservationType.TEXT] not in field_description(own)
     assert "guidance" not in own.as_dict()
+
+
+def test_the_prompt_text_carries_the_fields_own_guidance_too() -> None:
+    """Regression: the guidance reached only the JSON schema, which llama.cpp
+    never shows the model; the prompt text kept the type's standard rules and
+    an ad-hoc question was answered like a sensor."""
+    from custom_components.kustos_vision.core.observations import (
+        ANSWER_GUIDANCE,
+        Observation,
+        ObservationType,
+        fields_prompt,
+    )
+
+    own = Observation(
+        "antwort", ObservationType.TEXT, "Was ist zu sehen?", guidance="Nenne alles."
+    )
+    text = fields_prompt([own])
+    assert "Nenne alles." in text
+    assert ANSWER_GUIDANCE[ObservationType.TEXT] not in text
