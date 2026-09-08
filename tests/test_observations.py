@@ -425,3 +425,24 @@ def test_a_stored_condition_entity_is_ignored() -> None:
         }
     )
     assert not hasattr(profile, "condition_entity")
+
+
+def test_a_field_may_carry_its_own_guidance() -> None:
+    """Questions synthesised at request time answer on their own terms, not
+    with the rules written for the profile's sensors."""
+    from custom_components.kustos_vision.core.observations import (
+        ANSWER_GUIDANCE,
+        Observation,
+        ObservationType,
+        field_description,
+    )
+
+    standard = Observation("szene", ObservationType.TEXT, "Was ist zu sehen?")
+    assert ANSWER_GUIDANCE[ObservationType.TEXT] in field_description(standard)
+
+    own = Observation(
+        "antwort", ObservationType.TEXT, "Was ist zu sehen?", guidance="Nenne alles."
+    )
+    assert field_description(own).endswith("Nenne alles.")
+    assert ANSWER_GUIDANCE[ObservationType.TEXT] not in field_description(own)
+    assert "guidance" not in own.as_dict()

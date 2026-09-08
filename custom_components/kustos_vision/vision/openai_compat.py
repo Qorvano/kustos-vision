@@ -258,7 +258,7 @@ async def async_run(
             + (objects_prompt() if split_marks else marks_prompt())
         )
     parts: list[dict[str, Any]] = [
-        {"type": "text", "text": build_prompt(camera, profile)},
+        {"type": "text", "text": build_prompt(camera, profile, request)},
         {"type": "text", "text": fields_text},
     ]
     references = request.references if request is not None else ()

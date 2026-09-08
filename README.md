@@ -160,10 +160,14 @@ the sensors updated.
 now, the assistant hands the person's question, verbatim, together with a fresh
 picture to the camera's vision model and gets the answer to exactly that
 question, instead of quoting the sensors, which only hold the answers to the
-configured questions from the last trigger. The sensors are left alone by such
-a look; it shows up in the camera's analysis history like any run. Without a
-camera or area named, the camera in the voice satellite's area is used. Cooldown
-is skipped, the daily budget is not.
+configured questions from the last trigger. Such a look takes nothing from the
+profile except the model to ask: no context, no reference pictures, no object
+marks. Only when the question is about people does the assistant set
+`check_persons`, and the configured people's photos travel along so the answer
+can say who was recognised. The sensors are left alone; the look shows up in the
+camera's analysis history like any run. Without a camera or area named, the
+camera in the voice satellite's area is used. Cooldown is skipped, the daily
+budget is not.
 
 ## Recording layout
 

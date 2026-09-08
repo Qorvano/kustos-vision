@@ -47,6 +47,7 @@ from .core.observations import Observation, ObservationType
 from .core.persons import PersonProfile, plan_person_pictures
 from .core.references import (
     MAX_PICTURES_PER_REQUEST,
+    PlannedPicture,
     find_asset,
     plan_baseline,
     plan_pictures,
@@ -66,6 +67,22 @@ _LOGGER = logging.getLogger(__name__)
 # person asked in their own words and gets a sentence back, whatever the
 # question's shape.
 ADHOC_KEY = "antwort"
+
+# How an ad-hoc question is to be answered. The standard text guidance was
+# written for the profile's sensors: report what is beyond the permanent
+# scenery, briefly. A person asking what is in the picture wants the picture
+# described, permanent things included; measured live on 2026-09-09, the
+# sensor rules turned "name every object you see" into "garden furniture,
+# a bike and plants" while the same model listed eight things when asked
+# properly.
+ADHOC_GUIDANCE = (
+    "Answer this question directly and completely from what is visible in "
+    "this frame, in the language of the question, in one or two sentences. "
+    "If it asks what is there or what you see, name every distinct thing you "
+    "recognise, including things that are always there, using plain kind "
+    "names and counting several of a kind. If the frame does not let you "
+    "tell, say so instead of guessing."
+)
 
 # How many past analyses to keep per camera for the panel. Enough to see
 # whether a question works, few enough to stay in memory without thought.
@@ -292,6 +309,7 @@ class VisionRunner:
         reason: str = "manual",
         force: bool = False,
         question: str | None = None,
+        check_persons: bool = False,
     ) -> VisionResult | None:
         """Analyse one camera, unless a limit says not to.
 
@@ -300,10 +318,13 @@ class VisionRunner:
         one limit that exists to stop runaway cost.
 
         ``question`` asks the model this one question about the frame instead
-        of the profile's questions: no person fields, no reference pictures,
+        of the profile's questions: no profile context, no reference pictures,
         no object marks, and the observation sensors keep the answers of their
-        own questions. The run is still recorded in the history and counted
-        against the budget, because it costs the same.
+        own questions. ``check_persons`` adds the configured people and their
+        photos to such a question, for whoever asks who is there; it is a
+        separate switch because the photos cost the model time on every
+        question that is not about people. The run is still recorded in the
+        history and counted against the budget, because it costs the same.
         """
         config = self._coordinator.config
         camera = config.camera(camera_slug)
@@ -341,15 +362,23 @@ class VisionRunner:
             self._coordinator.async_update_listeners()
             frame: CapturedFrame | None = None
             adhoc: tuple[Observation, ...] = (
-                (Observation(ADHOC_KEY, ObservationType.TEXT, question),)
+                (
+                    Observation(
+                        ADHOC_KEY, ObservationType.TEXT, question, guidance=ADHOC_GUIDANCE
+                    ),
+                )
                 if question is not None
                 else ()
             )
-            # Only enabled people, and only when this camera opted in - and
-            # never for an ad-hoc question, which is about itself alone.
+            # Only enabled people, and only when this camera opted in. An
+            # ad-hoc question about people takes every enabled person
+            # regardless of the profile: who is in the picture is the one
+            # thing it inherits from the configuration, because only the
+            # configuration knows the faces. Everything else about the
+            # profile stays out of it.
             persons: tuple[PersonProfile, ...] = (
                 tuple(p for p in config.persons.people if p.enabled)
-                if profile.detect_persons and not adhoc
+                if (profile.detect_persons and not adhoc) or (adhoc and check_persons)
                 else ()
             )
             # WHERE things are is only worth asking when there is a picture
@@ -366,12 +395,14 @@ class VisionRunner:
             try:
                 # References first - they are static files and must not sit
                 # between the frame grab and the request. An ad-hoc question
-                # travels without them: they belong to the profile's questions.
-                references = (
-                    await self._async_load_references(profile, persons)
-                    if needs_model and not adhoc
-                    else ()
-                )
+                # carries only the people's photos: the baseline and the
+                # questions' references belong to the profile.
+                if not needs_model:
+                    references: tuple[ReferencePicture, ...] = ()
+                elif adhoc:
+                    references = await self._async_load_person_pictures(persons)
+                else:
+                    references = await self._async_load_references(profile, persons)
                 # The picture is taken here and nowhere earlier. The distance
                 # between the grab and the request is what "current" means;
                 # everything before this point is bookkeeping that must not
@@ -478,14 +509,27 @@ class VisionRunner:
         never a failure: the analysis without its reference still answers
         something, a refused analysis answers nothing at all.
         """
-        budget = MAX_PICTURES_PER_REQUEST - 1  # the frame occupies one slot
         planned = (
             # The normal-scene picture first: it frames how everything after
             # it is read, and the budget cuts from the back.
             *plan_baseline(profile.baseline),
             *plan_pictures(list(profile.active_observations)),
             *plan_person_pictures(persons),
-        )[:budget]
+        )
+        return await self._async_load_planned(planned)
+
+    async def _async_load_person_pictures(
+        self, persons: tuple[PersonProfile, ...]
+    ) -> tuple[ReferencePicture, ...]:
+        """The people's photos alone, for a question of the moment."""
+        return await self._async_load_planned(plan_person_pictures(persons))
+
+    async def _async_load_planned(
+        self, planned: tuple[PlannedPicture, ...]
+    ) -> tuple[ReferencePicture, ...]:
+        """Read planned pictures from the local state, capped to the request
+        budget; the frame occupies one slot of it."""
+        planned = planned[: MAX_PICTURES_PER_REQUEST - 1]
         if not planned:
             return ()
         local_state = Path(self._hass.config.path(LOCAL_STATE_DIR))

@@ -240,9 +240,34 @@ def test_marks_alone_are_a_request_where_the_backend_can_mark() -> None:
     assert asks_model(empty, VisionRequest(mark_objects=True)) is True
 
 
+def test_an_ad_hoc_question_is_framed_without_the_profile() -> None:
+    """The owner's description steers the sensors towards what differs from
+    the usual view. A question of the moment is answered from the picture
+    alone; with the description present it came back as "nothing unusual"."""
+    from custom_components.kustos_vision.vision import VisionRequest
+
+    described = VisionProfile(
+        camera_slug="beispiel",
+        backend=PROFILE.backend,
+        observations=PROFILE.observations,
+        context="Ein Fahrrad steht immer an der Wand.",
+    )
+    adhoc = Observation("antwort", ObservationType.TEXT, "Was siehst du?")
+
+    sensors = build_prompt(CAMERA, described)
+    assert "Ein Fahrrad steht immer an der Wand." in sensors
+    assert "Never answer by repeating it" in sensors
+
+    asked = build_prompt(CAMERA, described, VisionRequest(questions=(adhoc,)))
+    assert "Ein Fahrrad steht immer an der Wand." not in asked
+    assert "Never answer by repeating it" not in asked
+    assert "Answer each field from what is visible in this frame alone" in asked
+
+
 def test_an_ad_hoc_question_is_the_only_field() -> None:
     """The person's question replaces the profile's questions and the person
     fields for that one request; it asks the model on its own."""
+    from custom_components.kustos_vision.core.persons import PersonProfile
     from custom_components.kustos_vision.vision import (
         VisionRequest,
         analysis_fields,
@@ -254,6 +279,16 @@ def test_an_ad_hoc_question_is_the_only_field() -> None:
     assert fields == [adhoc]
     empty = VisionProfile(camera_slug="beispiel", backend=PROFILE.backend)
     assert asks_model(empty, VisionRequest(questions=(adhoc,))) is True
+
+    # The configured people are the one thing the question inherits: only
+    # the configuration knows their faces.
+    dustin = PersonProfile(id="dustin", name="Dustin")
+    fields = analysis_fields(
+        PROFILE, VisionRequest(questions=(adhoc,), persons=(dustin,))
+    )
+    assert fields[0] == adhoc
+    assert len(fields) == 2
+    assert "Dustin" in fields[1].question
 
 
 def test_marks_alone_are_no_request_for_ai_task() -> None:

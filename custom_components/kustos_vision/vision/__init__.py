@@ -91,9 +91,10 @@ class VisionRequest:
 
     questions: tuple[Observation, ...] = ()
     """Questions asked for this one request instead of the profile's, such as
-    what a person just asked their voice assistant. When set they are the only
-    fields: no profile questions, no person fields. The answer is about this
-    picture and this question, and the sensors keep their own answers."""
+    what a person just asked their voice assistant. When set, the profile's
+    questions, context and reference pictures stay out of the request; only
+    the configured people travel along, so the answer can say who is there.
+    The sensors keep their own answers."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -121,7 +122,9 @@ class VisionResult:
     """Where the model located the objects its answers report."""
 
 
-def build_prompt(camera: CameraConfig, profile: VisionProfile) -> str:
+def build_prompt(
+    camera: CameraConfig, profile: VisionProfile, request: VisionRequest | None = None
+) -> str:
     """The instructions that go with the picture.
 
     The individual questions are not in here: they travel as field
@@ -131,11 +134,19 @@ def build_prompt(camera: CameraConfig, profile: VisionProfile) -> str:
     Written in English regardless of the user's language, because that is what
     models handle most reliably, while the questions themselves stay in
     whatever language the user wrote them.
+
+    A request carrying ad-hoc questions leaves the owner's description out
+    altogether. It was written to steer the profile's sensors towards what
+    differs from the usual view; a person asking a question of the moment
+    wants that question answered from the picture, and nothing else. Measured
+    live on 2026-09-09: with a description present, "what do you see" came
+    back as "nothing unusual".
     """
+    adhoc = request is not None and bool(request.questions)
     parts = [
         f'This is a still frame from a camera called "{camera.name}".',
     ]
-    if profile.context.strip():
+    if profile.context.strip() and not adhoc:
         parts.append(
             "The owner describes what is permanently in this view: "
             + profile.context.strip()
@@ -248,7 +259,10 @@ def analysis_fields(
     person fields. One function, used for the schema AND for reading the
     answer, so the two cannot disagree about what was asked.
     """
-    if request is not None and request.questions:
-        return list(request.questions)
     extra = person_observations(request.persons) if request is not None else ()
+    if request is not None and request.questions:
+        # The person fields stay: whether a known person is in the picture
+        # is the one thing a question of the moment inherits from the
+        # configuration, because only the configuration knows the faces.
+        return [*request.questions, *extra]
     return [*profile.active_observations, *extra]

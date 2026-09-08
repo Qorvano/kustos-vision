@@ -1866,19 +1866,45 @@ async def test_an_ad_hoc_question_replaces_the_profiles_fields_for_one_run(
     """What a person asks their voice assistant goes to the model as the only
     field, without the profile's questions, people, references or marks, and
     the sensors keep the answers of their own questions."""
+    from dataclasses import replace
+
+    from custom_components.kustos_vision.core.persons import PersonProfile, PersonsConfig
+
     entry = await setup_vision([profile(frame_sensor=True, mark_objects=True)])
-    runner = entry.runtime_data.vision
+    coordinator = entry.runtime_data
+    # A configured person, on a profile that does NOT opt into person
+    # detection: the question of the moment still checks for them.
+    await coordinator.async_set_config(
+        replace(
+            coordinator.config,
+            persons=PersonsConfig(people=(PersonProfile(id="dustin", name="Dustin"),)),
+        )
+    )
+    runner = coordinator.vision
     await runner.async_analyse("beispiel", force=True)  # the sensors get answers
     assert runner.state_for("beispiel").values["paket"] is True
+    assert analysed[-1]["request"].persons == ()
 
     await runner.async_analyse(
         "beispiel", reason="assist", force=True, question="Steht ein Auto da?"
     )
     request = analysed[-1]["request"]
     assert [q.question for q in request.questions] == ["Steht ein Auto da?"]
+    # Answered on its own terms, not with the sensors' rules.
+    assert request.questions[0].guidance
+    # Not a question about people: their photos would only cost time.
     assert request.persons == ()
     assert request.references == ()
     assert request.mark_objects is False
+
+    await runner.async_analyse(
+        "beispiel",
+        reason="assist",
+        force=True,
+        question="Ist Dustin zu sehen?",
+        check_persons=True,
+    )
+    assert [p.name for p in analysed[-1]["request"].persons] == ["Dustin"]
 
     state = runner.state_for("beispiel")
     assert state.values["paket"] is True

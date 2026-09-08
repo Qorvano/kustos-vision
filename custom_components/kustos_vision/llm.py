@@ -37,9 +37,10 @@ TOOL_PROMPT = (
     f"Use {TOOL_NAME} for any question about what a camera sees right now:"
     " what is happening or visible in an area with a camera, whether something"
     " or someone is there, what something looks like. It takes a fresh picture"
-    " and has it answer the person's question, passed verbatim. The camera"
-    " sensors only hold answers from the last trigger. Cameras and the areas"
-    " they watch:"
+    " and has it answer the person's question, passed verbatim; set"
+    " check_persons when the question is about who is there or whether a"
+    " particular person is present. The camera sensors only hold answers from"
+    " the last trigger. Cameras and the areas they watch:"
 )
 
 
@@ -104,9 +105,10 @@ class LookAtCameraTool(Tool):
     description = (
         "Look through a camera right now and answer a question about what it"
         " sees: takes a fresh picture and has the vision model answer the"
-        " question from that picture. Give the camera name or the area it"
-        " watches; without both, the camera in the area of the voice satellite"
-        " is used."
+        " question from that picture. With check_persons it also compares the"
+        " picture with the configured people and names those recognised in"
+        " persons_seen. Give the camera name or the area it watches; without"
+        " both, the camera in the area of the voice satellite is used."
     )
     parameters = vol.Schema(
         {
@@ -117,6 +119,16 @@ class LookAtCameraTool(Tool):
                     " own words and language."
                 ),
             ): cv.string,
+            vol.Optional(
+                "check_persons",
+                default=False,
+                description=(
+                    "Set true only when the question asks who is there or"
+                    " whether a particular person is present: the picture is"
+                    " then compared with the configured people's reference"
+                    " photos, which costs extra time."
+                ),
+            ): cv.boolean,
             vol.Optional(
                 "camera",
                 description="Name of the camera, case-insensitive.",
@@ -207,7 +219,11 @@ class LookAtCameraTool(Tool):
         question: str = args["question"]
         try:
             result = await self._coordinator.vision.async_analyse(
-                camera.slug, reason="assist", force=True, question=question
+                camera.slug,
+                reason="assist",
+                force=True,
+                question=question,
+                check_persons=args["check_persons"],
             )
         except VisionError as err:
             return {"success": False, "error": str(err)}
@@ -228,6 +244,18 @@ class LookAtCameraTool(Tool):
                     f" {result.problems.get(ADHOC_KEY, 'the model answered nothing')}"
                 ),
             }
+        # Which of the configured people the picture was checked against,
+        # and which of them it showed: the answer text may say "a person",
+        # this says who.
+        people = self._coordinator.config.persons
+        checked = [
+            person.name for person in people.people
+            if person.id in result.persons
+        ]
+        seen = [
+            person.name for person in people.people
+            if result.persons.get(person.id)
+        ]
         return {
             "success": True,
             "result": {
@@ -235,6 +263,8 @@ class LookAtCameraTool(Tool):
                 "area": _area_name(hass, _camera_area_id(hass, self._coordinator, camera)),
                 "question": question,
                 "answer": result.values[ADHOC_KEY],
+                "persons_seen": seen,
+                "persons_checked": checked,
                 "duration_s": round(result.duration_s, 1),
             },
         }

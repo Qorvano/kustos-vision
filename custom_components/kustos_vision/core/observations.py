@@ -80,6 +80,12 @@ class Observation:
     """Pictures the model may compare against when answering this question,
     e.g. a labelled photo of the backyard naming which bin is which."""
 
+    guidance: str | None = None
+    """Replaces the type's standard answer guidance for this one field. Never
+    stored: it exists for questions synthesised at request time, such as one
+    a person just asked their voice assistant, which must be answered on its
+    own terms rather than with the rules written for the profile's sensors."""
+
     def __post_init__(self) -> None:
         if not _KEY_RE.match(self.key):
             raise ObservationError(
@@ -206,7 +212,8 @@ def field_description(observation: Observation) -> str:
     question always comes first and unmodified, so it stays in the user's
     language and words.
     """
-    return f"{observation.question}\n\n{ANSWER_GUIDANCE[observation.type]}"
+    guidance = observation.guidance or ANSWER_GUIDANCE[observation.type]
+    return f"{observation.question}\n\n{guidance}"
 
 
 def fields_prompt(fields) -> str:

@@ -99,7 +99,12 @@ def vision_env(analysed: list[dict]):
         analysed.append({"camera": camera.slug, "request": request})
         if request is not None and request.questions:
             answer = {request.questions[0].key: "Ja, vor der Tür liegt ein Paket."}
-            return VisionResult(values=answer, raw=answer, duration_s=0.1)
+            return VisionResult(
+                values=answer,
+                raw=answer,
+                duration_s=0.1,
+                persons={person.id: True for person in request.persons},
+            )
         return VisionResult(
             values={"paket": True, "wer": "Postbote"},
             raw={"paket": True, "wer": "Postbote"},
@@ -215,6 +220,8 @@ async def test_a_look_by_area_asks_the_persons_question_and_returns_its_answer(
         "area": "Garten",
         "question": QUESTION,
         "answer": "Ja, vor der Tür liegt ein Paket.",
+        "persons_seen": [],
+        "persons_checked": [],
         "duration_s": 0.1,
     }
     assert len(analysed) == 1
@@ -309,3 +316,40 @@ async def test_a_used_up_budget_is_reported_not_raised(
     assert second["success"] is False
     assert "budget" in second["error"]
     assert len(analysed) == 1
+
+
+async def test_a_look_names_the_configured_people_it_recognised(
+    hass: HomeAssistant, setup, analysed: list
+) -> None:
+    """Who is there is the one thing a question inherits from the
+    configuration: the faces. The answer says which known people were
+    checked and which were seen."""
+    from dataclasses import replace
+
+    from custom_components.kustos_vision.core.persons import PersonProfile, PersonsConfig
+
+    entry = await setup()
+    coordinator = entry.runtime_data
+    await coordinator.async_set_config(
+        replace(
+            coordinator.config,
+            persons=PersonsConfig(
+                people=(
+                    PersonProfile(id="dustin", name="Dustin"),
+                    PersonProfile(id="gast", name="Gast", enabled=False),
+                )
+            ),
+        )
+    )
+
+    # Not asked about people: nobody is checked, no photo travels.
+    result = await call(hass, {"camera": "Beispiel"})
+    assert result["success"] is True
+    assert result["result"]["persons_checked"] == []
+    assert analysed[0]["request"].persons == ()
+
+    result = await call(hass, {"camera": "Beispiel", "check_persons": True})
+    assert result["success"] is True
+    assert result["result"]["persons_checked"] == ["Dustin"]
+    assert result["result"]["persons_seen"] == ["Dustin"]
+    assert [p.name for p in analysed[1]["request"].persons] == ["Dustin"]

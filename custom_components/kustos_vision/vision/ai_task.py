@@ -105,7 +105,7 @@ def _attachments_and_instructions(
         )
         lines.append(f"Attachment {len(attachments)}: {reference.preamble}")
 
-    instructions = build_prompt(camera, profile)
+    instructions = build_prompt(camera, profile, request)
     if len(attachments) > 1:
         instructions += "\n\n" + "\n".join(lines)
     return attachments, instructions

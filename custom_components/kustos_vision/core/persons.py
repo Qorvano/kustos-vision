@@ -139,6 +139,7 @@ class PersonField:
     enabled: bool = True
     name: str | None = None
     device_class: str | None = None
+    guidance: str | None = None
 
 
 def person_observations(
