@@ -240,6 +240,22 @@ def test_marks_alone_are_a_request_where_the_backend_can_mark() -> None:
     assert asks_model(empty, VisionRequest(mark_objects=True)) is True
 
 
+def test_an_ad_hoc_question_is_the_only_field() -> None:
+    """The person's question replaces the profile's questions and the person
+    fields for that one request; it asks the model on its own."""
+    from custom_components.kustos_vision.vision import (
+        VisionRequest,
+        analysis_fields,
+        asks_model,
+    )
+
+    adhoc = Observation("antwort", ObservationType.TEXT, "Steht ein Auto da?")
+    fields = analysis_fields(PROFILE, VisionRequest(questions=(adhoc,)))
+    assert fields == [adhoc]
+    empty = VisionProfile(camera_slug="beispiel", backend=PROFILE.backend)
+    assert asks_model(empty, VisionRequest(questions=(adhoc,))) is True
+
+
 def test_marks_alone_are_no_request_for_ai_task() -> None:
     """AI Task's structured output carries the user's fields only."""
     from custom_components.kustos_vision.vision import VisionRequest, asks_model

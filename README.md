@@ -156,12 +156,14 @@ same without returning anything, for automations and dashboards that only need
 the sensors updated.
 
 **Voice assistants**: an LLM-based Assist agent gets the tool
-`kustos_vision__LookAtCamera`. Asked what is happening at a camera or in an
-area right now, the model takes a fresh picture through it and answers the
-camera's questions from that picture instead of quoting the sensors, which
-only hold the answers from the last trigger. Without a camera or area named,
-the camera in the voice satellite's area is used. Cooldown is skipped, the daily
-budget is not.
+`kustos_vision__LookAtCamera`. Asked something about what a camera sees right
+now, the assistant hands the person's question, verbatim, together with a fresh
+picture to the camera's vision model and gets the answer to exactly that
+question, instead of quoting the sensors, which only hold the answers to the
+configured questions from the last trigger. The sensors are left alone by such
+a look; it shows up in the camera's analysis history like any run. Without a
+camera or area named, the camera in the voice satellite's area is used. Cooldown
+is skipped, the daily budget is not.
 
 ## Recording layout
 

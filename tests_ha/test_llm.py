@@ -97,6 +97,9 @@ def analysed() -> list[dict]:
 def vision_env(analysed: list[dict]):
     async def _analyse(hass, camera, prof, entity_id, request=None):
         analysed.append({"camera": camera.slug, "request": request})
+        if request is not None and request.questions:
+            answer = {request.questions[0].key: "Ja, vor der Tür liegt ein Paket."}
+            return VisionResult(values=answer, raw=answer, duration_s=0.1)
         return VisionResult(
             values={"paket": True, "wer": "Postbote"},
             raw={"paket": True, "wer": "Postbote"},
@@ -156,11 +159,16 @@ async def tool(hass: HomeAssistant, llm_context: llm.LLMContext) -> llm.Tool | N
     return next((t for t in result.tools if t.name == TOOL_NAME), None)
 
 
+QUESTION = "Liegt ein Paket vor der Tür?"
+
+
 async def call(hass: HomeAssistant, args: dict, device_id: str | None = None) -> dict:
     llm_context = context(device_id)
     found = await tool(hass, llm_context)
     assert found is not None
-    return await found.async_call(hass, llm.ToolInput(TOOL_NAME, args), llm_context)
+    return await found.async_call(
+        hass, llm.ToolInput(TOOL_NAME, {"question": QUESTION, **args}), llm_context
+    )
 
 
 def test_the_tool_name_carries_the_domain() -> None:
@@ -179,8 +187,8 @@ async def test_the_tool_is_offered_with_the_cameras_and_their_areas(
     assert "Beispiel (Garten)" in result.prompt
 
 
-async def test_no_tool_without_a_question_to_answer(hass: HomeAssistant, setup) -> None:
-    """A camera without a vision profile cannot answer anything."""
+async def test_no_tool_without_a_vision_profile(hass: HomeAssistant, setup) -> None:
+    """The profile is where the model to ask is configured."""
     await setup(vision=[])
     assert await tool(hass, context()) is None
 
@@ -191,22 +199,42 @@ async def test_no_tool_for_another_api(hass: HomeAssistant, setup) -> None:
     assert not any(t.name == TOOL_NAME for t in result.tools)
 
 
-async def test_a_look_by_area_runs_an_analysis_and_returns_the_answers(
+async def test_a_look_by_area_asks_the_persons_question_and_returns_its_answer(
     hass: HomeAssistant, setup, analysed: list
 ) -> None:
+    """The person's own question goes to the model as the only field, with
+    the fresh frame and nothing else: no profile questions, no person fields,
+    no reference pictures, no marks."""
     ar.async_get(hass).async_create("Garten")
-    entry = await setup(area_id="garten")
+    await setup(area_id="garten")
     result = await call(hass, {"area": "Garten"})
 
     assert result["success"] is True
-    assert len(analysed) == 1
-    assert result["result"]["camera"] == "Beispiel"
-    assert result["result"]["area"] == "Garten"
-    vision = entry.runtime_data.config.vision_for("beispiel")
-    assert result["result"]["answers"] == {
-        vision.observation("paket").display_name: True,
-        vision.observation("wer").display_name: "Postbote",
+    assert result["result"] == {
+        "camera": "Beispiel",
+        "area": "Garten",
+        "question": QUESTION,
+        "answer": "Ja, vor der Tür liegt ein Paket.",
+        "duration_s": 0.1,
     }
+    assert len(analysed) == 1
+    request = analysed[0]["request"]
+    assert [q.question for q in request.questions] == [QUESTION]
+    assert request.persons == ()
+    assert request.references == ()
+    assert request.mark_objects is False
+    assert request.frame is not None
+
+
+async def test_a_look_leaves_the_sensors_alone(
+    hass: HomeAssistant, setup, analysed: list
+) -> None:
+    """The sensors report the profile's questions; an answer to somebody's
+    question of the moment is not theirs to carry."""
+    await setup()
+    await call(hass, {"camera": "Beispiel"})
+    await hass.async_block_till_done()
+    assert hass.states.get("binary_sensor.beispiel_paket").state == "unavailable"
 
 
 async def test_a_look_by_camera_name_is_case_insensitive(

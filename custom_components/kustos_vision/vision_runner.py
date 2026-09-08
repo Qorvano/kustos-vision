@@ -43,6 +43,7 @@ from .core.capture import (
 )
 from .core.config import CamwatchConfig, VisionBackendKind, VisionProfile
 from .core.marks import marked_name
+from .core.observations import Observation, ObservationType
 from .core.persons import PersonProfile, plan_person_pictures
 from .core.references import (
     MAX_PICTURES_PER_REQUEST,
@@ -60,6 +61,11 @@ from .vision import (
 )
 
 _LOGGER = logging.getLogger(__name__)
+
+# The field an ad-hoc question is answered under. One field, free text: the
+# person asked in their own words and gets a sentence back, whatever the
+# question's shape.
+ADHOC_KEY = "antwort"
 
 # How many past analyses to keep per camera for the panel. Enough to see
 # whether a question works, few enough to stay in memory without thought.
@@ -292,6 +298,12 @@ class VisionRunner:
         ``force`` skips the cooldown but never the daily
         budget: a manual run is meant to be immediate, while the budget is the
         one limit that exists to stop runaway cost.
+
+        ``question`` asks the model this one question about the frame instead
+        of the profile's questions: no person fields, no reference pictures,
+        no object marks, and the observation sensors keep the answers of their
+        own questions. The run is still recorded in the history and counted
+        against the budget, because it costs the same.
         """
         config = self._coordinator.config
         camera = config.camera(camera_slug)
@@ -328,28 +340,36 @@ class VisionRunner:
             state.analyses_today = state.count_for(today) + 1
             self._coordinator.async_update_listeners()
             frame: CapturedFrame | None = None
-            # Only enabled people, and only when this camera opted in.
+            adhoc: tuple[Observation, ...] = (
+                (Observation(ADHOC_KEY, ObservationType.TEXT, question),)
+                if question is not None
+                else ()
+            )
+            # Only enabled people, and only when this camera opted in - and
+            # never for an ad-hoc question, which is about itself alone.
             persons: tuple[PersonProfile, ...] = (
                 tuple(p for p in config.persons.people if p.enabled)
-                if profile.detect_persons
+                if profile.detect_persons and not adhoc
                 else ()
             )
             # WHERE things are is only worth asking when there is a picture
-            # entity to draw it into.
-            want_marks = profile.frame_sensor and profile.mark_objects
+            # entity to draw it into, and not for an ad-hoc question.
+            want_marks = bool(profile.frame_sensor and profile.mark_objects) and not adhoc
             # Whether a model is involved at all. Without a question, a person
             # or positions to ask for, the run belongs to the picture entity
             # alone: the frame of this moment, captured and kept, and no
             # request sent anywhere.
             needs_model = asks_model(
-                profile, VisionRequest(persons=persons, mark_objects=want_marks)
+                profile,
+                VisionRequest(persons=persons, mark_objects=want_marks, questions=adhoc),
             )
             try:
                 # References first - they are static files and must not sit
-                # between the frame grab and the request.
+                # between the frame grab and the request. An ad-hoc question
+                # travels without them: they belong to the profile's questions.
                 references = (
                     await self._async_load_references(profile, persons)
-                    if needs_model
+                    if needs_model and not adhoc
                     else ()
                 )
                 # The picture is taken here and nowhere earlier. The distance
@@ -372,6 +392,7 @@ class VisionRunner:
                             persons=persons,
                             mark_objects=want_marks,
                             marks_model=profile.marks_model if want_marks else "",
+                            questions=adhoc,
                         ),
                     )
                 else:
@@ -390,7 +411,10 @@ class VisionRunner:
 
             state.last_error = None
             state.last_run = dt_util.utcnow()
-            state.values.update(result.values)
+            if not adhoc:
+                # An ad-hoc answer belongs to the person who asked, not to the
+                # sensors, which report their own questions.
+                state.values.update(result.values)
             marked = await self._async_render_marks(want_marks, frame, result)
             # A True is a sighting; a False is nothing at all - only the
             # tracker's timer ever switches a person to absent.

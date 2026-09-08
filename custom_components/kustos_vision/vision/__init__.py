@@ -89,6 +89,12 @@ class VisionRequest:
     """The grounding model of the split flow, at the same endpoint. Empty:
     the main model answers the marks field itself in one request."""
 
+    questions: tuple[Observation, ...] = ()
+    """Questions asked for this one request instead of the profile's, such as
+    what a person just asked their voice assistant. When set they are the only
+    fields: no profile questions, no person fields. The answer is about this
+    picture and this question, and the sensors keep their own answers."""
+
 
 @dataclass(frozen=True, slots=True)
 class VisionResult:
@@ -242,5 +248,7 @@ def analysis_fields(
     person fields. One function, used for the schema AND for reading the
     answer, so the two cannot disagree about what was asked.
     """
+    if request is not None and request.questions:
+        return list(request.questions)
     extra = person_observations(request.persons) if request is not None else ()
     return [*profile.active_observations, *extra]

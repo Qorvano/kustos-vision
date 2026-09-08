@@ -27,17 +27,19 @@ from .const import DOMAIN
 from .coordinator import CamwatchCoordinator
 from .core.config import CameraConfig
 from .vision import VisionError
+from .vision_runner import ADHOC_KEY
 
 # Domain-prefixed, which Home Assistant requires of integration tools since
 # 2026.9 so that two integrations cannot offer the same name.
 TOOL_NAME = f"{DOMAIN}__LookAtCamera"
 
 TOOL_PROMPT = (
-    f"Use {TOOL_NAME} when asked what is happening, going on or visible at a"
-    " camera or in an area with a camera right now: it takes a fresh picture"
-    " and answers the camera's configured questions from it. The camera"
-    " sensors only hold the answers from the last trigger. Cameras and the"
-    " areas they watch:"
+    f"Use {TOOL_NAME} for any question about what a camera sees right now:"
+    " what is happening or visible in an area with a camera, whether something"
+    " or someone is there, what something looks like. It takes a fresh picture"
+    " and has it answer the person's question, passed verbatim. The camera"
+    " sensors only hold answers from the last trigger. Cameras and the areas"
+    " they watch:"
 )
 
 
@@ -75,13 +77,12 @@ def _area_name(hass: HomeAssistant, area_id: str | None) -> str | None:
 
 @callback
 def _analysable(coordinator: CamwatchCoordinator) -> list[CameraConfig]:
-    """The cameras a look would answer something for: those with a vision
-    profile that has at least one active question."""
+    """The cameras that can be looked through: those with a vision profile,
+    which is where the model to ask is configured."""
     return [
         camera
         for camera in coordinator.config.cameras
-        if (profile := coordinator.config.vision_for(camera.slug)) is not None
-        and profile.active_observations
+        if coordinator.config.vision_for(camera.slug) is not None
     ]
 
 
@@ -101,14 +102,21 @@ class LookAtCameraTool(Tool):
 
     name = TOOL_NAME
     description = (
-        "Look through a camera right now: takes a fresh picture and answers the"
-        " camera's configured questions from it, for what is happening or"
-        " visible there at this moment. Give the camera name or the area it"
+        "Look through a camera right now and answer a question about what it"
+        " sees: takes a fresh picture and has the vision model answer the"
+        " question from that picture. Give the camera name or the area it"
         " watches; without both, the camera in the area of the voice satellite"
         " is used."
     )
     parameters = vol.Schema(
         {
+            vol.Required(
+                "question",
+                description=(
+                    "The question to answer from the picture, in the person's"
+                    " own words and language."
+                ),
+            ): cv.string,
             vol.Optional(
                 "camera",
                 description="Name of the camera, case-insensitive.",
@@ -194,10 +202,12 @@ class LookAtCameraTool(Tool):
 
         # Forced, like the panel's button and the service: the person asked
         # this moment, so the cooldown does not apply. The daily budget does,
-        # and a run already in progress is not interrupted.
+        # and a run already in progress is not interrupted. The question goes
+        # to the model as the only field; the sensors are not involved.
+        question: str = args["question"]
         try:
             result = await self._coordinator.vision.async_analyse(
-                camera.slug, reason="assist", force=True
+                camera.slug, reason="assist", force=True, question=question
             )
         except VisionError as err:
             return {"success": False, "error": str(err)}
@@ -210,20 +220,21 @@ class LookAtCameraTool(Tool):
                 ),
             }
 
-        profile = self._coordinator.config.vision_for(camera.slug)
-        assert profile is not None
-
-        def label(key: str) -> str:
-            observation = profile.observation(key)
-            return observation.display_name if observation else key
-
+        if ADHOC_KEY not in result.values:
+            return {
+                "success": False,
+                "error": (
+                    f"{camera.name} gave no usable answer:"
+                    f" {result.problems.get(ADHOC_KEY, 'the model answered nothing')}"
+                ),
+            }
         return {
             "success": True,
             "result": {
                 "camera": camera.name,
                 "area": _area_name(hass, _camera_area_id(hass, self._coordinator, camera)),
-                "answers": {label(key): value for key, value in result.values.items()},
-                "unanswered": [label(key) for key in result.problems],
+                "question": question,
+                "answer": result.values[ADHOC_KEY],
                 "duration_s": round(result.duration_s, 1),
             },
         }

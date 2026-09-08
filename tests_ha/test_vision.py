@@ -1853,3 +1853,34 @@ async def test_the_sweep_leaves_every_other_entity_alone(
     assert ("binary_sensor", f"{entry.entry_id}_beispiel_vision_paket") in ids
     assert ("binary_sensor", f"{entry.entry_id}_beispiel_recording") in ids
     assert ("sensor", f"{entry.entry_id}_beispiel_used_storage") in ids
+
+
+# ----------------------------------------------------------------------
+# Ad-hoc questions
+# ----------------------------------------------------------------------
+
+
+async def test_an_ad_hoc_question_replaces_the_profiles_fields_for_one_run(
+    hass: HomeAssistant, setup_vision, analysed: list
+) -> None:
+    """What a person asks their voice assistant goes to the model as the only
+    field, without the profile's questions, people, references or marks, and
+    the sensors keep the answers of their own questions."""
+    entry = await setup_vision([profile(frame_sensor=True, mark_objects=True)])
+    runner = entry.runtime_data.vision
+    await runner.async_analyse("beispiel", force=True)  # the sensors get answers
+    assert runner.state_for("beispiel").values["paket"] is True
+
+    await runner.async_analyse(
+        "beispiel", reason="assist", force=True, question="Steht ein Auto da?"
+    )
+    request = analysed[-1]["request"]
+    assert [q.question for q in request.questions] == ["Steht ein Auto da?"]
+    assert request.persons == ()
+    assert request.references == ()
+    assert request.mark_objects is False
+
+    state = runner.state_for("beispiel")
+    assert state.values["paket"] is True
+    assert "antwort" not in state.values
+    assert state.history[0]["trigger"] == "assist"
