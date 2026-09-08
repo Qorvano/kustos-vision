@@ -1965,7 +1965,7 @@ async function ne() {
       s.discard();
   return !0;
 }
-const Pe = "0.16.3", xs = "kustos-vision-built:0.16.3", _s = {
+const Pe = "0.16.4", xs = "kustos-vision-built:0.16.4", _s = {
   ptz_up: "Schwenken hoch",
   ptz_down: "Schwenken runter",
   ptz_left: "Schwenken links",
