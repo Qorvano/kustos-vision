@@ -1,0 +1,248 @@
+"""The LLM tool that looks through a camera right now.
+
+The observation sensors hold the answer from the last trigger, which can be
+minutes or hours old. A person asking their voice assistant what is going on
+in the garden wants the picture of this moment, so the assistant needs a way
+to ask for one: this tool runs an analysis with the camera's configured
+questions and hands the answers back to the model, which then phrases them.
+
+Home Assistant's llm integration discovers this module in the package and
+offers the tool through the Assist API, the same way climate_mode does.
+"""
+
+from __future__ import annotations
+
+from typing import override
+
+import voluptuous as vol
+from homeassistant.components.llm import LLMTools
+from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers import area_registry as ar
+from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers.llm import LLM_API_ASSIST, LLMContext, Tool, ToolInput
+from homeassistant.util.json import JsonObjectType
+
+from .const import DOMAIN
+from .coordinator import CamwatchCoordinator
+from .core.config import CameraConfig
+from .vision import VisionError
+
+# Domain-prefixed, which Home Assistant requires of integration tools since
+# 2026.9 so that two integrations cannot offer the same name.
+TOOL_NAME = f"{DOMAIN}__LookAtCamera"
+
+TOOL_PROMPT = (
+    f"Use {TOOL_NAME} when asked what is happening, going on or visible at a"
+    " camera or in an area with a camera right now: it takes a fresh picture"
+    " and answers the camera's configured questions from it. The camera"
+    " sensors only hold the answers from the last trigger. Cameras and the"
+    " areas they watch:"
+)
+
+
+@callback
+def _coordinator(hass: HomeAssistant) -> CamwatchCoordinator | None:
+    entries = hass.config_entries.async_loaded_entries(DOMAIN)
+    return entries[0].runtime_data if entries else None
+
+
+@callback
+def _camera_area_id(
+    hass: HomeAssistant, coordinator: CamwatchCoordinator, camera: CameraConfig
+) -> str | None:
+    """The area a camera belongs to.
+
+    The camera's own setting from the panel wins; without one, the area the
+    user assigned to the camera's device in Home Assistant counts, because
+    that is where people put cameras into rooms.
+    """
+    if camera.area_id:
+        return camera.area_id
+    device = dr.async_get(hass).async_get_device(
+        identifiers={(DOMAIN, f"{coordinator.entry.entry_id}_{camera.slug}")}
+    )
+    return device.area_id if device else None
+
+
+@callback
+def _area_name(hass: HomeAssistant, area_id: str | None) -> str | None:
+    if area_id is None:
+        return None
+    area = ar.async_get(hass).async_get_area(area_id)
+    return area.name if area else None
+
+
+@callback
+def _analysable(coordinator: CamwatchCoordinator) -> list[CameraConfig]:
+    """The cameras a look would answer something for: those with a vision
+    profile that has at least one active question."""
+    return [
+        camera
+        for camera in coordinator.config.cameras
+        if (profile := coordinator.config.vision_for(camera.slug)) is not None
+        and profile.active_observations
+    ]
+
+
+@callback
+def _describe(
+    hass: HomeAssistant, coordinator: CamwatchCoordinator, cameras: list[CameraConfig]
+) -> str:
+    lines = []
+    for camera in cameras:
+        area = _area_name(hass, _camera_area_id(hass, coordinator, camera))
+        lines.append(f"{camera.name} ({area or 'no area'})")
+    return ", ".join(lines)
+
+
+class LookAtCameraTool(Tool):
+    """Take a fresh picture with a camera and answer its questions from it."""
+
+    name = TOOL_NAME
+    description = (
+        "Look through a camera right now: takes a fresh picture and answers the"
+        " camera's configured questions from it, for what is happening or"
+        " visible there at this moment. Give the camera name or the area it"
+        " watches; without both, the camera in the area of the voice satellite"
+        " is used."
+    )
+    parameters = vol.Schema(
+        {
+            vol.Optional(
+                "camera",
+                description="Name of the camera, case-insensitive.",
+            ): cv.string,
+            vol.Optional(
+                "area",
+                description="Name of the area the camera watches.",
+            ): cv.string,
+        }
+    )
+
+    def __init__(self, coordinator: CamwatchCoordinator) -> None:
+        self._coordinator = coordinator
+
+    def _by_name(
+        self, hass: HomeAssistant, cameras: list[CameraConfig], name: str
+    ) -> list[CameraConfig]:
+        wanted = name.strip().casefold()
+        return [c for c in cameras if wanted in (c.name.casefold(), c.slug)]
+
+    def _by_area(
+        self, hass: HomeAssistant, cameras: list[CameraConfig], area_id: str
+    ) -> list[CameraConfig]:
+        return [
+            c for c in cameras if _camera_area_id(hass, self._coordinator, c) == area_id
+        ]
+
+    @override
+    async def async_call(
+        self, hass: HomeAssistant, tool_input: ToolInput, llm_context: LLMContext
+    ) -> JsonObjectType:
+        args = self.parameters(tool_input.tool_args)
+        cameras = _analysable(self._coordinator)
+        available = _describe(hass, self._coordinator, cameras)
+
+        if name := args.get("camera"):
+            matches = self._by_name(hass, cameras, name)
+            if not matches:
+                return {
+                    "success": False,
+                    "error": f"No camera named '{name}'. Cameras: {available}",
+                }
+        elif area := args.get("area"):
+            entry = ar.async_get(hass).async_get_area_by_name(area)
+            if entry is None:
+                return {"success": False, "error": f"Area '{area}' does not exist"}
+            matches = self._by_area(hass, cameras, entry.id)
+            if not matches:
+                return {
+                    "success": False,
+                    "error": f"No camera watches area '{area}'. Cameras: {available}",
+                }
+        else:
+            device = (
+                dr.async_get(hass).async_get(llm_context.device_id)
+                if llm_context.device_id
+                else None
+            )
+            if device is None or not device.area_id:
+                return {
+                    "success": False,
+                    "error": f"Name a camera or an area. Cameras: {available}",
+                }
+            matches = self._by_area(hass, cameras, device.area_id)
+            if not matches:
+                return {
+                    "success": False,
+                    "error": (
+                        f"No camera watches the area of this device"
+                        f" ({_area_name(hass, device.area_id)}). Cameras: {available}"
+                    ),
+                }
+
+        if len(matches) > 1:
+            return {
+                "success": False,
+                "error": (
+                    "Several cameras match, name one:"
+                    f" {_describe(hass, self._coordinator, matches)}"
+                ),
+            }
+        camera = matches[0]
+
+        # Forced, like the panel's button and the service: the person asked
+        # this moment, so the cooldown does not apply. The daily budget does,
+        # and a run already in progress is not interrupted.
+        try:
+            result = await self._coordinator.vision.async_analyse(
+                camera.slug, reason="assist", force=True
+            )
+        except VisionError as err:
+            return {"success": False, "error": str(err)}
+        if result is None:
+            return {
+                "success": False,
+                "error": (
+                    f"{camera.name} could not be analysed right now: today's"
+                    " analysis budget is used up or an analysis is already running."
+                ),
+            }
+
+        profile = self._coordinator.config.vision_for(camera.slug)
+        assert profile is not None
+
+        def label(key: str) -> str:
+            observation = profile.observation(key)
+            return observation.display_name if observation else key
+
+        return {
+            "success": True,
+            "result": {
+                "camera": camera.name,
+                "area": _area_name(hass, _camera_area_id(hass, self._coordinator, camera)),
+                "answers": {label(key): value for key, value in result.values.items()},
+                "unanswered": [label(key) for key in result.problems],
+                "duration_s": round(result.duration_s, 1),
+            },
+        }
+
+
+@callback
+def async_get_tools(
+    hass: HomeAssistant, llm_context: LLMContext, api_id: str
+) -> LLMTools | None:
+    """Offer the tool while a camera has questions to answer."""
+    if api_id != LLM_API_ASSIST:
+        return None
+    coordinator = _coordinator(hass)
+    if coordinator is None:
+        return None
+    cameras = _analysable(coordinator)
+    if not cameras:
+        return None
+    return LLMTools(
+        tools=[LookAtCameraTool(coordinator)],
+        prompt=f"{TOOL_PROMPT} {_describe(hass, coordinator, cameras)}",
+    )

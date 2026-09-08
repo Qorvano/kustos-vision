@@ -21,6 +21,7 @@
   "version": "0.15.2",
   "after_dependencies": [
     "ai_task",
+    "llm",
     "media_source"
   ]
 }

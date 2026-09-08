@@ -155,6 +155,14 @@ Kustos Vision's own triggers would miss. `button.<camera>_analyse_now` does the
 same without returning anything, for automations and dashboards that only need
 the sensors updated.
 
+**Voice assistants**: an LLM-based Assist agent gets the tool
+`kustos_vision__LookAtCamera`. Asked what is happening at a camera or in an
+area right now, the model takes a fresh picture through it and answers the
+camera's questions from that picture instead of quoting the sensors, which
+only hold the answers from the last trigger. Without a camera or area named,
+the camera in the voice satellite's area is used. Cooldown is skipped, the daily
+budget is not.
+
 ## Recording layout
 
 ```
