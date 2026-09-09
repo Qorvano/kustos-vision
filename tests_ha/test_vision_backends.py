@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 
 import pytest
 from homeassistant.core import HomeAssistant
@@ -15,7 +16,7 @@ from custom_components.kustos_vision.core.config import (
     VisionProfile,
 )
 from custom_components.kustos_vision.core.observations import Observation, ObservationType
-from custom_components.kustos_vision.vision import VisionError, build_prompt
+from custom_components.kustos_vision.vision import VisionError, VisionRequest, build_prompt
 from custom_components.kustos_vision.vision.openai_compat import _endpoint, _extract
 
 CAMERA = CameraConfig(
@@ -42,6 +43,38 @@ PROFILE = VisionProfile(
 
 def test_the_prompt_names_the_camera() -> None:
     assert "Beispiel" in build_prompt(CAMERA, PROFILE)
+
+
+def test_the_prompt_starts_with_what_every_analysis_shares() -> None:
+    """Regression: every analysis begins with the same instructions.
+
+    The model server keeps a request in the slot whose cached prompt shares
+    the longest prefix with it, but only when that prefix covers a tenth of
+    the request. With the camera name in the first sentence, two analyses
+    shared a dozen tokens, each fell back to the least recently used slot and
+    evicted the voice assistant's conversation from the model (2026-09-09).
+    """
+    other = CameraConfig(slug="andere", name="Andere", streams=CAMERA.streams)
+    with_context = VisionProfile(
+        camera_slug="beispiel",
+        backend=PROFILE.backend,
+        observations=PROFILE.observations,
+        context="Die Kamera zeigt den Gehweg vor dem Haus.",
+    )
+    adhoc = VisionRequest(
+        questions=(Observation("antwort", ObservationType.TEXT, "Was ist zu sehen?"),)
+    )
+    prompts = [
+        build_prompt(CAMERA, PROFILE),
+        build_prompt(other, PROFILE),
+        build_prompt(CAMERA, with_context),
+        build_prompt(CAMERA, with_context, adhoc),
+    ]
+    shared = os.path.commonprefix(prompts)
+    # everything up to the camera's name is identical for every analysis
+    assert "Answer each field from what is visible" in shared
+    assert shared.endswith('This is a still frame from a camera called "')
+    assert "Beispiel" not in shared
 
 
 def test_the_prompt_carries_the_users_context() -> None:

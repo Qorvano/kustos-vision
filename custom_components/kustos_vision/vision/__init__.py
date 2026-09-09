@@ -141,9 +141,27 @@ def build_prompt(
     wants that question answered from the picture, and nothing else. Measured
     live on 2026-09-09: with a description present, "what do you see" came
     back as "nothing unusual".
+
+    The instructions that are the same for every camera and every kind of
+    request come first, the camera's name and the owner's description after
+    them. llama.cpp serves a request from the slot whose cached prompt shares
+    the longest prefix with it, but only when that prefix covers at least a
+    tenth of the request (its default slot-prompt-similarity). With the camera
+    name in the first sentence two analyses shared a dozen tokens, every
+    analysis fell back to the least recently used slot and evicted the voice
+    assistant's conversation from the model, which then paid for its whole
+    prompt again. Measured on 2026-09-09 with the server's slot debugging.
     """
     adhoc = request is not None and bool(request.questions)
     parts = [
+        "Answer each field from what is visible in this frame alone. "
+        "Do not infer what is likely, and do not guess; do not carry over "
+        "anything from earlier frames. Each field carries its own instruction "
+        "for what to answer when something cannot be seen - follow that "
+        "instruction rather than inventing a word that stands for nothing.",
+        "The camera may have switched to infrared, in which case the picture "
+        "is monochrome and carries no colour information at all. A grey "
+        "object is not evidence of any colour.",
         f'This is a still frame from a camera called "{camera.name}".',
     ]
     if profile.context.strip() and not adhoc:
@@ -159,18 +177,6 @@ def build_prompt(
             "not an observation. Never answer by repeating it; answer from "
             "what THIS frame shows beyond or different from that baseline."
         )
-    parts.append(
-        "Answer each field from what is visible in this frame alone. "
-        "Do not infer what is likely, and do not guess; do not carry over "
-        "anything from earlier frames. Each field carries its own instruction "
-        "for what to answer when something cannot be seen - follow that "
-        "instruction rather than inventing a word that stands for nothing."
-    )
-    parts.append(
-        "The camera may have switched to infrared, in which case the picture "
-        "is monochrome and carries no colour information at all. A grey "
-        "object is not evidence of any colour."
-    )
     return "\n\n".join(parts)
 
 
